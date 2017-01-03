@@ -1,0 +1,8 @@
+<div class="buffer"><div id="{$id}-range-integer"></div></div>
+<script type="text/javascript">
+    $('div#{$id}-range-slider').editRangeSlider({
+        step: 1,
+        defaultValues: { min: {$min}, max: {$max}},
+        bounds: { min: {$from}, max: {$to}}
+    });
+</script>

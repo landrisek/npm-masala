@@ -1,0 +1,13 @@
+<label for="amount">{_"$id"}:</label>
+<input type="text" id="{$id}-range-amount" readonly style="border:0; font-weight:bold;">
+<div class="buffer"><div id="{$id}-range-float"></div></div>
+<script type="text/javascript">
+    $('div#float-slider').slider({
+        range: true,
+        min: parseFloat({$min}),
+        max: parseFloat({$max}),
+        step: 0.1,
+        values: [ parseFloat({$from}), parseFloat({$to}) ],
+        slide: function( event, ui ) { $('#amount').val(ui.values[0] + ' - ' + ui.values[1]); }
+    });
+</script>

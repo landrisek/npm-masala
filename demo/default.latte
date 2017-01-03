@@ -1,0 +1,104 @@
+<h2>Example of usage</h2>
+<h3>Step1: register parameters and components in config.neon or config.local.neon:</h3>
+<p>parameters:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;masala:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;port: 8000</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypt: 'aes192'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password:'11111111111111111111111111111111'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash: '1234567890123456'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: 'log'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;table.column:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDefaultValue:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service: 'parent->getPresenter()->myService'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method: 'myMethod'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameters: null</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myComponentMethod:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service: 'parent->getPresenter()->filtersModel'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method: 'getFilters'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameters: 'parent->getPresenter()->myModel->myMethod()'</p>
+<p>services:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\ExportService(%tempDir%)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\IEditFormFactory</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\MockModel(%masala%)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\IImportFormFactory</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\IFormFactory</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\IMasalaFactory</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\MockService</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;- Masala\NetteBuilder(%masala%)</p>
+<h3>Step2: inject registered components:</h3>
+<p>/** @var Masala\IBuilder */</p>
+<p>public $grid;</p>
+<p>/** @var Masala\IMasalaFactory @inject */</p>
+<p>public $MasalaFactory;</p>
+<p>/** @var Masala\IEditFormFactory @inject */</p>
+<p>public $masalaFormFactory;</p>
+<h3>Step3: redefine Presenter parent for Nittro\Bridges\NittroUI\Presenter and call paginator snippet on startup (@todo: add dependencies to composer.json)</h3>
+<p>public actionDefault() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp$this->setDefaultSnippets(['grid-paginator']);</p>
+<p>}</p>
+<h3>Step4a: call query methods in action method:</h3>
+<p>public actionDefautl() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp$this->grid->table($table)</p>
+<p>}</p>
+<h3>Step4b: or add grid dependency in model and define query in model:</h3>
+<p>public function __construct(\Masala\IBuilder $grid) { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;$this->grid = $grid</p>
+<p>}</p>
+<p>public function getData($table) { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->grid->table($table)</p>
+<p>}</p>
+<h3>Step5: create components in your presenter:</h3>
+<p>protected function createComponentMasala() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->MasalaFactory->create()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;->setGrid($this->grid);</p>
+<p>}</p>
+<p>protected function createComponentSmartForm() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->masalaFormFactory->create()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;->setSetting($this->setting);</p>
+<p>}</p>
+<h3>Step6: use annotation in $this->grid->select() method OR as comment in MySQL columns</h3>
+<p>'@Api:Demo' => 'not show column in all actions of ApiModule\DemoPresenter',</p>
+<p>'@Api:Demo:default' => 'not show column in default action of ApiModule\DemoPresenter',</p>
+<p>'@cke3' => 'enable CKEditor 3 instead of CKEditor 4',</p>
+<p>'@disable' => 'render but disable to edit column in EditForm',</p>
+<p>'@enum' => 'create select filter from enum values',</p>
+<p>'@fetch' => 'set first available default value in filter',</p>
+<p>'@filter' => 'use selecbox as filter',</p>
+<p>'@image' => 'render as image tag with column content in src attribute',</p>
+<p>'@hidden' => 'does not render nor select column from table',</p>
+<p>'@multi' => 'create multiselect from column in SmartForm',</p>
+<p>'@multiupload' => '->addMultipleUpload',</p>
+<p>'@onchange' => '->setAttribute("onchange", "submit()"',</p>
+<p>'@select' => 'create select box in grid',</p>
+<p>'@select:child_row' => 'create select box in grid and reset child row onchange',</p>
+<p>'@join:table.column' => 'join table same name as presenter action and column demo on annoted column',</p>
+<p>'@unrender' => 'select column for filtering and where clause but not render in grid',</p>
+<p>'@upload' => '->addUpload',</p>
+<p>'@style' => 'include cell content as css style',</p>
+<p>'@svg' => 'render cell content as coordinates in json for svg polyline'];</p>
+<p>'@text' => 'render text input',</p>
+<p>'@textarea' => 'rendet textarea input',</p>
+<p>'@unedit' => 'does not render column in SmartForm',</p>
+<p>'@unfilter' => 'does not render filter for given column',</p>
+<p>'<a class={ $control}-redraw id={ $row->getPrimary()}>update</a>' => 'add this to column.latte to redraw given row'<p>
+<h3>Step7: use this->grid->where() as nette database, third argument is callback for condition</h3>
+<p>'->where("key", "?") => 'use given key as placeholder in query'</p>
+<h3>Step8a: render in template with nitro:</h3>
+<p>'<div n:snippet="content" class="loading">{ include #content}</div>'</p>
+<p>'<div n:snippet="loading"><script type="text/javascript">$("#snippet--content").removeClass("loading");</script></div>'</p>
+<p>'{ block #content}{ control masala}{ /block} </div>'</p>
+<h3>Step8b: or without nitro:</h3>
+<p>'{ control masala}{ /block}'</p>
+<h3>Other functionality:</h3>
+<p><a n:href="Demo:config">Call default methods and values on column through config.neon</a></p>
+<p><a n:href="Demo:import">Import csv</a></p>
+<p><a n:href="Demo:export">Export csv</a></p>
+<p><a n:href="Demo:noSql">NoSQL</a></p>
+<p><a n:href="Demo:filter">Additional Filtering</a></p>
+<p><a n:href="Demo:dialog">Dialog</a></p>
+<p><a n:href="Demo:arbitrary">Choose arbitrary values</a></p>
+<p><a n:href="Demo:concat">Set values to concat</a></p>
+<p><a n:href="Demo:link">Set links for item</a></p>
+<p><a n:href="Demo:redraw">Use class "$control-redraw" and id $row->getPrimary() for a tag to redraw only specific row(s)</a></p>
+<p>Use callback to update data on row $this->grid->redraw([$this->myService, 'myMethod']);</p>
+<p>Use third condition in where method to create min and max range filter (data or numeric) data on row $this->grid->where('column >', 10, 20);</p>

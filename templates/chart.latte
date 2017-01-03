@@ -1,0 +1,19 @@
+{block chart}
+<script type="text/javascript" src="{$basePath}/bower/vis/dist/vis.js"></script>
+<link href="{$basePath}/bower/vis/dist/vis.css" rel="stylesheet">
+<div id="visualization"></div>
+<script type="text/javascript">
+    var container = document.getElementById('visualization');
+    var items = [];
+    {foreach $items as $coordinate}
+    items.push({ x: {$coordinate['x']}, y: {$coordinate['y']}});
+    {/foreach}
+    /** var items = {$items}; */
+    var dataset = new vis.DataSet(items);
+    var options = {
+        start: {$options['start']},
+        end: {$options['stop']}
+    };
+    var graph2d = new vis.Graph2d(container, dataset, options);
+</script>
+{/block}

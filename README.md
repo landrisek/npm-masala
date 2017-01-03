@@ -1,2 +1,2 @@
-# sqlgrid
-Simple datagrid directly generated from sql tables
+# Masala
+True jquery grid running on SQL and NoSQL.

@@ -1,0 +1,8 @@
+{define body}
+    {form gridForm}
+        {include $this->grid->getLatte('top')}
+        {if count($form->getComponents()) > 2}
+            {include widget}
+        {/if}
+    {/form}
+{/define}

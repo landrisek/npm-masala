@@ -1,0 +1,53 @@
+div.hole-widget {
+    top: 3px;
+    left:-60px;
+    position: relative;
+    border: none !important;
+    z-index: 0;
+    opacity: 0.99;
+    width: 58px;
+    height: 58px;
+    border-radius: 80px;
+    -webkit-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+    -moz-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+    box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+    background: -webkit-linear-gradient(top, #222 0%, #45484d 100%);
+    background: -moz-linear-gradient(top, #222 0%, #45484d 100%);
+    background: -o-linear-gradient(top, #222 0%, #45484d 100%);
+    background: -ms-linear-gradient(top, #222 0%, #45484d 100%);
+    background: linear-gradient(top, #222 0%, #45484d 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#222', endColorstr='#45484d',GradientType=0 );
+}
+div.builder-widget {
+    top: -63px;
+    left:-66px;
+    margin-bottom: -135px;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative;
+    width: 72px;
+    height: 72px;
+    background: url("../images/logo.png") no-repeat scroll left center transparent !important;
+}
+.masala-widget{
+    background-color: #5A5A5A;
+    border-radius: 40px 0 0 40px;
+    padding:0 420px 0 66px;
+    display: block;
+    float: right;
+    height: 65px;
+    width: 275px;
+    z-index: 99998;
+    position:fixed;
+    right:-420px;
+    top:20%;
+    box-shadow: inset 2px 2px 3px #323232;
+    box-shadow: 10px 10px 30px rgba(0,0,0,0.3);
+}
+.inside-widget {
+    width: 275px;
+    position: relative;
+    margin-top: 10px;
+    padding: 10px 400px 10px 10px;;
+    box-shadow: inset 0 0 30px rgba(50,50,50,1), 1px 1px 3px rgba(50,50,50,1);
+}

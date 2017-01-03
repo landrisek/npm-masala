@@ -1,0 +1,16 @@
+{block dialog}
+<div ng-app="Dialog">
+    <div ng-controller="MainCtrl" style="display:none">
+        <a id="lengthyProcess" href="javascript:;" ng-click="openConfirm('lengthyProcess')" ng-dialog-controller="InsideCtrl" ng-dialog-data="{{ jsonData}}">{_'change_status'|firstUpper}</a>
+        <script type="text/ng-template" id="modalDialogId-lengthyProcess">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar"></div>            
+            </div>
+            <div class="ngdialog-buttons">
+                <a href="javascript:;" onclick="handleStart();" class="ngdialog-button ngdialog-button-primary">{_'run'|firstUpper}</a>
+                <a href="{link postpone!}" class="ngdialog-button ngdialog-button-secondary noajax">{_'postpone'|firstUpper}</a>
+            </div>
+        </script>
+    </div>
+</div>
+{/block}

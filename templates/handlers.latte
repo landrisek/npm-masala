@@ -1,0 +1,238 @@
+{block handlers}
+<script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
+<script type="text/javascript">
+    /** triggers */
+    handleFilter();
+    window.masalaData = [];
+    if('handle()' !== {$trigger}) {
+        {$trigger|noescape};
+    }
+    function handleActive(button, sum) {
+        var page = parseInt($(button).text());
+        $('.paginate.paginate-dark.wrapper li a').attr('class', '');
+        $('#pagination-top-current').val(page);
+        $('#pagination-bottom-current').val(page);
+        handlePaginate(page, sum);
+    }
+    function handleCancel() {
+        $('#snippet--content').addClass('loading');
+        return true;
+    }
+    function handleCsv() {
+        window.masalaHandler = {link import!, 'stop'=>$stop};
+        window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
+    }
+    function handleDialog(primary, id, name) {
+        $('.' + {$control->getName()} + '-widget').animate({ right: '420'}, 'slow');
+        $('.' + {$control->getName()} + '-widget .name-widget').text(name);
+        $('.' + {$control->getName()} + '-widget .name-widget').attr('id', id);
+        $('.' + {$control->getName()} + '-widget .name-widget').attr('primary', primary);
+    }
+    function handleDone() {
+
+    }
+    function handleExport() {
+        window.masalaHandler = {link export!};
+        angular.element('#lengthyProcess').triggerHandler('click');
+    }
+    function handleFilter() {
+        console.log('loading filter...');
+        var data = getFilters();
+        /** sort */
+        $.nette.ajax({
+            type: 'post',
+            data: data,
+            url: {link filter!},
+            success: function (payload) {
+                $('tbody').replaceWith(payload);
+                $('#snippet--content').removeClass('loading');
+            }
+        });
+        /** paginate */
+        $.ajax({
+            type: 'post',
+            data: data,
+            url: {link paginate!},
+            success: function (payload) {
+                handlePaginate(1, payload);
+                if(40 < payload) {
+                    $('div#pagination-top').slider({
+                        range: false,
+                        min: parseFloat(1),
+                        max: parseFloat(payload - 40),
+                        step: 1,
+                        values: [ parseFloat(1)],
+                        slide: function( event, ui ) {
+                            $('#pagination').val(ui.values[0]);
+                            $('#pagination-bottom').slider('values', [ui.values[0]]);
+                            $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(ui.values[0], payload, 'top'));
+                            $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(ui.values[0], payload, 'bottom'));
+                            var page = $('input#pagination-top-current').val();
+                            $('a#page-bottom-' + page).attr('class', 'active');
+                            $('a#page-top-' + page).attr('class', 'active');
+                        }
+                    }).slider('pips').slider('float');
+                    $('div#pagination-bottom').slider({
+                        range: false,
+                        min: parseFloat(1),
+                        max: parseFloat(payload - 40),
+                        step: 1,
+                        values: [ parseFloat(1)],
+                        slide: function( event, ui ) {
+                            $('#pagination').val(ui.values[0]);
+                            $('#pagination-top').slider('values', [ui.values[0]]);
+                            $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(ui.values[0], payload, 'top'));
+                            $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(ui.values[0], payload, 'bottom'));
+                            var page = $('input#pagination-top-current').val();
+                            $('a#page-bottom-'- + page).attr('class', 'active');
+                            $('a#page-top-' + page).attr('class', 'active');
+                        }
+                    }).slider('pips');
+                    $('input#pagination').val( $('div#pagination-top').slider('values',0) + ' - ' + payload );
+                    $('input#pagination').val( $('div#pagination-bottom').slider('values',0) + ' - ' + payload );
+                } else {
+                    $('div#pagination-top').hide();
+                }
+            }
+        });
+    }
+    function handleMessage() {
+
+    }
+    function handlePaginate(offset, sum) {
+        console.log('loading pagination...');
+        var data = getFilters();
+        data.offset = offset;
+        data.sum = sum;
+        /** sort */
+        $.nette.ajax({
+            type: 'post',
+            data: data,
+            url: {link filter!},
+            success: function (payload) {
+                if(40 < data.sum) {
+                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(1, data.sum, 'bottom'));
+                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, data.sum, 'top'));
+                } else {
+                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(data.offset, data.sum, 'bottom'));
+                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, data.sum, 'top'));
+                }
+                $('tbody').replaceWith(payload);
+                var page = $('input#pagination-top-current').val();
+                $('a#page-top-' + page).attr('class', 'active');
+                $('a#page-bottom-' + page).attr('class', 'active');
+                $('#snippet--content').removeClass('loading');
+            }
+        });
+        $('input#pagination').val( offset + ' - ' + sum);
+    }
+    function handlePrepare(data) {
+        $('#snippet--content').addClass('loading');
+        window.masalaHandler = {link prepare!};
+        window.masalaData = data;
+        window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
+    }
+    function handleRedraw(data) {
+        $.nette.ajax({
+            type: 'post',
+            url: {link redraw!},
+            data: data,
+            success: function (payload) {
+                var primary = 'tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:');
+                if('' === payload) {
+                    console.log(primary + ' hidden.');
+                    $(primary).hide();
+                } else {
+                    console.log(primary + ' loading...');
+                    $(primary).replaceWith(payload);
+                    $(primary).removeClass('loading');
+                }
+            }
+        });
+    }
+    function handleRun(payload) {
+        var data = getFilters();
+        data.header = {$header};
+        data.row = payload;
+        if (payload.run < parseInt(payload.stop)) {
+            $.nette.ajax({
+                type: 'post',
+                url: {link run!},
+                data: data,
+                success: function (payload) {
+                    handleRun(payload);
+                }
+            });
+            $('.progress .progress-bar').attr('data-transitiongoal', data.row['run'] / (data.row['stop'] / 100)).progressbar({ display_text: 'center'});
+        } else {
+            $.nette.ajax({ type: 'post',
+                url: {link done!},
+                data: data,
+                success: function(payload) {
+                    /* disable this redirect during debugging in console */
+                    location.href = payload;
+                    /* $('#snippet--content').removeClass('loading'); */
+                }});
+        }
+    }
+    function handleSort(column) {
+        var id = 'img#' + {$control->getName()} + '-' + column + '-';
+        $('tr.grid-columns').attr('order', column);
+        if('display: none;' == $(id + 'desc').attr('style')) {
+            $('.grid-columns img.sort').hide();
+            $(id + 'desc').show();
+            $('tr.grid-columns').attr('sort', 'desc');
+        } else if('display: none;' == $(id + 'asc').attr('style')) {
+            $('.grid-columns img.sort').hide();
+            $(id + 'asc').show();
+            $('tr.grid-columns').attr('sort', 'asc');
+        }
+        handleFilter();
+    }
+    function handleSubmit(submit) {
+        var data = getFilters();
+        $('.' + {$control->getName()} +'-widget .inside-widget textarea').each(function () {
+            var id = $(this).attr('id');
+            data[id] = $(this).val();
+        });
+        data.submit = submit;
+        data.id = $('.' + {$control->getName()} +'-widget .name-widget').attr('id');
+        $('#snippet--content').removeClass('loading');
+        data.primary = $('.' + {$control->getName()} + '-widget .name-widget').attr('primary');
+        $('tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:')).addClass('loading');
+        if(undefined === data.id) {
+            alert({_'There is nothing to edit. First choose item.'});
+            return false;
+        }
+        $.nette.ajax({
+            type: 'post',
+            url: {link submit!},
+            data: data,
+            success: function(payload) {
+                handleRedraw(payload);
+            }
+        });
+    }
+    function handleStart() {
+        var data = getFilters();
+        for (var key in masalaData) {
+            data[key] = masalaData[key];
+        };
+        $.nette.ajax({
+            type: 'post',
+            data: data,
+            url: masalaHandler,
+            success: function (payload) {
+                handleRun(payload);
+            }
+        });
+    }
+    function handleStorage(input) {
+        console.log('loading storage...');
+        $(input).keypress(function() {
+            console.log(input.val());
+        });
+        console.log(input);
+    }
+</script>
+{/block}

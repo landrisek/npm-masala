@@ -1,0 +1,20 @@
+<div class="{$control}-ranges"><div id="{$id}-range-date"></div></div>
+<script type="text/javascript">
+    var min = new Date({$min});
+    var max = new Date({$max});
+    var from = new Date({$from});
+    var to = new Date({$to});
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    $('div#' + {$id} + '-range-date').dateRangeSlider({
+        bounds: { min: min, max: max},
+        defaultValues: { min: from, max: to},
+        scales: [{
+            first: function (value) { return value; },
+            end: function (value) { return value; },
+            next: function (value) { var next = new Date(value); return new Date(next.setMonth(value.getMonth() + 1)); },
+            label: function (value) { return months[value.getMonth()]; },
+            format: function (tickContainer, tickStart, tickEnd) { tickContainer.addClass('myCustomClass'); }
+        }]
+    });
+    $('div.ui-rangeSlider-label-value').append('<p>' + {_'amount'} + '</p>');
+</script>

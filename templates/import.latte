@@ -1,0 +1,20 @@
+<h2>{_'source'|firstUpper} {$feed}</h2>
+{form $form}
+    {foreach $form->getComponents() as $component}
+        {if '_do' == $component->name}
+        {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
+            {label $component->name}
+            {input $component->name}
+        {else}
+        <div class="row">
+            <div class="form-group col-md-6">
+                <div class="form-group input-group">
+                    <span class="input-group-addon">{label$component->name /}</span>
+                    {input $component->name}
+                </div>
+            </div>
+        </div>
+        {/if}
+        <hr>
+    {/foreach}
+{/form}

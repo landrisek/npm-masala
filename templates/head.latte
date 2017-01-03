@@ -1,0 +1,55 @@
+{block head}
+	<link rel="stylesheet" href="{$basePath}/assets/{$control->getName()}/css/float-slider.css">
+	{var rand = rand(1, 15)}
+	<style>
+	.modal{
+    	background: rgba( 255, 255, 255, .8 ) 
+                url("{$basePath|noescape}/assets/{$control->getName()}/images/{if isset($settings->gif)}{$settings->gif}{else}pixar{/if}/{$rand}.gif")
+                50% 50% 
+                no-repeat;
+        }
+	</style>
+	<link rel="stylesheet" href="{$basePath}/assets/{$control->getName()}/css/loading.css">
+	<!-- dialog -->
+	<link rel="stylesheet" href="{$basePath}/bower/ng-dialog/css/ngDialog.css">
+	<link rel="stylesheet" href="{$basePath}/bower/ng-dialog/css/ngDialog-theme-default.css">
+	<link rel="stylesheet" href="{$basePath}/bower/ng-dialog/css/ngDialog-theme-plain.css">
+    <link rel="stylesheet" href="{$basePath}/assets/{$control->getName()}/css/paginate.css">
+	<!-- nittro -->
+	<script src="{$basePath}/bower/vis/dist/vis.min.js"></script>
+	<script src="{$basePath}/bower/promiz/promiz.js"></script>
+	<script src="{$basePath}/bower/nittro-core/dist/js/nittro-core.min.js"></script>
+    <script src="{$basePath}/bower/nittro-ajax/dist/js/nittro-ajax.min.js"></script>
+	<script src="{$basePath}/bower/nette-forms/src/assets/netteForms.js"></script>
+	<script src="{$basePath}/bower/nittro-page/dist/js/nittro-page.js"></script>
+	<!--<script src="{$basePath}/assets/{$control->getName()}/js/nittro-page.js"></script-->
+	<script src="{$basePath}/bower/nittro-application/dist/js/nittro-application.min.js"></script>
+	<script src="{$basePath}/bower/nittro-datetime/dist/js/nittro-datetime.min.js"></script>
+	<script src="{$basePath}/bower/nittro-neon/dist/js/nittro-neon.min.js"></script>
+	<script src="{$basePath}/bower/nittro-di/dist/js/nittro-di.min.js"></script>
+    <script src="{$basePath}/bower/nittro-page/src/js/bootstrap.js"></script>
+	<script src="{$basePath}/bower/nittro-core/src/js/stack.js" ></script>
+	<!--progressbar -->
+	<script type="text/javascript" src="{$basePath}/bower/bootstrap-progressbar/bootstrap-progressbar.js"></script>
+    <!-- pagination -->
+    <link rel="stylesheet" href="{$basePath}/bower/jQuery-ui-Slider-Pips/dist/jquery-ui-slider-pips.min.css">
+    <script src="{$basePath}/bower/jQuery-ui-Slider-Pips/dist/jquery-ui-slider-pips.min.js" ></script>
+	<!-- range -->
+    {if true == $grid->isRange()}
+	<link rel="stylesheet" id="themeCSS" href="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/css/iThing.css">
+	<link rel="stylesheet" href="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/css/style.css">
+	<link rel="stylesheet" href="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/css/float-slider.css">
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/lib/jquery.mousewheel.min.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSliderMouseTouch.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSliderDraggable.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSliderHandle.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSliderBar.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSliderLabel.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRangeSlider.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQDateRangeSliderHandle.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQDateRangeSlider.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQEditRangeSliderLabel.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQEditRangeSlider.js"></script>
+	<script src="{$basePath}/assets/{$control->getName()}/jQRangeSlider-5.7.2/jQRuler.js"></script>
+    {/if}
+{/block}

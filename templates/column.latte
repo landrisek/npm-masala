@@ -1,0 +1,10 @@
+{define row-actions}
+    <div class="btn-group" role="group" aria-label="...">
+        <a class="noajax" type="button" class="btn btn-default" data-toggle="tooltip" title="{_'edit'|firstUpper}" href="{plink ':'.$presenter->getName().':edit', id=> $row->id}">
+            <i class="fa fa-edit"></i>
+        </a>
+	{if isset($row->url)}
+	    <a href="{$row->url}" target="_blank">{_'link'|firstUpper}</a>
+	{/if}
+    </div>
+{/define}

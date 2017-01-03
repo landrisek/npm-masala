@@ -1,0 +1,38 @@
+{block import}
+    {import 'head.latte'}
+    {import 'filter.latte'}
+    {import 'widget.latte'}
+    {import 'body.latte'}
+    {import 'pagination.latte'}
+    {import 'redraw.latte'}
+    {import 'footer.latte'}
+    {import 'dialog.latte'}
+    {import 'getters.latte'}
+    {import 'handlers.latte'}
+{/block}
+{include head}
+{if is_object($grid->getService()) or is_object($grid->getImport())}
+    <a class="btn btn-success" href="javascript:;" onclick="angular.element('#lengthyProcess').triggerHandler('click');">{_'state'|firstUpper}</a><br>
+{/if}
+{if is_object($grid->getDialog())}
+    {include widget}
+{/if}
+{if is_object($grid->getExport())}
+    <a class="btn btn-success" href="javascript:;" onclick="handleExport();">{_'export'|firstUpper}</a>
+{/if}
+{if is_object($grid->getImport())}
+    {control importForm}
+{/if}
+<div class="grid" data-grid-name="{$control->getUniqueId()}">
+    {include pagination, type=>'top'}
+    <table class="table table-striped table-hover">
+        <thead>{include filter}</thead>
+        <tbody></tbody>
+    </table>
+    {include pagination, type=>'bottom'}
+</div>
+{include redraw}
+{include footer}
+{include dialog}
+{include getters}
+{include handlers}

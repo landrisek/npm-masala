@@ -1,0 +1,15 @@
+<tr id='{$control}-rows-{$primary}'>
+    {foreach $columns as $columnId => $column}
+        {if false == $builder->getAnnotation($columnId, 'unrender') and false == $builder->getAnnotation($columnId, 'range')}
+            <td class='grid-col-{$columnId}'>
+                {$builder->build($row, $columnId)|noescape}
+            </td>
+        {/if}
+    {/foreach}
+    <td class='grid-col-actions'>
+        {import $actions}
+        {ifset #row-actions}
+            {include #row-actions row => $row, primary => $primary}
+        {/ifset}
+    </td>
+</tr>
