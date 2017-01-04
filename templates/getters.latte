@@ -75,5 +75,38 @@
         url += '&' + {$control->getName()};
         return data;
     }
+    function getStorage() {
+        console.log('loading caching');
+        setInterval(function() {
+            var data = new Object();
+            var storage = new Object();
+            var keys =  JSON.parse(localStorage.getItem({$control->getName()} + ':keys'));
+            for(var id in keys) {
+                storage[id] = localStorage.getItem({$control->getName()} + ':' + id);
+            };
+            data.storage = storage;
+            var cache = new Object();
+            var hash =  JSON.parse(localStorage.getItem({$control->getName()} + ':hash'));
+            for(var id in hash) {
+                cache[id] = localStorage.getItem(id);
+            };
+            data.cache = cache;
+            console.log(data);
+            if(false == jQuery.isEmptyObject(storage)) {
+                $.nette.ajax({
+                    type: 'post',
+                    url: {link storage!},
+                    data: data,
+                    success: function(payload) {
+                        for(var id in payload) {
+                            localStorage.removeItem(id);
+                        }
+                        localStorage.removeItem({$control->getName()} + ':keys');
+                        localStorage.removeItem({$control->getName()} + ':hash');
+                    }
+                });
+            }
+        }, 7000);
+    }
 </script>
 {/block}

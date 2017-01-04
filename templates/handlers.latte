@@ -55,6 +55,9 @@
             url: {link paginate!},
             success: function (payload) {
                 handlePaginate(1, payload);
+                if(0 < $('tbody input').length) {
+                    getStorage();
+                }
                 if(40 < payload) {
                     $('div#pagination-top').slider({
                         range: false,
@@ -229,10 +232,23 @@
     }
     function handleStorage(input) {
         console.log('loading storage...');
-        $(input).keypress(function() {
-            console.log(input.val());
-        });
-        console.log(input);
+        var keys = localStorage.getItem({$control->getName()} + ':keys');
+        var hash = localStorage.getItem({$control->getName()} + ':hash');
+        var parent = input.parentsUntil('tbody').last();
+        parent.find(input).attr('value', input.val());
+        localStorage.setItem({$control->getName()} + ':' + input.attr('name'), input.val());
+        localStorage.setItem(parent.attr('id'), parent.html());
+        if(null === keys) {
+            keys = new Object();
+            hash = new Object();
+        } else {
+            keys = JSON.parse(keys);
+            hash = JSON.parse(hash);
+        }
+        keys[input.attr('name')] = true;
+        hash[parent.attr('id')] = true;
+        localStorage.setItem({$control->getName()} + ':keys', JSON.stringify(keys));
+        localStorage.setItem({$control->getName()} + ':hash', JSON.stringify(hash));
     }
 </script>
 {/block}

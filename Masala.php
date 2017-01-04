@@ -308,8 +308,21 @@ final class Masala extends Control implements IMasalaFactory {
     }
 
     public function handleStorage() {
-        $response = new JsonResponse([]);
-        return $this->presenter->sendResponse($response);
+        $response = [];
+        $storage = $this->presenter->request->getPost('storage');
+        foreach($storage as $id => $value) {
+            $response[$this->getName() . ':' . $id] = true;
+            $column = preg_replace('/\_(.*)/', '', $id);
+            $primary = preg_replace('/(.*)\_/', '', $id);
+            $this->grid->setRow($primary, [$column => $value]);
+        }
+        $cache = $this->presenter->request->getPost('cache');
+        foreach($cache as $key => $row) {
+            $response[$key] = true;
+            $this->grid->update($key, $row);
+        }
+        $json = new JsonResponse($response);
+        return $this->presenter->sendResponse($json);
     }
 
     public function handleSubmit() {

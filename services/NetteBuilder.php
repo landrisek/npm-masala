@@ -192,7 +192,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         } elseif (true == $this->getAnnotation($column, 'image')) {
             return '<br><img src="' . $cell . '" style="max-width:200px; max-height:200px;">';
         } elseif (true == $this->getAnnotation($column, 'text')) {
-            return '<input onchange="handleStorage($(this));" class="form-control" style="width:100%;" type="text" name="' . $column . '_' . $row->id . '" value="' . $cell . '">';
+            return '<input onkeyup="handleStorage($(this));" class="form-control" style="width:100%;" type="text" name="' . $column . '_' . $row->id . '" value="' . $cell . '">';
         } elseif (true == $this->getAnnotation($column, ['text', 'image'])) {
             return '<br><img src="' . $cell . '" style="max-width:200px; max-height:200px;"><input class="form-control" style="width:100%;" type="text" name="' . $column . '_' . $row->id . '" value="' . $cell . '">';
         } elseif (true == $this->getAnnotation($column, 'checkbox')) {
@@ -588,7 +588,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function flush($hash) {
-        return $this->cache->clean([Cache::ALL => [$hash]]);
+        $this->cache->clean([Cache::ALL => [$hash]]);
+        return $this->cache;
     }
 
     public function having($having) {
@@ -742,7 +743,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function update($key, $row) {
-        return $this->cache->save($key, $row);
+        $this->flush($key)->save($key, $row);
     }
 
     /** process methods */
