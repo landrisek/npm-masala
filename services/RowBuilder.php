@@ -4,6 +4,8 @@ namespace Masala;
 
 use Nette\Caching\Cache,
     Nette\Database\Context,
+    Nette\Database\Table\ActiveRow,
+    Nette\Database\Table\Selection,
     Nette\InvalidStateException,
     Nette\Caching\IStorage;
 
@@ -40,10 +42,10 @@ class RowBuilder {
     /** @var string */
     private $submit;
 
-    /** @var Nette\Database\Table\ActiveRow */
+    /** @var ActiveRow */
     private $data;
 
-    /** @var Nette\Database\Table\Selection */
+    /** @var Selection */
     private $resource;
 
     /** @var IEditFormService */
@@ -268,7 +270,7 @@ class RowBuilder {
     }
 
     /** delete */
-    public function delete($columns) {
+    public function delete() {
         return $this->resource->where($this->resource->getPrimary(), $this->data->getPrimary())
                         ->delete();
     }

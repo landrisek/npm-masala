@@ -16,6 +16,7 @@
     }
     function handleCancel() {
         $('#snippet--content').addClass('loading');
+        location.href = window.location.href;
         return true;
     }
     function handleCsv() {
@@ -44,7 +45,7 @@
             data: data,
             url: {link filter!},
             success: function (payload) {
-                $('tbody').replaceWith(payload);
+                $('tbody').replaceWith(payload.rows);
                 $('#snippet--content').removeClass('loading');
             }
         });
@@ -120,10 +121,11 @@
                     $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(data.offset, data.sum, 'bottom'));
                     $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, data.sum, 'top'));
                 }
-                $('tbody').replaceWith(payload);
+                $('tbody').replaceWith(payload.rows);
                 var page = $('input#pagination-top-current').val();
                 $('a#page-top-' + page).attr('class', 'active');
                 $('a#page-bottom-' + page).attr('class', 'active');
+                window.history.pushState('', 'title', payload.url);
                 $('#snippet--content').removeClass('loading');
             }
         });

@@ -4,7 +4,7 @@
 	<style>
 	.modal{
     	background: rgba( 255, 255, 255, .8 ) 
-                url("{$basePath|noescape}/assets/{$control->getName()}/images/{if isset($settings->gif)}{$settings->gif}{else}pixar{/if}/{$rand}.gif")
+                url("{$basePath|noescape}/assets/{$control->getName()}/images/{php echo date('M', strtotime('now'));}/{$rand}.gif")
                 50% 50% 
                 no-repeat;
         }

@@ -25,10 +25,13 @@ class EditForm extends Form implements IEditFormFactory {
     private $request;
 
     /** @var Array */
-    private $components;
+    private $components = [];
 
-    public function __construct(Array $components = [], TranslatorModel $translatorModel, MockService $mockService, IRequest $request) {
-        $this->components = [];
+    /** @var int */
+    private $upload;
+
+    public function __construct($upload, TranslatorModel $translatorModel, MockService $mockService, IRequest $request) {
+        $this->upload = intval($upload);
         $this->translatorModel = $translatorModel;
         $this->mockService = $mockService;
         $this->request = $request;
@@ -120,7 +123,7 @@ class EditForm extends Form implements IEditFormFactory {
                     $this->addUpload($name, $labelComponent, 1000);
                     $this->components[$name] = '[UPLOAD]';
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@multiupload')) {
-                    $this->addMultipleFileUpload($name, $labelComponent, 10);
+                    $this->addMultipleFileUpload($name, $labelComponent, $this->upload);
                     $this->components[$name] = '[UPLOAD]';
                 } elseif ('INT' == $column['nativetype']) {
                     $this->addText($name, $labelComponent . ':')->setType('number');
@@ -180,7 +183,7 @@ class EditForm extends Form implements IEditFormFactory {
         $primary = $this->setting->getData()->getPrimary();
         /** delete ; */
         if ('delete' === $this->setting->getSubmit()) {
-            $this->setting->delete($this->setting->getTable(), $primary);
+            $this->setting->delete();
             $this->getPresenter()->flashMessage(ucfirst($this->translatorModel->translate('item with')) . ' ID ' .
                     $primary . ' ' . $this->translatorModel->translate('has been erased from table') . ' ' .
                     $this->translatorModel->translate($this->setting->getTable()) . '.');

@@ -18,7 +18,7 @@
             var stop = sum;
         }
         var append = '<div class="paginate paginate-dark wrapper ' + id + '">';
-        for (i = offset; i < stop; i++) {
+        for (i = offset; i <= stop; i++) {
             if(i > sum) {
 
             } else if(i < 100) {
@@ -72,6 +72,7 @@
         /** order */
         data.order = $('tr.grid-columns').attr('order');
         data.sort = $('tr.grid-columns').attr('sort');
+        data.spice = {$spice};
         url += '&' + {$control->getName()};
         return data;
     }

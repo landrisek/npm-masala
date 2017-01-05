@@ -15,7 +15,6 @@ use Latte\Engine,
     Nette\InvalidStateException,
     Nette\Http\IRequest,
     Nette\Localization\ITranslator,
-    Nette\Utils\Paginator,
     Sunra\PhpSimple\HtmlDomParser;
 
 /** @author Lubomir Andrisek */
@@ -118,9 +117,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     private $where = [];
 
     /** @var Array */
-    private $queries;
-
-    /** @var Array */
     private $table;
 
     /** @var string */
@@ -147,7 +143,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var int */
     private $sum;
 
-    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, HtmlDomParser $dom, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator, Paginator $paginator) {
+    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, HtmlDomParser $dom, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator) {
         $this->config = $config;
         $this->translatorModel = $translatorModel;
         $this->mockService = $mockService;
@@ -155,9 +151,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->dom = $dom;
         $this->database = $database;
         $this->cache = new Cache($storage);
-        $this->queries = $httpRequest->getUrl()->getQueryParameters();
         $this->linkGenerator = $linkGenerator;
-        $this->paginator = $paginator;
     }
 
     /** getters */
@@ -202,7 +196,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         } elseif (true == $this->getAnnotation($column, 'select')) {
             $defaults = $this->config[$this->table . '.' . $column]['getDefaults'];
             $components = $this->mockService->getCall($defaults['service'], $defaults['method'], $defaults['parameters'], $this);
-            $select = '<select name="' . $column . '_' . $row->id . '" id="frm-masala-gridForm-' . $column . '-' . $row->id . '" class="form-control">';
+            $select = '<select name="' . $column . '_' . $row->id . '" class="form-control">';
             foreach ($components as $id => $option) {
                 $select .= '<option ';
                 $select .= ($cell == $id) ? 'selected="selected" ' : '';
@@ -309,7 +303,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     public function getLatte($key) {
         $template = $this->config['root'] .= '/' . preg_replace('/\:/', 'Module/templates/', $this->presenter->getName()) . '/';
-        if (is_file($column = WWW_DIR . $template . $this->presenter->getAction() . '.' . $key . '.latte')) {
+        if (is_file($column = WWW_DIR . $template . $key . '.' .$this->presenter->getAction() . '.latte')) {
             return $column;
         } elseif (is_file($column = WWW_DIR . $template . $key . '.latte')) {
             return $column;
@@ -334,6 +328,10 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     public function getKey($method, $parameters) {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
+    }
+
+    public function getPagination() {
+        return $this->config['pagination'];
     }
 
     public function getPrimary($row, $rowId) {
@@ -822,11 +820,20 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function filter() {
-        $post = $this->presenter->request->getPost('filters');
-        $filters = is_array($post) ? $post : [];
-        $order = $this->presenter->request->getPost('order');
-        $sort = $this->presenter->request->getPost('sort');
-        $offset = $this->presenter->request->getPost('offset');
+        if(null == $spice = $this->presenter->request->getPost('spice')) {
+            $post = $this->presenter->request->getPost('filters');
+            $filters = is_array($post) ? $post : [];
+            $order = $this->presenter->request->getPost('order');
+            $sort = $this->presenter->request->getPost('sort');
+            $offset = $this->presenter->request->getPost('offset');
+        } else {
+            $cache = $this->cache->load($this->control . ':spice:' . $spice);
+            $post = $cache['post'];
+            $filters = $cache['filters'];
+            $order = $cache['order'];
+            $sort = $cache['sort'];
+            $offset = $cache['offset'];
+        }
         /** spice $this->encrypt($filters); */
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
@@ -882,10 +889,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->sort = (string) $sort;
         $this->query .= ' ORDER BY ' . preg_replace('/\s(.*)/', '', trim($this->columns[$this->order])) . ' ' . strtoupper($this->sort) . ' ';
         $this->salt .= '|' . $this->order . $this->sort;
-        $this->offset = (null == $offset or 1 == $offset) ? 0 : $offset * $this->paginator->getItemsPerPage();
+        $this->offset = (null == $offset or 1 == $offset) ? 0 : $offset * $this->config['pagination'];
         /** limit */
-        $this->limit = $this->paginator->getItemsPerPage();
+        $this->limit = $this->config['pagination'];
         $this->hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . '|' . $this->salt))));
+        $this->spice = $this->control . ':spice:' . $this->hash;
+        $this->cache->save($this->spice, ['post'=>$post, 'filters' => $filters, 'order' => $order, 'sort' => $sort, 'offset' => $offset]);
         /** fetch */
         return $this;
     }

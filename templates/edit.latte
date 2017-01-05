@@ -59,7 +59,8 @@
         {var $datetimepickers = []}
         {var $submits = []}
         {foreach $form->getComponents() as $name => $component}
-            {if $component instanceof \MultipleFileUpload\MultipleFileUpload or $component instanceof Nette\Forms\Controls\UploadControl}
+            {if '_do' == $name}
+            {elseif $component instanceof \MultipleFileUpload\MultipleFileUpload or $component instanceof Nette\Forms\Controls\UploadControl}
                 {label $name /}
                 {input $name}
                 <hr>  

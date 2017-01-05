@@ -8,8 +8,7 @@ use Nette\Application\Responses\JsonResponse,
     Nette\Application\UI\Control,
     Nette\Application\UI\Presenter,
     Nette\Localization\ITranslator,
-    Nette\Http\IRequest,
-    Nette\Utils\Paginator;
+    Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
@@ -23,14 +22,11 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var IFilterFormFactory */
     protected $filterFormFactory;
 
-    /** @var IGridFormFactory */
-    private $gridFormFactory;
-
-    /** @var Paginator */
-    private $paginator;
-
     /** @var IBuilder */
     private $grid;
+
+    /** @var IRequest */
+    private $request;
 
     /** @var string */
     private $action;
@@ -47,9 +43,6 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var Array */
     private $parameters;
 
-    /** @var Array */
-    public $queries;
-
     /** @var string */
     private $status;
 
@@ -59,20 +52,13 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var string */
     private $root;
 
-    public function __construct(Array $masala, ITranslator $translatorModel, IImportFormFactory $importFormFactory, IFilterFormFactory $filterFormFactory, IGridFormFactory $gridFormFactory, Paginator $paginator, IRequest $request) {
+    public function __construct(Array $masala, ITranslator $translatorModel, IImportFormFactory $importFormFactory, IFilterFormFactory $filterFormFactory, IRequest $request) {
         parent::__construct(null, null);
         $this->translatorModel = $translatorModel;
         $this->importFormFactory = $importFormFactory;
         $this->filterFormFactory = $filterFormFactory;
-        $this->gridFormFactory = $gridFormFactory;
-        $this->paginator = $paginator->setItemsPerPage($masala['pagination']);
-        $cookies = $request->getCookies();
-        $this->queries = $request->getUrl()->getQueryParameters();
+        $this->request = $request;
         $this->port = isset($masala['port']) ? $request->getUrl()->getHost() . ':' . $masala['port'] : false;
-        $keys = preg_grep('/' . lcfirst(substr(__CLASS__, strrpos(__CLASS__, '\\') + 1)) . '\-(.*)/', array_keys($cookies));
-        foreach ($keys as $key) {
-            $this->queries[$key] = $cookies[$key];
-        }
         $this->root = WWW_DIR . $masala['root'];
     }
 
@@ -135,15 +121,12 @@ final class Masala extends Control implements IMasalaFactory {
         }
     }
 
-    public function getQuery($id) {
-        if (isset($this->queries[$this->getName() . '-' . $id])) {
-            return preg_replace('/\+/', ' ', $this->queries[$this->getName() . '-' . $id]);
-        } elseif ('page' == $id) {
-            return 1;
-        } elseif ('filter' == $id) {
-            return [];
-        } elseif ('do' == $id and isset($this->queries[$id])) {
-            return preg_replace('/\-(.*)/', '', preg_replace('/' . lcfirst($this->getName()) . '\-/', '', $this->queries[$id]));
+    public function getUrl($id) {
+        $url = $this->request->getUrl()->getQueryParameters();
+        if (isset($url[$this->getName() . '-' . $id])) {
+            return preg_replace('/\+/', ' ', $url[$this->getName() . '-' . $id]);
+        } elseif ('do' == $id and isset($url[$id])) {
+            return preg_replace('/\-(.*)/', '', preg_replace('/' . lcfirst($this->getName()) . '\-/', '', $url[$id]));
         }
     }
 
@@ -155,8 +138,6 @@ final class Masala extends Control implements IMasalaFactory {
     public function attached($presenter) {
         parent::attached($presenter);
         if ($presenter instanceof Presenter and null != $this->grid->getTable()) {
-            /** paginator */
-            $this->paginator->setPage($this->getQuery('page'));
             /** IBuilder */
             $this->action = $presenter->action;
             $this->grid->attached($this);
@@ -219,7 +200,8 @@ final class Masala extends Control implements IMasalaFactory {
 
     public function handleFilter() {
         $rows = $this->grid->filter()->getOffsets();
-        $response = new TextResponse($rows);
+        $response = new JsonResponse(['rows'=>$rows,
+            'url'=> $this->request->getUrl()->getPath() . '?' . $this->getName() . '-spice=' . $this->grid->getHash()]);
         return $this->presenter->sendResponse($response);
     }
 
@@ -244,7 +226,7 @@ final class Masala extends Control implements IMasalaFactory {
         $order = $this->presenter->request->getPost('order');
         $sort = $this->presenter->request->getPost('sort');
         $sum = $this->grid->filter($filters, $order, $sort)->getSum();
-        $total = ($sum > $this->paginator->getItemsPerPage()) ? intval(round($sum / $this->paginator->getItemsPerPage())) : 1;
+        $total = ($sum > $this->grid->getPagination()) ? intval(round($sum / $this->grid->getPagination())) : 1;
         $response = new TextResponse($total);
         return $this->presenter->sendResponse($response);
     }
@@ -312,8 +294,8 @@ final class Masala extends Control implements IMasalaFactory {
         $storage = $this->presenter->request->getPost('storage');
         foreach($storage as $id => $value) {
             $response[$this->getName() . ':' . $id] = true;
-            $column = preg_replace('/\_(.*)/', '', $id);
             $primary = preg_replace('/(.*)\_/', '', $id);
+            $column = preg_replace('/\_' . $primary . '/', '', $id);
             $this->grid->setRow($primary, [$column => $value]);
         }
         $cache = $this->presenter->request->getPost('cache');
@@ -343,7 +325,9 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->grid = $this->grid;
         $this->template->port = $this->port;
         $this->template->stop = $this->stop;
-        $this->template->trigger = 'handle' . ucFirst($this->getQuery('do')) . '()';
+        $parameters = $this->request->getUrl()->getQueryParameters();
+        $this->template->trigger = 'handle' . $this->getUrl('do') . '()';
+        $this->template->spice = $this->getUrl('spice');
         $this->template->header = $this->header;
         $this->template->status = $this->status;
         $this->template->setTranslator($this->translatorModel);
@@ -370,11 +354,6 @@ final class Masala extends Control implements IMasalaFactory {
 
     protected function createComponentFilterForm() {
         return $this->filterFormFactory->create()
-                        ->setGrid($this->grid);
-    }
-
-    protected function createComponentGridForm() {
-        return $this->gridFormFactory->create()
                         ->setGrid($this->grid);
     }
 

@@ -2,11 +2,19 @@
 <h3>Step1: register parameters and components in config.neon or config.local.neon:</h3>
 <p>parameters:</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;masala:</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;port: 8000</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log: 'myLogTable'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queryLog: 'myQueryLogTable'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;feeds: 'myFeedsTable'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root: 'root path for testing'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypt: 'e.g. aes192'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password: 'myPassword'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash: 'myHash'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log: 'myLogTable'</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pagination: 20</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;upload: 10</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypt: 'aes192'</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password:'11111111111111111111111111111111'</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash: '1234567890123456'</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: 'log'</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;table.column:</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setDefaultValue:</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service: 'parent->getPresenter()->myService'</p>
@@ -32,21 +40,22 @@
 <p>public $MasalaFactory;</p>
 <p>/** @var Masala\IEditFormFactory @inject */</p>
 <p>public $masalaFormFactory;</p>
-<h3>Step3: redefine Presenter parent for Nittro\Bridges\NittroUI\Presenter and call paginator snippet on startup (@todo: add dependencies to composer.json)</h3>
+<h3>Step3: redefine Presenter parent for Nittro\Bridges\NittroUI\Presenter</h3>
 <p>public actionDefault() { </p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp$this->setDefaultSnippets(['grid-paginator']);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp$this->setDefaultSnippets(['content']);</p>
 <p>}</p>
 <h3>Step4a: call query methods in action method:</h3>
-<p>public actionDefautl() { </p>
+<p>public actionDefault() { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp$this->grid->table($table)</p>
 <p>}</p>
 <h3>Step4b: or add grid dependency in model and define query in model:</h3>
 <p>public function __construct(\Masala\IBuilder $grid) { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;$this->grid = $grid</p>
 <p>}</p>
-<p>public function getData($table) { </p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->grid->table($table)</p>
-<p>}</p>
+<h3>Step4c: add nittro snippet to template:</h3>
+<p>{php echo '<div n:snippet="content" class="loading">'; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;{ include #content}</p>
+<p>{php echo '</div>'; }</p>
 <h3>Step5: create components in your presenter:</h3>
 <p>protected function createComponentMasala() { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->MasalaFactory->create()</p>
@@ -84,9 +93,9 @@
 <h3>Step7: use this->grid->where() as nette database, third argument is callback for condition</h3>
 <p>'->where("key", "?") => 'use given key as placeholder in query'</p>
 <h3>Step8a: render in template with nitro:</h3>
-<p>'<div n:snippet="content" class="loading">{ include #content}</div>'</p>
-<p>'<div n:snippet="loading"><script type="text/javascript">$("#snippet--content").removeClass("loading");</script></div>'</p>
-<p>'{ block #content}{ control masala}{ /block} </div>'</p>
+<p>{php echo '<div n:snippet="content" class="loading">{ include #content}</div>'; }</p>
+<p>{php echo '<div n:snippet="loading"><script type="text/javascript">$("#snippet--content").removeClass("loading")'; }</script></div>'</p>
+<p>{php echo '{ block #content}{ control masala}{ /block} </div>'; }</p>
 <h3>Step8b: or without nitro:</h3>
 <p>'{ control masala}{ /block}'</p>
 <h3>Other functionality:</h3>

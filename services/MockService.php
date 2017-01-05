@@ -214,7 +214,6 @@ class MockService {
                             Assert::true(2 > preg_match_all('/<form(.*)novalidate=""\>/', $content, $forms), 'Array for testing forms id is not set.');
                             Assert::true(is_array($forms), 'Array for testing forms id is not set.');
                             if (preg_match('/\{control ' . lcfirst($injected[$factoryId]) . '\}/', $content)) {
-                                Assert::true(false == preg_match('/\<form/', $content) or true == preg_match('/method="post" id="frm-gridForm"/', $content), 'ID of grid form in ' . $file . ' should be frm-gridForm.');
                                 $mocks[$presenter] = $file;
                             }
                         }
@@ -412,8 +411,7 @@ class MockService {
         $router[] = new Application\Routers\Route('<presenter>/<action>', $presenter . ':' . $action);
         $linkGenerator = new Application\LinkGenerator($router, $this->httpRequest->getUrl());
         $dom = new HtmlDomParser();
-        $paginator = $this->container->getByType('Nette\Utils\Paginator');
-        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $dom, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator, $paginator);
+        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $dom, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
         return $builder;
     }
 
