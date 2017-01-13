@@ -59,7 +59,7 @@
         {var $datetimepickers = []}
         {var $submits = []}
         {foreach $form->getComponents() as $name => $component}
-            {if '_do' == $name}
+            {if '_do' == $name or $component instanceof \Nette\Forms\Controls\HiddenField}
             {elseif $component instanceof \MultipleFileUpload\MultipleFileUpload or $component instanceof Nette\Forms\Controls\UploadControl}
                 {label $name /}
                 {input $name}

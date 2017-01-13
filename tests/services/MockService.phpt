@@ -87,9 +87,13 @@ class MockServiceTest extends TestCase {
                 $tableName = preg_replace('/\.(.*)/', '', $table);
                 $row = $this->mockModel->getTestRow($tableName);
                 $presenters[$compulsories[$table]['class']] = $this->class->getPresenter($compulsories[$table]['class'], WWW_DIR . $compulsories[$table]['latte'], ['id' => $row->id]);
+                Assert::true(is_object($presenter = $presenters[$compulsories[$table]['class']]), 'Presenter ' . $compulsories[$table]['class'] . ' was not instantiated.');
+                Assert::false(empty($presenter->getAction()), 'Action of presenter ' . $compulsories[$table]['class'] . ' is not set.');
                 $setting = new RowBuilder($parameters, $this->context, $this->cacheStorage);
-                $form = new EditForm([], $this->translatorModel, $this->class, $this->request);
+                $grid = $this->class->getBuilder($presenter->getName(), 'default');
+                $form = new EditForm([], $grid, $this->translatorModel, $this->class, $this->request);
                 $form->setSetting($setting->table($tableName));
+
                 $presenters[$compulsories[$table]['class']]->addComponent($form, 'EditForm');
                 Assert::true(is_object($presenters[$compulsories[$table]['class']]), 'Presenter was not set.');
             }

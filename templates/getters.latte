@@ -1,113 +1,114 @@
 {block getters}
-<script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
-<script type="text/javascript">
-    function getMethods(obj) {
-        var res = [];
-        for (var m in obj) {
-            if (typeof obj[m] === "function") {
-                res.push(m);
-            }
-        }
-        return res;
-    }
-    function getPages(offset, sum, id) {
-        if(sum > 40) {
-            var stop = offset + 40;
-        } else {
-            offset = 1;
-            var stop = sum;
-        }
-        var append = '<div class="paginate paginate-dark wrapper ' + id + '">';
-        for (i = offset; i <= stop; i++) {
-            if(i > sum) {
-
-            } else if(i < 100) {
-                append += '<li><a id="page-' + id + '-' + i + '" href="javascript:;" onclick="handleActive($(this), ' + sum + ')">&nbsp;&nbsp;' + i + '</a></li>';
-            } else {
-                append += '<li><a id="page-' + id + '-' + i + '" href="javascript:;" onclick="handleActive($(this), ' + sum + ')">' + i + '</a></li>';
-            }
-        }
-        append += '</ul></div>';
-        return append;
-    }
-    function getFilters() {
-        /** filters */
-        $('#snippet--content').addClass('loading');
-        var filters = new Object();
-        var url = '&';
-        var sort = '';
-        $('tr.grid-filters th select').each(function () {
-            var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
-            var column = $(this).attr('id').replace(regex[0], '');
-            var value = $(this).find('option:selected').val();
-            if ('' !== value) {
-                filters[column] = value;
-                url += {$control->getName()} + '-filter[' + column + ']=' + value;
-            }
-        });
-        $('tr.grid-filters th input:text').each(function () {
-            var id = $(this).attr('id');
-            if (undefined !== id && '' !== id) {
-                var regex = new RegExp('(.*)\-').exec(id);
-                var column = id.replace(regex[0], '');
-                var value = $(this).val();
-                if ('' !== value) {
-                    filters[column] = value;
-                    url += {$control->getName()} + '-filter[' + column + ']=' + value;
+    <script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
+    <script type="text/javascript">
+        function getMethods(obj) {
+            var res = [];
+            for (var m in obj) {
+                if (typeof obj[m] === "function") {
+                    res.push(m);
                 }
             }
-        });
-        if(0 < Object.keys(filters).length) {
-            $('#' + {$control->getName()} + '-cancel-filter').show();
+            return res;
         }
-        $('div.' + {$control->getName()} + '-ranges > div').each(function () {
-            var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
-            var column = $(this).attr('id').replace(regex[0], '');
-            filters[column + ' >'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-leftLabel .ui-rangeSlider-label-value').text();
-            filters[column + ' <'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-rightLabel .ui-rangeSlider-label-value').text();
-        });
-        var data = new Object();
-        data.filters = filters;
-        data.hash = {$grid->getHash()};
-        /** order */
-        data.order = $('tr.grid-columns').attr('order');
-        data.sort = $('tr.grid-columns').attr('sort');
-        data.spice = {$spice};
-        url += '&' + {$control->getName()};
-        return data;
-    }
-    function getStorage() {
-        console.log('loading caching');
-        setInterval(function() {
-            var data = new Object();
-            var storage = new Object();
-            var keys =  JSON.parse(localStorage.getItem({$control->getName()} + ':keys'));
-            for(var id in keys) {
-                storage[id] = localStorage.getItem({$control->getName()} + ':' + id);
-            };
-            data.storage = storage;
-            var cache = new Object();
-            var hash =  JSON.parse(localStorage.getItem({$control->getName()} + ':hash'));
-            for(var id in hash) {
-                cache[id] = localStorage.getItem(id);
-            };
-            data.cache = cache;
-            console.log(data);
-            if(false == jQuery.isEmptyObject(storage)) {
-                $.nette.ajax({
-                    type: 'post',
-                    url: {link storage!},
-                    data: data,
-                    success: function(payload) {
-                        for(var id in payload) {
-                            localStorage.removeItem(id);
-                        }
-                        localStorage.removeItem({$control->getName()} + ':keys');
-                        localStorage.removeItem({$control->getName()} + ':hash');
-                    }
-                });
+        function getPages(offset, sum, id) {
+            if (sum > 40) {
+                var stop = offset + 40;
+            } else {
+                offset = 1;
+                var stop = sum;
             }
-        }, 7000);
-    }
-</script>
+            var append = '<div class="paginate paginate-dark wrapper ' + id + '">';
+            for (i = offset; i <= stop; i++) {
+                if (i > sum) {
+
+                } else if (i < 100) {
+                    append += '<li><a id="page-' + id + '-' + i + '" href="javascript:;" onclick="handleActive($(this), ' + sum + ')">&nbsp;&nbsp;' + i + '</a></li>';
+                } else {
+                    append += '<li><a id="page-' + id + '-' + i + '" href="javascript:;" onclick="handleActive($(this), ' + sum + ')">' + i + '</a></li>';
+                }
+            }
+            append += '</ul></div>';
+            return append;
+        }
+        function getFilters() {
+            /** filters */
+            var filters = new Object();
+            var url = '&';
+            var sort = '';
+            $('tr.grid-filters th select').each(function () {
+                var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
+                var column = $(this).attr('id').replace(regex[0], '');
+                var value = $(this).find('option:selected').val();
+                if ('' !== value) {
+                    filters[column] = value;
+                    url += {$control->getName()} +'-filter[' + column + ']=' + value;
+                }
+            });
+            $('tr.grid-filters th input:text').each(function () {
+                var id = $(this).attr('id');
+                if (undefined !== id && '' !== id) {
+                    var regex = new RegExp('(.*)\-').exec(id);
+                    var column = id.replace(regex[0], '');
+                    var value = $(this).val();
+                    if ('' !== value) {
+                        filters[column] = value;
+                        url += {$control->getName()} +'-filter[' + column + ']=' + value;
+                    }
+                }
+            });
+            if (0 < Object.keys(filters).length) {
+                $('#' + {$control->getName()} +'-cancel-filter').show();
+            }
+            $('div.' + {$control->getName()} +'-ranges > div').each(function () {
+                var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
+                var column = $(this).attr('id').replace(regex[0], '');
+                filters[column + ' >'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-leftLabel .ui-rangeSlider-label-value').text();
+                filters[column + ' <'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-rightLabel .ui-rangeSlider-label-value').text();
+            });
+            var data = new Object();
+            data.filters = filters;
+            data.hash = {$grid->getHash()};
+            /** order */
+            data.order = $('tr.grid-columns').attr('order');
+            data.sort = $('tr.grid-columns').attr('sort');
+            data.spice = {$spice};
+            url += '&' + {$control->getName()};
+            return data;
+        }
+        function getStorage() {
+            console.log('loading caching');
+            setInterval(function () {
+                var data = new Object();
+                var storage = new Object();
+                var keys = JSON.parse(localStorage.getItem({$control->getName()} +':keys'));
+                for (var id in keys) {
+                    storage[id] = localStorage.getItem({$control->getName()} +':' + id);
+                }
+                ;
+                data.storage = storage;
+                var cache = new Object();
+                var hash = JSON.parse(localStorage.getItem({$control->getName()} +':hash'));
+                for (var id in hash) {
+                    cache[id] = localStorage.getItem(id);
+                }
+                ;
+                data.cache = cache;
+                console.log(data);
+                if (false == jQuery.isEmptyObject(storage)) {
+                    $.nette.ajax({
+                        type: 'post',
+                        url: {link storage!},
+                        data: data,
+                        success: function (payload) {
+                            for (var id in payload) {
+                                localStorage.removeItem(id);
+                            }
+                            localStorage.removeItem({$control->getName()} +':keys');
+                            localStorage.removeItem({$control->getName()} +':hash');
+                        }
+                    });
+                }
+            }, 7000);
+        }
+    </script>
 {/block}

@@ -2,11 +2,11 @@
 
 namespace Masala;
 
-use Joseki\Application\Responses\InvalidStateException;
 use Nette\Application\Responses\JsonResponse,
     Nette\Application\Responses\TextResponse,
     Nette\Application\UI\Control,
     Nette\Application\UI\Presenter,
+    Nette\InvalidStateException,
     Nette\Localization\ITranslator,
     Nette\Http\IRequest;
 
@@ -35,10 +35,10 @@ final class Masala extends Control implements IMasalaFactory {
     private $stop;
 
     /** @var Array */
-    private $columns = [];
+    private $csv = ['header'=>[],'divider'=>',','file'=>null];
 
     /** @var Array */
-    private $header;
+    private $columns = [];
 
     /** @var Array */
     private $parameters;
@@ -76,9 +76,9 @@ final class Masala extends Control implements IMasalaFactory {
         $presenter = $this->getPresenter();
         foreach ($this->grid->getColumns() as $column => $subquery) {
             if ($presenter->name . ':' . $presenter->action . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $presenter->action . ':' . $column)) {
-                
+
             } elseif ($presenter->name . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $column)) {
-                
+
             } else {
                 $label = $this->translatorModel->translate($column);
             }
@@ -97,25 +97,25 @@ final class Masala extends Control implements IMasalaFactory {
             if (isset($header->$column)) {
                 foreach ($header->$column as $feedColumn => $feedValue) {
                     if (!isset($header->$feedColumn) and is_numeric($feedValue)) {
-                        $this->header[$feedColumn] = [$feedValue => $key];
+                        $this->csv['header'][$feedColumn] = [$feedValue => $key];
                     } elseif (!isset($header->$feedColumn) and is_bool($feedColumn)) {
-                        $this->header[$feedColumn] = $key;
-                    } elseif (!isset($header->$feedColumn) and 'break' == $feedValue and ! isset($this->header[$feedColumn])) {
-                        $this->header[$feedColumn] = $key;
-                    } elseif (!isset($header->$feedColumn) and 'break' == $feedValue and isset($this->header[$feedColumn])) {
-                        
+                        $this->csv['header'][$feedColumn] = $key;
+                    } elseif (!isset($header->$feedColumn) and 'break' == $feedValue and ! isset($this->csv['header'][$feedColumn])) {
+                        $this->csv['header'][$feedColumn] = $key;
+                    } elseif (!isset($header->$feedColumn) and 'break' == $feedValue and isset($this->csv['header'][$feedColumn])) {
+
                     } elseif (is_array($header->$feedColumn)) {
-                        is_numeric($feedValue) ? $this->header[$feedColumn][$feedValue] = $key : $this->header[$feedColumn][] = $key;
+                        is_numeric($feedValue) ? $this->csv['header'][$feedColumn][$feedValue] = $key : $this->csv['header'][$feedColumn][] = $key;
                     } elseif (is_numeric($feedValue)) {
-                        $this->header[$feedColumn] = [0 => $key, $feedValue => $header->$feedColumn];
+                        $this->csv['header'][$feedColumn] = [0 => $key, $feedValue => $header->$feedColumn];
                     }
                 }
             }
         }
-        if (!empty($this->header)) {
+        if (!empty($this->csv['header'])) {
             foreach (json_decode($this->grid->getImport()->getSetting()->validator) as $validator => $value) {
-                if (!isset($this->header[$validator])) {
-                    return $this->header = $this->translatorModel->translate('Header does not contains validator') . ' ' . $this->translatorModel->translate($validator) . '.';
+                if (!isset($this->csv['header'][$validator])) {
+                    return $this->csv['header'] = $this->translatorModel->translate('Header does not contains validator') . ' ' . $this->translatorModel->translate($validator) . '.';
                 }
             }
         }
@@ -149,36 +149,37 @@ final class Masala extends Control implements IMasalaFactory {
     /** signal methods */
     public function handleCsv($file, $divider) {
         $this->grid->log('csv');
-        $this->status = 'import';
         $setting = $this->grid->getImport()->getSetting();
         $folder = $this->presenter->getContext()->parameters['tempDir'] . '/' . $this->getName() . '/' . str_replace(':', '', $this->getPresenter()->getName() . $this->getPresenter()->getAction());
         $path = $folder . '/' . $file . '.csv';
-        $handle = fopen($path, 'r');
-        $this->header = [];
+        $this->csv['file'] = $file;
+        $this->csv['divider'] = $divider;
+        $this->status = 'import';
+        $this->stop = filesize($path);
         $header = json_decode($setting->mapper);
-        $i = 0;
-        $key = $this->grid->getId($this->status);
+        $handle = fopen($path, 'r');
         while (false !== ($row = fgets($handle, 10000))) {
-            /** sanitize */
-            preg_match_all('/\"(.*?)\"/', $row, $matches);
-            $matches[1] = (isset($matches[1])) ? $matches[1] : [];
-            foreach ($matches[1] as $match) {
-                $row = str_replace('<?php', '', (str_replace($match, str_replace(',', '.', $match), $row)));
-            }
-            $row = explode($divider, str_replace('"', '', $row));
-            if (is_string($this->header)) {
-                $this->presenter->flashMessage($this->header);
+            $row = $this->sanitize($row, $divider);
+            if (is_string($this->csv['header'])) {
+                $this->presenter->flashMessage($this->csv['header']);
                 $this->presenter->redirect('this');
-            } elseif (empty($this->header)) {
+            } elseif (empty($this->csv['header'])) {
                 $this->getHeader($row, $header);
-            } elseif (!empty($this->header)) {
-                $this->grid->update($key . ':' . $i, $row);
-                $i++;
+            } elseif (!empty($this->csv['header'])) {
+                break;
             }
         }
         fclose($handle);
-        $this->stop = $i;
         $this->grid->getImport()->prepare($this);
+    }
+
+    private function sanitize($row, $divider) {
+        preg_match_all('/\"(.*?)\"/', $row, $matches);
+        $matches[1] = (isset($matches[1])) ? $matches[1] : [];
+        foreach ($matches[1] as $match) {
+            $row = str_replace('<?php', '', (str_replace($match, str_replace(',', '.', $match), $row)));
+        }
+        return explode($divider, str_replace('"', '', $row));
     }
 
     public function handleDone() {
@@ -193,15 +194,15 @@ final class Masala extends Control implements IMasalaFactory {
 
     public function handleExport() {
         $this->status = 'export';
-        $this->stop = $this->grid->filter()->getExport()->prepare($this);;
+        $this->stop = $this->grid->filter()->getExport()->prepare($this);
         $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'export']);
         return $this->presenter->sendResponse($response);
     }
 
     public function handleFilter() {
         $rows = $this->grid->filter()->getOffsets();
-        $response = new JsonResponse(['rows'=>$rows,
-            'url'=> $this->request->getUrl()->getPath() . '?' . $this->getName() . '-spice=' . $this->grid->getHash()]);
+        $response = new JsonResponse(['rows' => $rows,
+            'url' => !empty($this->grid->getSpice()) ? strtolower($this->getName()) . '-spice=' . $this->grid->getSpice() : '']);
         return $this->presenter->sendResponse($response);
     }
 
@@ -220,12 +221,14 @@ final class Masala extends Control implements IMasalaFactory {
         $this->presenter->redrawControl('flashes');
     }
 
+    public function handleMigrate() {
+        $stop = $this->grid->filter()->getMigration()->prepare($this);
+        $response = new JsonResponse(['run' => 0, 'stop' => $stop, 'status' => 'migration']);
+        return $this->presenter->sendResponse($response);
+    }
+
     public function handlePaginate() {
-        $post = $this->presenter->request->getPost('filters');
-        $filters = is_array($post) ? $post : [];
-        $order = $this->presenter->request->getPost('order');
-        $sort = $this->presenter->request->getPost('sort');
-        $sum = $this->grid->filter($filters, $order, $sort)->getSum();
+        $sum = $this->grid->filter()->getSum();
         $total = ($sum > $this->grid->getPagination()) ? intval(round($sum / $this->grid->getPagination())) : 1;
         $response = new TextResponse($total);
         return $this->presenter->sendResponse($response);
@@ -245,33 +248,47 @@ final class Masala extends Control implements IMasalaFactory {
 
     public function handleRedraw() {
         $primary = $this->presenter->request->getPost('primary');
-        $row = $this->grid->where('id', $this->presenter->request->getPost('id'))
+        $row = $this->grid
+                /**  ->where('id', $this->presenter->request->getPost('id')) */
                 ->filter()
-                ->flush($primary);
+                ->flush($primary)
+                ->loadOffset($primary);
         $response = new TextResponse($row);
         return $this->presenter->sendResponse($response);
     }
 
     public function handleRun() {
-        $upload = $this->presenter->request->getPost('row');
-        $headers = $this->presenter->request->getPost('header');
-        $headers = is_array($headers) ? $headers : [];
-        $offset = (array) $this->grid->filter()->getOffset($upload['run'], $upload['status']);
         $rows = !is_array($this->presenter->request->getPost('rows')) ? [] : $this->presenter->request->getPost('rows');
-        if (intval(str_replace('M', '', ini_get('post_max_size')) * 1024 * 1024) <
-                (mb_strlen(serialize($rows), '8bit') + mb_strlen(serialize($headers), '8bit') + mb_strlen(serialize($upload), '8bit'))
-        ) {
-            throw new InvalidStateException('Uploaded data in post is too large according to post_max_size');
-        }
-        $row = empty($headers) ? $offset : [];
-        foreach ($headers as $headerId => $header) {
-            if (is_array($header)) {
-                foreach ($header as $valueId => $value) {
-                    $row[$headerId][$valueId] = $offset[$value];
-                }
-            } else {
-                $row[$headerId] = $offset[$header];
+        $upload = $this->presenter->request->getPost('row');
+        $csv = $this->presenter->request->getPost('csv');
+        if(!empty($csv['header'])) {
+            if (intval(str_replace('M', '', ini_get('post_max_size')) * 1024 * 1024) <
+                (mb_strlen(serialize($rows), '8bit') + mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
+            ) {
+                throw new InvalidStateException('Uploaded data in post is too large according to post_max_size');
             }
+            $folder = $this->presenter->getContext()->parameters['tempDir'] . '/' . $this->getName() . '/' . str_replace(':', '', $this->getPresenter()->getName() . $this->getPresenter()->getAction());
+            $path = $folder . '/' . $csv['file'] . '.csv';
+            $handle = fopen($path, 'r');
+            fseek($handle, $upload['run']);
+            $offset = fgets($handle);
+            $upload['run'] = ftell($handle);
+            $row = [];
+            $offset = $this->sanitize($offset, $csv['divider']);
+            foreach ($csv['header'] as $headerId => $header) {
+                if (is_array($header)) {
+                    foreach ($header as $valueId => $value) {
+                        $row[$headerId][$valueId] = $offset[$value];
+                    }
+                } else {
+                    $row[$headerId] = $offset[$header];
+                }
+            }
+            $upload['offset'] = $row;
+        } else {
+            $row = $this->grid->filter()->getOffset($upload['run']);
+            $upload['run'] = $upload['run'] + 1;
+            $upload['offset'] = $row;
         }
         $service = 'get' . ucfirst($this->status = $upload['status']);
         $setting = $this->grid->$service()->getSetting();
@@ -283,8 +300,6 @@ final class Masala extends Control implements IMasalaFactory {
         }
         $this->grid->$service()->run($row, $rows, $this);
         /** $response = new TextResponse($this->presenter->payload->rows = json_encode($result)); */
-        $upload['run'] = $upload['run'] + 1;
-        $upload['offset'] = $offset;
         $response = new JsonResponse($upload);
         return $this->presenter->sendResponse($response);
     }
@@ -313,7 +328,7 @@ final class Masala extends Control implements IMasalaFactory {
             $values[$componentId] = $component;
         }
         $this->grid->getDialog()->submit($values);
-        $this->grid->flush($values['primary']);
+        $this->grid->flush($values['offset']);
         $response = new JsonResponse($values);
         return $this->presenter->sendResponse($response);
     }
@@ -325,10 +340,9 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->grid = $this->grid;
         $this->template->port = $this->port;
         $this->template->stop = $this->stop;
-        $parameters = $this->request->getUrl()->getQueryParameters();
-        $this->template->trigger = 'handle' . $this->getUrl('do') . '()';
+        $this->template->trigger = 'handle' . ucfirst($this->getUrl('do')) . '()';
         $this->template->spice = $this->getUrl('spice');
-        $this->template->header = $this->header;
+        $this->template->csv = $this->csv;
         $this->template->status = $this->status;
         $this->template->setTranslator($this->translatorModel);
         $this->template->setFile(__DIR__ . '/templates/@layout.latte');

@@ -3,14 +3,14 @@
 namespace Masala;
 
 use Nette\Caching\Cache,
+    Nette\Caching\IStorage,
     Nette\Database\Context,
     Nette\Database\Table\ActiveRow,
     Nette\Database\Table\Selection,
-    Nette\InvalidStateException,
-    Nette\Caching\IStorage;
+    Nette\InvalidStateException;
 
 /** @author Lubomir Andrisek */
-class RowBuilder {
+final class RowBuilder {
 
     /** @var Array */
     private $table;
@@ -253,7 +253,9 @@ class RowBuilder {
 
     public function beforeSucceeded(EditForm $form) {
         if (is_object($this->service)) {
-            $this->service->beforeSucceeded($form);
+            return $this->service->beforeSucceeded($form);
+        } else {
+            return $form->getValues();
         }
     }
 

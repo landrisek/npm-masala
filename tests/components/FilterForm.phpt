@@ -50,7 +50,8 @@ class FilterFormTest extends TestCase {
         /** models */
         $this->translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
         $this->mockService = new MockService($this->container, $this->translatorModel);
-        $this->class = new FilterForm($this->translatorModel);
+        $request = $this->container->getByType('Nette\Http\IRequest');
+        $this->class = new FilterForm($request, $this->translatorModel);
         $this->presenters = ['App\SuppliersModule\DefaultPresenter' => APP_DIR . '/SuppliersModule/templates/Default/sales.latte'];
     }
 

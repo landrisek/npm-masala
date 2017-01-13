@@ -12,6 +12,9 @@ use Models\TranslatorModel,
 /** @author Lubomir Andrisek */
 class EditForm extends Form implements IEditFormFactory {
 
+    /** @var IBuilder */
+    private $builder;
+
     /** @var TranslatorModel */
     private $translatorModel;
 
@@ -30,8 +33,9 @@ class EditForm extends Form implements IEditFormFactory {
     /** @var int */
     private $upload;
 
-    public function __construct($upload, TranslatorModel $translatorModel, MockService $mockService, IRequest $request) {
+    public function __construct($upload, IBuilder $builder, TranslatorModel $translatorModel, MockService $mockService, IRequest $request) {
         $this->upload = intval($upload);
+        $this->builder = $builder;
         $this->translatorModel = $translatorModel;
         $this->mockService = $mockService;
         $this->request = $request;
@@ -58,6 +62,7 @@ class EditForm extends Form implements IEditFormFactory {
         if ($presenter instanceof Presenter) {
             $this->setMethod('post');
             $this->setting->beforeAttached($this);
+            $this->addHidden('spice', $this->getPresenter()->getParameter('spice'));
             foreach ($this->setting->getColumns() as $column) {
                 $name = $column['name'];
                 $config = $this->setting->getConfig($this->setting->getTable() . '.' . $name);
@@ -198,6 +203,7 @@ class EditForm extends Form implements IEditFormFactory {
             $this->getPresenter()->flashMessage(ucfirst($this->translatorModel->translate('item with')) . ' ID ' . $primary . ' '
                     . $this->translatorModel->translate('from table') . ' ' . $this->translatorModel->translate($this->setting->getTable()) . ' ' . $this->translatorModel->translate('had been edited') . '.');
         }
+        $this->builder->flush($values->spice);
         $this->setting->afterSucceeded($form);
         /** redirect */
         $this->redirect();

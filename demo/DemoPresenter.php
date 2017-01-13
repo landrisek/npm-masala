@@ -75,6 +75,11 @@ class DemoPresenter extends Presenter {
         $this->payload->todo = '@todo';
         $this->sendPayload();
     }
+
+    public function actionMigration() {
+        $this->payload->todo = '@todo';
+        $this->sendPayload();
+    }
     
     public function actionRedraw() {
         $this->payload->todo = '@todo';

@@ -18,7 +18,7 @@ use Latte,
     Sunra\PhpSimple\HtmlDomParser,
     Tester\Assert;
 
-class MockService {
+final class MockService {
 
     /** @var Container */
     private $container;
@@ -407,11 +407,12 @@ class MockService {
         $urlScript->setPath($root . $presenter . '/');
         $this->httpRequest = new Http\Request($urlScript);
         $exportService = $this->container->getByType('Masala\ExportService');
+        $migrationService = $this->container->getByType('Masala\MigrationService');
         $router = new Application\Routers\RouteList($module);
         $router[] = new Application\Routers\Route('<presenter>/<action>', $presenter . ':' . $action);
         $linkGenerator = new Application\LinkGenerator($router, $this->httpRequest->getUrl());
         $dom = new HtmlDomParser();
-        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $dom, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
+        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $dom, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
         return $builder;
     }
 

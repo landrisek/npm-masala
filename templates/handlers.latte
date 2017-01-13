@@ -2,17 +2,19 @@
 <script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
 <script type="text/javascript">
     /** triggers */
-    handleFilter();
     window.masalaData = [];
-    if('handle()' !== {$trigger}) {
+    if('handle()' === {$trigger}) {
+        handleFilter(1);
+    } else {
         {$trigger|noescape};
     }
-    function handleActive(button, sum) {
+    function handleActive(button) {
+        $('#snippet--content').addClass('loading');
         var page = parseInt($(button).text());
         $('.paginate.paginate-dark.wrapper li a').attr('class', '');
         $('#pagination-top-current').val(page);
         $('#pagination-bottom-current').val(page);
-        handlePaginate(page, sum);
+        handleFilter(page);
     }
     function handleCancel() {
         $('#snippet--content').addClass('loading');
@@ -23,11 +25,11 @@
         window.masalaHandler = {link import!, 'stop'=>$stop};
         window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
     }
-    function handleDialog(primary, id, name) {
+    function handleDialog(offset, id, name) {
         $('.' + {$control->getName()} + '-widget').animate({ right: '420'}, 'slow');
         $('.' + {$control->getName()} + '-widget .name-widget').text(name);
         $('.' + {$control->getName()} + '-widget .name-widget').attr('id', id);
-        $('.' + {$control->getName()} + '-widget .name-widget').attr('primary', primary);
+        $('.' + {$control->getName()} + '-widget .name-widget').attr('offset', offset);
     }
     function handleDone() {
 
@@ -36,29 +38,62 @@
         window.masalaHandler = {link export!};
         angular.element('#lengthyProcess').triggerHandler('click');
     }
-    function handleFilter() {
+    function handleFilter(offset) {
+        $('#snippet--content').addClass('loading');
         console.log('loading filter...');
         var data = getFilters();
+        data.offset = offset;
         /** sort */
         $.nette.ajax({
             type: 'post',
             data: data,
             url: {link filter!},
             success: function (payload) {
+                if(null == new RegExp({$control->getName()} + '\-spice\=').exec(location.href) && null == new RegExp(/\?/g).exec(location.href)) {
+                    var url = location.href + '?' + payload.url;
+                } else if(null == new RegExp({$control->getName()} + '-spice=').exec(location.href)) {
+                    var url = location.href + '&' + payload.url;
+                } else {
+                    var url = location.href.replace(/&?masala-spice=([^&]$|[^&]*)/i, payload.url);
+                }
+                window.history.pushState('', 'title', url);
                 $('tbody').replaceWith(payload.rows);
                 $('#snippet--content').removeClass('loading');
+                handlePaginate(data.offset);
             }
         });
+    }
+    function handleMessage() {
+
+    }
+    function handleMigrate() {
+        window.masalaHandler = {link migrate!};
+        angular.element('#lengthyProcess').triggerHandler('click');
+    }
+    function handlePaginate(offset) {
+        console.log('loading pagination...');
+        var data = getFilters();
+        data.offset = offset;
         /** paginate */
         $.ajax({
             type: 'post',
             data: data,
             url: {link paginate!},
             success: function (payload) {
-                handlePaginate(1, payload);
                 if(0 < $('tbody input').length) {
                     getStorage();
                 }
+                if(40 < payload) {
+                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(1, payload, 'bottom'));
+                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, payload, 'top'));
+                } else {
+                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(data.offset, payload, 'bottom'));
+                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, payload, 'top'));
+                }
+                var page = $('input#pagination-top-current').val();
+                $('a#page-top-' + page).attr('class', 'active');
+                $('a#page-bottom-' + page).attr('class', 'active');
+                $('#snippet--content').removeClass('loading');
                 if(40 < payload) {
                     $('div#pagination-top').slider({
                         range: false,
@@ -97,39 +132,12 @@
                 } else {
                     $('div#pagination-top').hide();
                 }
-            }
-        });
-    }
-    function handleMessage() {
-
-    }
-    function handlePaginate(offset, sum) {
-        console.log('loading pagination...');
-        var data = getFilters();
-        data.offset = offset;
-        data.sum = sum;
-        /** sort */
-        $.nette.ajax({
-            type: 'post',
-            data: data,
-            url: {link filter!},
-            success: function (payload) {
-                if(40 < data.sum) {
-                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(1, data.sum, 'bottom'));
-                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, data.sum, 'top'));
-                } else {
-                    $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(data.offset, data.sum, 'bottom'));
-                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, data.sum, 'top'));
+                if(undefined == data.offset) {
+                    data.offset = 1;
                 }
-                $('tbody').replaceWith(payload.rows);
-                var page = $('input#pagination-top-current').val();
-                $('a#page-top-' + page).attr('class', 'active');
-                $('a#page-bottom-' + page).attr('class', 'active');
-                window.history.pushState('', 'title', payload.url);
-                $('#snippet--content').removeClass('loading');
+                $('input#pagination').val(data.offset + ' - ' + payload);
             }
         });
-        $('input#pagination').val( offset + ' - ' + sum);
     }
     function handlePrepare(data) {
         $('#snippet--content').addClass('loading');
@@ -157,7 +165,7 @@
     }
     function handleRun(payload) {
         var data = getFilters();
-        data.header = {$header};
+        data.csv = {$csv};
         data.row = payload;
         if (payload.run < parseInt(payload.stop)) {
             $.nette.ajax({
@@ -176,7 +184,6 @@
                 success: function(payload) {
                     /* disable this redirect during debugging in console */
                     location.href = payload;
-                    /* $('#snippet--content').removeClass('loading'); */
                 }});
         }
     }
@@ -192,7 +199,7 @@
             $(id + 'asc').show();
             $('tr.grid-columns').attr('sort', 'asc');
         }
-        handleFilter();
+        handleFilter(1);
     }
     function handleSubmit(submit) {
         var data = getFilters();
@@ -202,13 +209,13 @@
         });
         data.submit = submit;
         data.id = $('.' + {$control->getName()} +'-widget .name-widget').attr('id');
+        data.offset = $('.' + {$control->getName()} + '-widget .name-widget').attr('offset');
         $('#snippet--content').removeClass('loading');
-        data.primary = $('.' + {$control->getName()} + '-widget .name-widget').attr('primary');
-        $('tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:')).addClass('loading');
         if(undefined === data.id) {
             alert({_'There is nothing to edit. First choose item.'});
             return false;
         }
+        $('tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:')).addClass('loading');
         $.nette.ajax({
             type: 'post',
             url: {link submit!},

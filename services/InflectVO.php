@@ -2,7 +2,7 @@
 
 namespace Masala;
 
-class InflectVO {
+final class InflectVO {
 
     /** @var string
      * singular

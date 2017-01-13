@@ -4,6 +4,7 @@ namespace Masala;
 
 use Models\TranslatorModel,
     Nette\Forms\Container,
+    Nette\Http\IRequest,
     Nette\Application\UI\Form,
     Nette\Application\UI\Presenter;
 
@@ -13,11 +14,15 @@ final class FilterForm extends Form implements IFilterFormFactory {
     /** @var IBuilder */
     private $grid;
 
+    /** @var Request */
+    private $request;
+
     /** @var TranslatorModel */
     private $translatorModel;
 
-    public function __construct(TranslatorModel $translatorModel) {
+    public function __construct(IRequest $request, TranslatorModel $translatorModel) {
         parent::__construct(null, null);
+        $this->request = $request;
         $this->translatorModel = $translatorModel;
     }
 
@@ -38,6 +43,19 @@ final class FilterForm extends Form implements IFilterFormFactory {
             $this->setMethod('post');
             $this['filter'] = new Container;
             $defaults = $this->grid->getDefaults();
+            if(null == $spice = json_decode(urldecode($this->request->getUrl()->getQueryParameter(strtolower($this->getParent()->getName()) . '-spice')))) {
+                $spice = [];
+            }
+            foreach($spice as $key => $grain) {
+                $column = preg_replace('/\s(.*)/', '', $key);
+                if(preg_match('/\s>/', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['>']) and $key == $column . ' >') {
+                    $defaults[$column]['>'] = $grain;
+                } elseif(preg_match('/\s</', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['<']) and $key == $column . ' <') {
+                    $defaults[$column]['<'] = $grain;
+                } elseif(isset($defaults[$column]) and !is_array($defaults[$column])) {
+                    $defaults[$column] = $grain;
+                }
+            }
             foreach ($this->grid->getColumns() as $name => $annotation) {
                 /** filter */
                 if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {
@@ -54,6 +72,8 @@ final class FilterForm extends Form implements IFilterFormFactory {
                 }
                 /** default values */
                 if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {
+                } elseif (!empty($spice) and isset($spice->$name) and isset($defaults[$name][$spice->$name])) {
+                    $this['filter'][$name]->setDefaultValue($spice->$name);
                 } elseif (true == $this->grid->getAnnotation($name, 'fetch') and ! preg_match('/\(/', $annotation) and is_array($default = $defaults[$name])) {
                     $default = array_shift($default);
                     $default = is_object($default) ? $default->__toString() : $default;

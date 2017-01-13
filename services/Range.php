@@ -9,7 +9,7 @@ use Latte\Engine,
     Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
-class Range extends BaseControl implements IRangeFactory {
+final class Range extends BaseControl implements IRangeFactory {
 
     /** @var ITranslator */
     private $translator;

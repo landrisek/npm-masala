@@ -8,16 +8,16 @@ use Nette\Database\Table\ActiveRow,
     Nette\Http\IRequest,
     Sunra\PhpSimple\HtmlDomParser;
 
-class ExportService implements IProcessService {
-
-    /** @var Array */
-    private $setting;
+final class ExportService implements IProcessService {
 
     /** @var HtmlDomParser */
     private $dom;
 
     /** @var ITranslator */
     private $translatorModel;
+
+    /** @var ActiveRow */
+    private $setting;
 
     /** @var string */
     private $directory;
@@ -47,7 +47,7 @@ class ExportService implements IProcessService {
     /** process methods */
     public function prepare(IMasalaFactory $masala) {
         $sum = $masala->getGrid()->getSum();
-        $header = array_values($masala->getGrid()->getOffset($masala->getGrid()->getHash() . ':0', 'export'));
+        $header = array_values($masala->getGrid()->getOffset(0));
         /*$html = $this->dom->str_get_html($row);
         $header = '';
         foreach($html->find('td') as $column) {

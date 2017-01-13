@@ -1,4 +1,4 @@
-<tr id='{$control}-rows-{$primary}'>
+<tr id='{$control}-rows-{$offset}'>
     {foreach $columns as $columnId => $column}
         {if false == $builder->getAnnotation($columnId, 'unrender') and false == $builder->getAnnotation($columnId, 'range')}
             <td class='grid-col-{$columnId}'>
@@ -9,7 +9,7 @@
     <td class='grid-col-actions'>
         {import $actions}
         {ifset #row-actions}
-            {include #row-actions row => $row, primary => $primary}
+            {include #row-actions row => $row, primary => $offset}
         {/ifset}
     </td>
 </tr>

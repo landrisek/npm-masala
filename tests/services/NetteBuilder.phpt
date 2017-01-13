@@ -108,7 +108,7 @@ class NetteBuilderTest extends TestCase {
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
             Assert::same(null, $this->masala->attached($presenter), 'Masala:attached method succeed but it does return something. Do you wish modify test?');
             Assert::same(null, $this->class->attached($this->masala), 'NetteBuilder:attached method succed but it does return something. Do you wish modify test?');
-            Assert::same($this->class->getId('test'), $presenter->getName() . ':' . $presenter->getAction() . ':test:', 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
+            Assert::same($this->class->getId('test'), $this->masala->getName() . ':' .$presenter->getName() . ':' . $presenter->getAction() . ':test:', 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
             $this->setUp();
         }
         Assert::false(isset($this->class->table), 'NetteBuilder table variable should be private.');

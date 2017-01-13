@@ -70,7 +70,7 @@ class EditFormTest extends TestCase {
         $this->monitorModel = $this->container->getByType('Models\MonitorModel');
         $urlScript = new UrlScript();
         $httpRequest = new Request($urlScript);
-        $this->class = new EditForm([], $translatorModel, $this->mockService, $httpRequest);
+        $this->class = new EditForm([], $grid, $translatorModel, $this->mockService, $httpRequest);
         $this->tables = $this->mockModel->getTestTables();
     }
 
