@@ -274,6 +274,16 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $this->defaults;
     }
 
+    public function getDrivers() {
+        $driverId = $this->getKey('attached', $this->table);
+        if (null == $drivers = $this->cache->load($driverId)) {
+            $this->cache->save($driverId, $drivers = $this->database->getConnection()
+                ->getSupplementalDriver()
+                ->getColumns($this->table));
+        }
+        return $drivers;
+    }
+
     public function getExport() {
         return $this->export;
     }
@@ -305,7 +315,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $this->import;
     }
 
-    public function getKey($method, $parameters) {
+    private function getKey($method, $parameters) {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
     }
 
@@ -425,7 +435,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     public function getOffsetByStatus($offset, $status) {
         $row = $this->cache->load($this->getId($status) . ':' . $offset);
-        $this->flush($this->getId($status) . ':' . $offset);
+        /** before active this, refactor BillingService:prepare + run and write test
+        $this->flush($this->getId($status) . ':' . $offset); */
         return $row;
     }
 
@@ -483,8 +494,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         //$this->cache->clean([$this->hash . ':7']);*/
         $body = [];
         $missings = [];
-        for ($offset = $this->offset; $offset < $this->limit + $this->offset; $offset++) {
-            if (null == $row = $this->cache->load($this->hash . ':' . $offset)) {
+        for ($offset = $this->offset; $offset <= $this->limit + $this->offset; $offset++) {
+            if (null == $row = $this->cache->load($this->control . ':' . $this->hash . ':' . $offset)) {
                 $missings[$offset] = $offset;
             } else {
                 $body[$offset] = $row;
@@ -608,7 +619,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function flush($hash) {
-        $this->cache->clean([Cache::ALL => [$hash]]);
+        //$this->cache->clean([Cache::ALL => [$hash]]);
         return $this;
     }
 
@@ -638,6 +649,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                 $this->annotations[$column][$annotationId] = true;
             }
         }
+        if(true == $this->getAnnotation($column, 'hidden')) {
+            unset($this->columns[$column]);
+        } else {
+            $this->columns[$column] = trim(preg_replace('/\@(.*)/', '', $annotation));
+        }
+        $this->column($column);
     }
 
     public function import(IProcessService $import) {
@@ -786,7 +803,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         if ($this->import instanceof IProcessService and ( $setting = $this->getSetting('import')) instanceof ActiveRow) {
             $this->import->setSetting($setting);
         } elseif ($this->import instanceof IProcessService) {
-            throw new InvalidStateException('Missing definition of import setting in table ' . $this->config['feeds'] . '.');
+            throw new InvalidStateException('Missing definition of import setting in table ' . $this->config['feeds'] . ' in call ' .
+                                            $this->presenter->getName() . ':' . $this->presenter->getAction());
         }
         /** export */
         if ($this->export instanceof IExportService and false != $setting = $this->getSetting('export')) {
@@ -797,24 +815,26 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             $this->service->setSetting($setting);
         }
         /** select */
+        if(isset($this->config['user']) and
+            $this->presenter->getUser()->isLoggedIn() and
+            is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['user']]))) {
+            foreach($setting as $source => $annotations) {
+                if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
+                    foreach($annotations as $annotationId => $annotation) {
+                        $this->columns[$annotationId] = $annotation;
+                    }
+                }
+            }
+        }
         foreach ($this->columns as $column => $annotation) {
             if (preg_match('/\sAS\s/', $annotation)) {
                 throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
             }
-            $this->columns[$column] = trim(preg_replace('/\@(.*)/', '', $annotation));
             $this->inject($annotation, $column);
-            $this->column($column);
         }
-        $driverId = $this->getKey('attached', $this->table);
-        if (null == $drivers = $this->cache->load($driverId)) {
-            $this->cache->save($driverId, $drivers = $this->database->getConnection()
-                    ->getSupplementalDriver()
-                    ->getColumns($this->table));
-        }
-        foreach ($drivers as $column) {
+        foreach ($this->getDrivers() as $column) {
             if (!isset($this->columns[$column['name']])) {
                 $this->inject($column['vendor']['Comment'] . '@' . $column['vendor']['Type'], $column['name']);
-                $this->column($column['name']);
                 isset($this->defaults[$column['name']]) ? $this->columns[$column['name']] = $this->table . '.' . $column['name'] : null;
             }
         }
@@ -931,7 +951,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->sort = (string) $sort;
         $this->query .= ' ORDER BY ' . preg_replace('/\s(.*)/', '', trim($this->columns[$this->order])) . ' ' . strtoupper($this->sort) . ' ';
         $this->salt .= '|' . $this->order . $this->sort;
-        $this->offset = (in_array($offset, [0, 1, null])) ? 0 : $offset * $this->config['pagination'];
+        $this->offset = (in_array($offset, ['0', '1', null])) ? 0 : ($offset - 1) * $this->config['pagination'];
         /** limit */
         $this->limit = $this->config['pagination'];
         $this->hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . '|' . $this->salt))));

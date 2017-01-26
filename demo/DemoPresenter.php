@@ -114,7 +114,7 @@ class DemoPresenter extends Presenter {
     }
 
     public function actionTest() {
-        $this->sendPayload();
+        $this->template->setFile(__DIR__ . '/test.latte');
     }
 
     /** render methods */

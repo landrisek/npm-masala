@@ -26,7 +26,7 @@
 {if is_object($grid->getMigration())}
     <a class="btn btn-success" href="javascript:;" onclick="handleMigrate();">{_'migrate'|firstUpper}</a>
 {/if}
-<div class="grid" data-grid-name="{$control->getUniqueId()}">
+<div id="{$control->getName()}" class="grid" data-grid-name="{$control->getUniqueId()}">
     {include pagination, type=>'top'}
     <table class="table table-striped table-hover">
         <thead>{include filter}</thead>

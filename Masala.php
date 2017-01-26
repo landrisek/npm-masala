@@ -79,6 +79,8 @@ final class Masala extends Control implements IMasalaFactory {
 
             } elseif ($presenter->name . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $column)) {
 
+            } elseif ($subquery != $label = $this->translatorModel->translate($subquery)) {
+
             } else {
                 $label = $this->translatorModel->translate($column);
             }
@@ -170,7 +172,6 @@ final class Masala extends Control implements IMasalaFactory {
             }
         }
         fclose($handle);
-        $this->grid->getImport()->prepare($this);
     }
 
     private function sanitize($row, $divider) {
@@ -223,7 +224,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     public function handleMigrate() {
         $stop = $this->grid->filter()->getMigration()->prepare($this);
-        $response = new JsonResponse(['run' => 0, 'stop' => $stop, 'status' => 'migration']);
+        $response = new JsonResponse(['run' => 0, 'stop' => $stop, 'status' => 'migration','rows'=>false]);
         return $this->presenter->sendResponse($response);
     }
 
@@ -241,8 +242,9 @@ final class Masala extends Control implements IMasalaFactory {
     public function handlePrepare() {
         $this->grid->log('prepare');
         $this->status = (null == $this->status) ? 'service' : $this->status;
-        $this->stop = $this->grid->filter()->getService()->prepare($this);
-        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'service']);
+        $prepared = $this->grid->filter()->getService()->prepare($this);
+        $this->stop = $prepared['stop'];
+        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'service', 'rows'=> $prepared['rows']]);
         return $this->presenter->sendResponse($response);
     }
 
@@ -258,12 +260,11 @@ final class Masala extends Control implements IMasalaFactory {
     }
 
     public function handleRun() {
-        $rows = !is_array($this->presenter->request->getPost('rows')) ? [] : $this->presenter->request->getPost('rows');
         $upload = $this->presenter->request->getPost('row');
         $csv = $this->presenter->request->getPost('csv');
         if(!empty($csv['header'])) {
             if (intval(str_replace('M', '', ini_get('post_max_size')) * 1024 * 1024) <
-                (mb_strlen(serialize($rows), '8bit') + mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
+                (mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
             ) {
                 throw new InvalidStateException('Uploaded data in post is too large according to post_max_size');
             }
@@ -298,7 +299,11 @@ final class Masala extends Control implements IMasalaFactory {
             eval('function call($row) {' . $sanitize . '}');
             $row = call($row);
         }
-        $this->grid->$service()->run($row, $rows, $this);
+        if(!isset($upload['rows'])) {
+            $this->grid->$service()->run($row, [], $this);
+        } else {
+            $upload['rows'] = $this->grid->$service()->run($row, $upload['rows'], $this);
+        }
         /** $response = new TextResponse($this->presenter->payload->rows = json_encode($result)); */
         $response = new JsonResponse($upload);
         return $this->presenter->sendResponse($response);

@@ -10,9 +10,9 @@ io.sockets.on('connection', function (socket) {
         var mysql = require('mysql2');
         var connection = mysql.createConnection({
             host: 'localhost',
-            user: 'worker',
-            password: 'dokempu',
-            database: 'cz_4camping'
+            user: 'myLogin',
+            password: 'myPassword',
+            database: 'myDatabase'
         });
         var crypto = require('crypto');
         var decipher=crypto.createDecipheriv('aes-256-cbc','NHz7mK0KtGGow3Khlgvf4qmVE9UAbgqa','1234567890123456');

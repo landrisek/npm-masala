@@ -10,7 +10,7 @@ use Nette\Caching\Cache,
     Nette\InvalidStateException;
 
 /** @author Lubomir Andrisek */
-final class RowBuilder {
+final class RowBuilder implements IRowBuilder {
 
     /** @var Array */
     private $table;
@@ -87,6 +87,20 @@ final class RowBuilder {
         return $this->defaults;
     }
 
+    public function getDrivers() {
+        $driverId = $this->getKey('attached', $this->table);
+        if (null == $drivers = $this->cache->load($driverId)) {
+            $this->cache->save($driverId, $drivers = $this->database->getConnection()
+                ->getSupplementalDriver()
+                ->getColumns($this->table));
+        }
+        return $drivers;
+    }
+
+    private function getKey($method, $parameters) {
+        return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
+    }
+
     public function getTable() {
         return $this->table;
     }
@@ -117,13 +131,7 @@ final class RowBuilder {
 
     /** setters */
     public function select(Array $columns) {
-        foreach ($columns as $column => $annotation) {
-            if (preg_match('/\sAS\s/', $annotation)) {
-                throw new InvalidStateException('Use intened alias as key in column ' . $column . '.');
-            }
-            $this->annotations[$column] = preg_match('/\[.*\]/', $annotation) ? '[' . preg_replace('/(.*)\[/', '', $annotation) : '';
-            $this->columns[$column] = trim(preg_replace('/\[(.*)\]/', '', $annotation));
-        }
+        $this->columns = $columns;
         return $this;
     }
 
@@ -184,12 +192,14 @@ final class RowBuilder {
     public function check() {
         if (null == $this->data) {
             $this->data = $this->resource->fetch();
-            foreach ($this->database->getConnection()
-                    ->getSupplementalDriver()
-                    ->getColumns($this->table) as $column) {
-                if (!isset($this->columns[$column['name']])) {
-                    $this->columns[$column['name']] = $column;
+            /** select */
+            foreach ($this->getDrivers() as $column) {
+                if(isset($this->columns[$column['name']]) and preg_match('/\sAS\s/', $this->columns[$column['name']])) {
+                    throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
+                } elseif (isset($this->columns[$column['name']])) {
+                    $column['vendor']['Comment'] .= '@' . trim(preg_replace('/(.*)\@/', '', $this->columns[$column['name']]));
                 }
+                $this->columns[$column['name']] = $column;
             }
             if (false != $this->data) {
                 foreach ($this->data as $key => $row) {
@@ -261,8 +271,9 @@ final class RowBuilder {
 
     /** update */
     public function update(Array $data) {
-        return $this->resource->where($this->resource->getPrimary(), $this->data->getPrimary())
-                        ->update($data);
+        return $this->database->table($this->table)
+            ->where($this->resource->getPrimary(), $this->data->getPrimary())
+            ->update($data);
     }
 
     /** insert */

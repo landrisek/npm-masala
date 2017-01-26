@@ -72,7 +72,7 @@ class NetteBuilderTest extends TestCase {
     public function testFilter() {
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
         $testParameters = ['feed' => 'laurasport',
-            'id' => 1,
+            'id' => 126,
             'date' => date('Y-m-d', strtotime('now')),
             'limit' => 10,
             'type' => 'inventure',
@@ -124,6 +124,16 @@ class NetteBuilderTest extends TestCase {
         Assert::same($this->class, $this->class->group('id ASC'), 'NetteBuilder:group does not return class itself.');
         Assert::same($this->class, $this->class->limit(10), 'NetteBuilder:limit does not return class itself.');
         Assert::same($this->helpModel->getSource(), $this->class->getTable(), 'Assign table for help failed.');
+    }
+
+    public function testConfig() {
+        Assert::true(is_object($mockModel = $this->container->getByType('Masala\MockModel')), 'MockModel is not set.');
+        Assert::true(isset($this->container->parameters['tables']['users']), 'Table of users is not set.');
+        Assert::true(isset($this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
+        Assert::false(empty($table = $this->container->parameters['tables']['users']), 'Column for setting of user is not set.');
+        Assert::false(empty($column = $this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
+        Assert::true(is_object($user = $mockModel->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
+        Assert::true(is_object(json_decode($user->$column)), 'Setting of user ' . $user->$column . ' is not valid json.');
     }
 
 }

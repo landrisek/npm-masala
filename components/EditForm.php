@@ -185,20 +185,22 @@ class EditForm extends Form implements IEditFormFactory {
         }
         /** pure parameters */
         $this->setting->submit($form);
-        $primary = $this->setting->getData()->getPrimary();
         /** delete ; */
         if ('delete' === $this->setting->getSubmit()) {
+            $primary = $this->setting->getData()->getPrimary();
             $this->setting->delete();
             $this->getPresenter()->flashMessage(ucfirst($this->translatorModel->translate('item with')) . ' ID ' .
                     $primary . ' ' . $this->translatorModel->translate('has been erased from table') . ' ' .
                     $this->translatorModel->translate($this->setting->getTable()) . '.');
             /** insert */
         } elseif ('new' == $this->setting->getSubmit()) {
+            $primary = $this->setting->getData()->getPrimary();
             $this->setting->add($columns);
             $this->getPresenter()->flashMessage($this->translatorModel->translate('New item with') . ' ID ' . $primary . ' ' .
                     $this->translatorModel->translate('had been added to the table') . ' ' . $this->translatorModel->translate($this->setting->getTable()) . '.');
             /** update */
         } elseif(null != $this->setting->getResource()) {
+            $primary = $this->setting->getData()->getPrimary();
             $this->setting->update($columns);
             $this->getPresenter()->flashMessage(ucfirst($this->translatorModel->translate('item with')) . ' ID ' . $primary . ' '
                     . $this->translatorModel->translate('from table') . ' ' . $this->translatorModel->translate($this->setting->getTable()) . ' ' . $this->translatorModel->translate('had been edited') . '.');

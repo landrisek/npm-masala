@@ -16,6 +16,9 @@ final class ExportService implements IProcessService {
     /** @var ITranslator */
     private $translatorModel;
 
+    /** IRequest */
+    private $request;
+
     /** @var ActiveRow */
     private $setting;
 
@@ -29,7 +32,8 @@ final class ExportService implements IProcessService {
         $this->dom = $dom;
         $this->translatorModel = $translatorModel;
         $this->directory = $tempDir;
-        $url = $request->getUrl();
+        $this->request = $request;
+        $url = $this->request->getUrl();
         $this->link = $url->scheme . '://' . $url->host . '/' . $url->scriptPath;
     }
 
@@ -47,16 +51,10 @@ final class ExportService implements IProcessService {
     /** process methods */
     public function prepare(IMasalaFactory $masala) {
         $sum = $masala->getGrid()->getSum();
-        $header = array_values($masala->getGrid()->getOffset(0));
-        /*$html = $this->dom->str_get_html($row);
-        $header = '';
-        foreach($html->find('td') as $column) {
-            $header .= preg_replace('/(.*)grid-col-|\>(.*)|\"|\'/', '', $column) . ',';
-        }*/
         $folder = $this->directory . '/' . $masala->getName() . '/export';
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $file = $folder . '/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        file_put_contents($file, $header);
+        file_put_contents($file, implode(',', $this->request->getPost('header')));
         return $sum;
     }
 
@@ -76,7 +74,7 @@ final class ExportService implements IProcessService {
 
     public function message(IMasalaFactory $masala) {
         $link = $this->link . 'temp/' . $masala->getName() . '/export/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        return '<a class="noajax" href="' . $link . '">' . $this->translatorModel->translate('Click here to download your file.') . '<a/>';
+        return '<a href="' . $link . '">' . $this->translatorModel->translate('Click here to download your file.') . '<a/>';
     }
 
 }

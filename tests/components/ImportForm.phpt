@@ -4,7 +4,6 @@ namespace Test;
 
 use Masala\ImportForm,
     Masala\MockService,
-    Masala\UploadForm,
     Models\TranslatorModel,
     Nette\Database\Connection,
     Nette\Database\Context,
@@ -30,7 +29,7 @@ class ImportFormTest extends TestCase {
     /** @var MockService @inject */
     private $mockService;
 
-    /** @var UploadForm */
+    /** @var ImportForm */
     private $class;
 
     public function __construct(Container $container) {
@@ -39,7 +38,7 @@ class ImportFormTest extends TestCase {
 
     protected function setUp() {
         /** database */
-        $connection = new Connection('mysql:host=localhost;dbname=cz_4camping', 'worker', 'dokempu');
+        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
         $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);

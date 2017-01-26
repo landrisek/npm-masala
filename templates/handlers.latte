@@ -9,7 +9,7 @@
         {$trigger|noescape};
     }
     function handleActive(button) {
-        $('#snippet--content').addClass('loading');
+        $('#' + {$control->getName()}).addClass('loading');
         var page = parseInt($(button).text());
         $('.paginate.paginate-dark.wrapper li a').attr('class', '');
         $('#pagination-top-current').val(page);
@@ -17,8 +17,8 @@
         handleFilter(page);
     }
     function handleCancel() {
-        $('#snippet--content').addClass('loading');
-        location.href = window.location.href;
+        $('#' + {$control->getName()}).addClass('loading');
+        location.href = location.href.replace(/&?masala-spice=([^&]$|[^&]*)/i, '');
         return true;
     }
     function handleCsv() {
@@ -35,11 +35,18 @@
 
     }
     function handleExport() {
+        var header = new Object();
+        $('thead .grid-columns th').each(function () {
+            if('' !== $(this).children('a').text()) {
+                header[$(this).attr('class').replace('grid-col-', '')] = $(this).children('a').text();
+            }
+        });
+        masalaData['header'] = header;
         window.masalaHandler = {link export!};
         angular.element('#lengthyProcess').triggerHandler('click');
     }
     function handleFilter(offset) {
-        $('#snippet--content').addClass('loading');
+        $('#' + {$control->getName()}).addClass('loading');
         console.log('loading filter...');
         var data = getFilters();
         data.offset = offset;
@@ -49,22 +56,35 @@
             data: data,
             url: {link filter!},
             success: function (payload) {
-                if(null == new RegExp({$control->getName()} + '\-spice\=').exec(location.href) && null == new RegExp(/\?/g).exec(location.href)) {
-                    var url = location.href + '?' + payload.url;
-                } else if(null == new RegExp({$control->getName()} + '-spice=').exec(location.href)) {
-                    var url = location.href + '&' + payload.url;
+                var url = location.href.split('?');
+                var append = '';
+                if(undefined != url[1]) {
+                    var parameters = url[1].split('&');
+                    for(var id in parameters) {
+                        if(0 == id) {
+                            append += '?';
+                        } else {
+                            append += '&';
+                        }
+                        var parameter = parameters[id].split('=');
+                        if({$control->getName()} + '-spice' == parameter[0]) {
+                            append += payload.url;
+                        } else {
+                            append += parameters[id];
+                        }
+                    }
                 } else {
-                    var url = location.href.replace(/&?masala-spice=([^&]$|[^&]*)/i, payload.url);
+                    append = '?' + payload.url;
                 }
-                window.history.pushState('', 'title', url);
+                window.history.pushState('', 'title', url[0] + append);
                 $('tbody').replaceWith(payload.rows);
-                $('#snippet--content').removeClass('loading');
+                $('#' + {$control->getName()}).removeClass('loading');
                 handlePaginate(data.offset);
             }
         });
     }
     function handleMessage() {
-
+        $('#' + {$control->getName()}).removeClass('loading');
     }
     function handleMigrate() {
         window.masalaHandler = {link migrate!};
@@ -93,7 +113,7 @@
                 var page = $('input#pagination-top-current').val();
                 $('a#page-top-' + page).attr('class', 'active');
                 $('a#page-bottom-' + page).attr('class', 'active');
-                $('#snippet--content').removeClass('loading');
+                $('#' + {$control->getName()}).removeClass('loading');
                 if(40 < payload) {
                     $('div#pagination-top').slider({
                         range: false,
@@ -139,8 +159,11 @@
             }
         });
     }
+    function handlePostpone() {
+        $('#' + {$control->getName()}).removeClass('loading');
+    }
     function handlePrepare(data) {
-        $('#snippet--content').addClass('loading');
+        $('#' + {$control->getName()}).addClass('loading');
         window.masalaHandler = {link prepare!};
         window.masalaData = data;
         window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
@@ -210,7 +233,7 @@
         data.submit = submit;
         data.id = $('.' + {$control->getName()} +'-widget .name-widget').attr('id');
         data.offset = $('.' + {$control->getName()} + '-widget .name-widget').attr('offset');
-        $('#snippet--content').removeClass('loading');
+        $('#' + {$control->getName()}).removeClass('loading');
         if(undefined === data.id) {
             alert({_'There is nothing to edit. First choose item.'});
             return false;

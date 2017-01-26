@@ -2,12 +2,13 @@
 
 namespace Masala;
 
-use Latte,
+use Latte\Engine,
     Models\TranslatorModel,
     Nette\DI\Container,
     Nette\Http,
     Nette\Application,
-    Nette\Bridges,
+    Nette\Bridges\FormsLatte\FormMacros,
+    Nette\Bridges\ApplicationLatte\TemplateFactory,
     Nette\Caching\Storages\SQLiteJournal,
     Nette\Caching\Storages\FileStorage,
     Nette\Database\Connection,
@@ -47,7 +48,7 @@ final class MockService {
     /** @var Application\Routers\RouteList */
     private $router;
 
-    /** @var Bridges\ApplicationLatte\TemplateFactory */
+    /** @var TemplateFactory */
     private $templateFactory;
 
     /** @var Array */
@@ -83,13 +84,13 @@ final class MockService {
         $structure = new Structure($connection, $this->cacheStorage);
         $this->context = new Context($connection, $structure);
         /** template */
-        $latte = new Latte\Engine();
+        $latte = new Engine();
         $latte->onCompile[] = function($latte) {
-            Bridges\FormsLatte\FormMacros::install($latte->getCompiler());
+            FormMacros::install($latte->getCompiler());
         };
         $latteFactory = Mockery::mock('Nette\Bridges\ApplicationLatte\ILatteFactory');
         $latteFactory->shouldReceive('create')->andReturn($latte);
-        $this->templateFactory = new Bridges\ApplicationLatte\TemplateFactory($latteFactory, $this->httpRequest);
+        $this->templateFactory = new TemplateFactory($latteFactory, $this->httpRequest);
     }
 
     public function setDependencies($class = false) {
@@ -226,6 +227,7 @@ final class MockService {
     }
 
     public function getPresenter($class, $latteFile, $parameters = [], $injected = false) {
+        Assert::true(class_exists($class), 'Class ' . $class . ' not found.');
         if (false == $injected) {
             $this->setPresenter();
             $this->setDependencies($class);
@@ -235,9 +237,13 @@ final class MockService {
         Assert::true(is_string($name = preg_replace('/\\\/', ':', $source)), 'Name of presenter is not set.');
         Assert::false(empty($name = ltrim($name, ':')), 'Name of presenter is empty');
         $presenter = Mockery::mock($class . '[redirect,getName]', ['__get']);
-        $presenter->setting = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
         $action = preg_replace('/(.*)\/|\.latte/', '', $latteFile);
-        $presenter->grid = $this->getBuilder($name, $action);
+        if(property_exists($presenter, 'setting')) {
+            $presenter->setting = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
+        }
+        if(property_exists($presenter, 'grid')) {
+            $presenter->grid = $this->getBuilder($name, $action);
+        }
         foreach ($this->services as $serviceId => $method) {
             if (isset($this->config['mockService'][$serviceId]) and property_exists($class, $serviceId)) {
                 $service = $this->container->$method();
