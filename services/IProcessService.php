@@ -7,13 +7,16 @@ use Nette\Database\Table\ActiveRow,
 
 interface IProcessService {
 
+    /** @return ActiveRow */
     function getSetting();
-    
+
+    /** @return IProcessService */
     function setSetting(ActiveRow $setting);
-    
+
+    /** @return Array */
     function prepare(IMasalaFactory $masala);
 
-    /** @return String */
+    /** @return Array */
     function run(Array $row, Array $rows, IMasalaFactory $masala);
 
     /** @return Bool */

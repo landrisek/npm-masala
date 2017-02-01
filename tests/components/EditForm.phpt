@@ -126,6 +126,7 @@ class EditFormTest extends TestCase {
         if (false != $required) {
             Assert::same(true, $this->class[$required]->isRequired(), 'Component ' . $required . ' should be required as it is not nullable column.');
         }
+        Assert::same('Masala\EditForm', get_class($this->class), 'Namespace of EditForm must be exactly Masala as it is used as query parameter for hidden field spice.');
     }
 
     /** @todo: IEditFormService:attached must return service */

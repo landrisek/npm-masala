@@ -6,16 +6,16 @@ use Nette\Application\UI\Form;
 
 interface IEditFormService {
 
-    /** return Form */
+    /** @return Form */
     function afterAttached(Form $form);
 
-    /** return Form */
+    /** @return Form */
     function afterSucceeded(Form $form);
     
-    /** return Array */
+    /** @return Array */
     function beforeAttached(Form $form);
 
-    /** return Form */
+    /** @return Array */
     function beforeSucceeded(Form $form);
     
     function add(Form $form, $row);

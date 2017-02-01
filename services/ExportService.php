@@ -10,9 +10,6 @@ use Nette\Database\Table\ActiveRow,
 
 final class ExportService implements IProcessService {
 
-    /** @var HtmlDomParser */
-    private $dom;
-
     /** @var ITranslator */
     private $translatorModel;
 
@@ -28,8 +25,7 @@ final class ExportService implements IProcessService {
     /** @var string */
     private $link;
     
-    public function __construct($tempDir, HtmlDomParser $dom, ITranslator $translatorModel, IRequest $request) {
-        $this->dom = $dom;
+    public function __construct($tempDir, ITranslator $translatorModel, IRequest $request) {
         $this->translatorModel = $translatorModel;
         $this->directory = $tempDir;
         $this->request = $request;

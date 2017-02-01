@@ -14,8 +14,7 @@ use Latte\Engine,
     Nette\Database\Table\ActiveRow,
     Nette\InvalidStateException,
     Nette\Http\IRequest,
-    Nette\Localization\ITranslator,
-    Sunra\PhpSimple\HtmlDomParser;
+    Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
 final class NetteBuilder extends BaseBuilder implements IBuilder {
@@ -25,9 +24,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @var Context */
     private $database;
-
-    /** @var HtmlDomParser */
-    private $dom;
 
     /** @var IDialogService */
     private $dialog;
@@ -146,13 +142,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var int */
     private $sum;
 
-    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, HtmlDomParser $dom, MigrationService $migrationService, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator) {
+    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, MigrationService $migrationService, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator) {
         $this->config = $config;
         $this->translatorModel = $translatorModel;
         $this->exportService = $exportService;
         $this->migrationService = $migrationService;
         $this->mockService = $mockService;
-        $this->dom = $dom;
         $this->database = $database;
         $this->cache = new Cache($storage);
         $this->linkGenerator = $linkGenerator;
@@ -404,6 +399,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $template->builder = $this;
         $template->row = $row;
         $template->offset = $offset;
+        $template->spice = $this->hash . ':' . $offset;
+
         $template->control = $this->control;
         $template->presenter = $this->presenter;
         $template->setTranslator($this->translatorModel);
@@ -435,11 +432,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     public function getOffsetByStatus($offset, $status) {
         $row = $this->cache->load($this->getId($status) . ':' . $offset);
-        /** before active this, refactor BillingService:prepare + run and write test
+        /** before active this, run and write test that no IProcessService save to cache by offset and status
         $this->flush($this->getId($status) . ':' . $offset); */
         return $row;
     }
 
+    /** @return string */
     public function getOffset($offset) {
         $primary = $this->control . ':array:' . $this->hash . ':' . $offset;
         if(false == $row = $this->cache->load($primary)) {
@@ -448,6 +446,19 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $row;
     }
 
+    /** @return IBuilder */
+    public function flushOffset($offset) {
+        $this->flush($this->control . ':' . $this->hash . ':' . $offset);
+        return $this;
+    }
+
+    /** @return IBuilder */
+    public function redrawOffset($offset) {
+        call_user_func_array($this->redraw, [$this->loadRow($offset, 'array')]);
+        return $this;
+    }
+
+    /** @return string */
     public function loadOffset($offset) {
         $key = $this->control . ':' . $this->hash . ':' . $offset;
         if(false == $row = $this->cache->load($key)) {
@@ -456,6 +467,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $row;
     }
 
+    /** @return string */
     public function loadRow($offset, $type) {
         $key = $this->control . ':' . $this->hash . ':' . $offset;
         $primary = $this->control . ':array:' . $this->hash . ':' . $offset;
@@ -470,7 +482,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             $row = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetch();
         }
         if(false != $row) {
-            $html = $this->getRow($key, $row);
+            $html = $this->getRow($offset, $row);
             $loading = ($row instanceof ActiveRow) ? $row->toArray() : (array) $row;
             $this->cache->save($primary, $loading, [Cache::EXPIRE => '+24 hours']);
             $this->cache->save($key, $html, [Cache::EXPIRE => '+24 hours']);
@@ -486,6 +498,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         }
     }
 
+    /** @return string */
     public function getOffsets() {
         /* @todo: to test:
           $this->cache->save($this->hash . ':2', '<tr id="masala-rows-5e5cdadac610bf2fbaafbb6308561685:8">
@@ -520,7 +533,10 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                 $this->arguments[$limit] = $offsets[$limitId] - $offset;
                 $this->arguments[$limit + 1] = $offset;
                 if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
-                    $data = $this->getResource()->limit($this->arguments[$limit], $this->arguments[$limit + 1])->fetchAll();
+                    $data = $this->getResource()
+                                ->limit($this->arguments[$limit], $this->arguments[$limit + 1])
+                                ->order($this->order . ' ' . strtoupper($this->sort))
+                                ->fetchAll();
                 } else {
                     $arguments = array_values($this->arguments);
                     $data = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
@@ -537,13 +553,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function getResource() {
-        $dataSource = $this->database->table($this->table)
-                ->select($this->select);
+        $dataSource = $this->database->table($this->table);
+        (null == $this->select) ? null : $dataSource->select($this->select);
         foreach ($this->where as $column => $value) {
             is_numeric($column) ? $dataSource->where($value) : $dataSource->where($column, $value);
         }
         (null == $this->group) ? null : $dataSource->where($this->group . ' IS NOT NULL')->group($this->group);
-        $dataSource->order($this->order . ' ' . strtoupper($this->sort));
         (null == $this->having) ? null : $dataSource->having($this->having);
         return $dataSource;
     }
@@ -619,7 +634,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function flush($hash) {
-        //$this->cache->clean([Cache::ALL => [$hash]]);
+        $this->cache->clean([Cache::ALL => [$hash]]);
         return $this;
     }
 
@@ -717,12 +732,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $this;
     }
 
-    public function redraw(Array $redraw) {
-        foreach ($this->redraw as $action => $callback) {
-            if (!is_callable($callback)) {
-                throw new InvalidStateException('Given redraw function is not callable.');
-            }
-        }
+    public function redraw(callable $redraw) {
         $this->redraw = $redraw;
         return $this;
     }

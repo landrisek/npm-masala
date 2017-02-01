@@ -1,6 +1,7 @@
 {define row-actions}
     <div class="btn-group" role="group" aria-label="...">
-        <a type="button" class="btn btn-default" data-toggle="tooltip" title="{_'edit'|firstUpper}" href="{plink ':'.$presenter->getName().':edit', id=> $row['id']}">
+        <a type="button" class="btn btn-default" data-toggle="tooltip" title="{_'edit'|firstUpper}"
+           href="{plink ':'.$presenter->getName().':edit', id => $row['id'], $control . '-row' => $spice}">
             <i class="fa fa-edit"></i>
         </a>
 	{if isset($row->url)}

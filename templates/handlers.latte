@@ -168,13 +168,16 @@
         window.masalaData = data;
         window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
     }
-    function handleRedraw(data) {
+    function handleRedraw(redraw) {
+        var data = getFilters();
+        data.offset = redraw.offset;
+        $('tr#rows-' + data.offset).addClass('loading');
         $.nette.ajax({
             type: 'post',
             url: {link redraw!},
             data: data,
             success: function (payload) {
-                var primary = 'tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:');
+                var primary = $('tr#rows-' + data.offset);
                 if('' === payload) {
                     console.log(primary + ' hidden.');
                     $(primary).hide();

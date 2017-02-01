@@ -16,7 +16,6 @@ use Latte\Engine,
     Nette\Database\Structure,
     Mockery,
     Security\User,
-    Sunra\PhpSimple\HtmlDomParser,
     Tester\Assert;
 
 final class MockService {
@@ -417,8 +416,7 @@ final class MockService {
         $router = new Application\Routers\RouteList($module);
         $router[] = new Application\Routers\Route('<presenter>/<action>', $presenter . ':' . $action);
         $linkGenerator = new Application\LinkGenerator($router, $this->httpRequest->getUrl());
-        $dom = new HtmlDomParser();
-        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $dom, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
+        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
         return $builder;
     }
 

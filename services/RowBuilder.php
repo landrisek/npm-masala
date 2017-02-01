@@ -129,12 +129,7 @@ final class RowBuilder implements IRowBuilder {
         return $this->subtitle;
     }
 
-    /** setters */
-    public function select(Array $columns) {
-        $this->columns = $columns;
-        return $this;
-    }
-
+    /** @return IBuilder */
     public function table($table) {
         $this->table = (string) $table;
         $this->resource = $this->database->table($table);
@@ -278,8 +273,9 @@ final class RowBuilder implements IRowBuilder {
 
     /** insert */
     public function add(Array $data) {
-        $id = $this->resource->insert($data)->getPrimary();
+        $id = $this->resource->insert($data);
         $this->parameters['id'] = (isset($this->parameters['id'])) ? $this->parameters['id'] : $id;
+        return $id;
     }
 
     /** delete */

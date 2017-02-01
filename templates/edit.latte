@@ -1,6 +1,6 @@
 {block #scripts}
 <!-- ckeditor -->
-<script type="text/javascript" src="{$basePath}/assets/ckeditor3/ckeditor.js"></script>
+<script type="text/javascript" src="{$basePath}/assets/masala/ckeditor3/ckeditor.js"></script>
 <script type="text/javascript" src="{$basePath}/bower/ckeditor/ckeditor.js"></script>
 <!-- bootstrap datetimepicker -->
 <script type="text/javascript" src="{$basePath}/bower/moment/min/moment.min.js"></script>
@@ -74,6 +74,11 @@
                             <span class="glyphicon glyphicon-calendar"></span>
                         </span>
                     </div>
+                </div>
+            {elseif $component instanceof \Nette\Forms\Controls\Checkbox}
+                <div class="row">
+                    {label $name /}
+                    {input $name}
                 </div>
             {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
                 {var $submits[$name] => $component}
