@@ -5,8 +5,8 @@
                     {if false == $grid->getAnnotation($column->name, 'unrender') and false == $grid->getAnnotation($column->name, 'range')}
                         <th class="grid-col-{$column->name}">
                             <a href="javascript:;" onclick="handleSort({$column->name});">{$column->label}</a>
-                            <img style="display: none;" width="20px;" src="{$basePath}/assets/{$control->getName()}/images/asc.png" id="{$control->getName()}-{$column->name}-asc" class="sort">
-                            <img style="display: none;" width="20px;" src="{$basePath}/assets/{$control->getName()}/images/desc.png" id="{$control->getName()}-{$column->name}-desc" class="sort">
+                            <img style="display: none;" width="20px;" src="{$basePath}/{$bower}/images/asc.png" id="{$control->getName()}-{$column->name}-asc" class="sort">
+                            <img style="display: none;" width="20px;" src="{$basePath}/{$bower}/images/desc.png" id="{$control->getName()}-{$column->name}-desc" class="sort">
                         </th>
                     {/if}
                 {/foreach}
@@ -26,7 +26,7 @@
                                 {/if}
                             {/foreach}
                             <th class="grid-col-actions">
-                                <a class="btn btn-success" href="javascript:;" onclick="handleFilter();">{_'filter'}</a>
+                                <a class="btn btn-success" href="javascript:;" onclick="handleFilter();">{_'filter'|firstUpper}</a>
                                 <a id="{$control->getName()}-cancel-filter" class="btn btn-warning noajax" style="display:none;" href="javascript:;" onclick="handleCancel();">{_'cancel filter'}</a>
                             </th>
                         {/formContainer}

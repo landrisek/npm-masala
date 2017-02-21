@@ -1,16 +1,45 @@
 {block dialog}
-<div ng-app="Dialog">
-    <div ng-controller="MainCtrl" style="display:none">
-        <a id="lengthyProcess" href="javascript:;" ng-click="openConfirm('lengthyProcess')" ng-dialog-controller="InsideCtrl" ng-dialog-data="{{ jsonData}}">{_'change_status'|firstUpper}</a>
-        <script type="text/ng-template" id="modalDialogId-lengthyProcess">
-            <div class="progress">
-                <div class="progress-bar" role="progressbar"></div>            
+<div class="modal fade" id="{$control->getName()}-edit" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="{$control->getName()}Label">{_'edit item'|firstUpper}</h4>
             </div>
-            <div class="ngdialog-buttons">
-                <a href="javascript:;" onclick="handleStart();" class="ngdialog-button ngdialog-button-primary">{_'run'|firstUpper}</a>
-                <a href="{link postpone!}" class="ngdialog-button ngdialog-button-secondary noajax">{_'postpone'|firstUpper}</a>
+            <div class="modal-body" id="{$control->getName()}-edit-modal-body"></div>  
+        </div>  
+    </div>  
+</div>
+<div class="modal fade" id="{$control->getName()}-process" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="{$control->getName()}Label">{_'lengthy process'|firstUpper}</h4>
             </div>
-        </script>
+            <div class="modal-body" id="{$control->getName()}-process-modal-body">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar"></div>
+                </div>
+                    <a href="javascript:;" class="btn btn-success" style="margin-left:10px;" onclick="handleStart();">{_'run'|firstUpper}</a>
+                    <a href="{link postpone!}" class="btn btn-danger">{_'postpone'|firstUpper}</a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="{$control->getName()}-help" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="{$control->getName()}Label">{_'help'|firstUpper}</h4>
+            </div>
+            <div class="modal-body" id="{$control->getName()}-process-modal-body">
+                {foreach $help as $key => $helper}
+                    <p><span class="badge">{_"$key"}</span>&nbsp;&nbsp;{_"$helper"}</p>
+                {/foreach}
+            </div>
+        </div>
     </div>
 </div>
 {/block}

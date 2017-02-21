@@ -25,9 +25,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var Context */
     private $database;
 
-    /** @var IDialogService */
-    private $dialog;
-
     /** @var IProcessService */
     private $export;
 
@@ -243,10 +240,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $this->concat;
     }
 
+    /** @return Array */
     public function getColumns() {
         return $this->columns;
     }
 
+    /** @return string | Bool */
     public function getColumn($key) {
         if (isset($this->columns[$key])) {
             return $this->columns[$key];
@@ -259,10 +258,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             return $this->config[$key];
         }
         return [];
-    }
-
-    public function getDialog() {
-        return $this->dialog;
     }
 
     public function getDefaults() {
@@ -400,7 +395,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $template->row = $row;
         $template->offset = $offset;
         $template->spice = $this->hash . ':' . $offset;
-
         $template->control = $this->control;
         $template->presenter = $this->presenter;
         $template->setTranslator($this->translatorModel);
@@ -454,7 +448,9 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @return IBuilder */
     public function redrawOffset($offset) {
-        call_user_func_array($this->redraw, [$this->loadRow($offset, 'array')]);
+        if(is_callable($this->redraw)) {
+            call_user_func_array($this->redraw, [$this->loadRow($offset, 'array')]);            
+        }
         return $this;
     }
 
@@ -472,7 +468,10 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $key = $this->control . ':' . $this->hash . ':' . $offset;
         $primary = $this->control . ':array:' . $this->hash . ':' . $offset;
         if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
-            $row = $this->getResource()->limit(1, $offset)->fetch();
+            $row = $this->getResource()
+                    ->order($this->order . ' ' . strtoupper($this->sort))
+                    ->limit(1, $offset)
+                    ->fetch();
         } else {
             $limit = count($this->arguments);
             $arguments = $this->arguments;
@@ -516,7 +515,9 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         }
         $offsets = $missings;
         foreach ($missings as $break) {
-            if (!isset($missings[$break - 1]) and ! isset($missings[$break + 1])) {
+            if (!isset($missings[$break - 1]) and ! isset($missings[$break + 1]) and $break == $this->limit) {
+                $offsets[$break - 1] = $break - 1;
+            } elseif (!isset($missings[$break - 1]) and ! isset($missings[$break + 1])) {
                 $offsets[$break + 1] = $break + 1;
             } elseif (isset($missings[$break - 1]) and isset($missings[$break + 1]) or ( !isset($missings[$break - 1]) and ! isset($missings[$break + 1]))) {
                 unset($offsets[$break]);
@@ -543,8 +544,10 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                 }
                 $data = array_values($data);
                 foreach ($data as $primary => $row) {
-                    $body[$primary] = $html = $this->getRow($primary + $offset, $row);
+                    $body[$primary + $offset] = $html = $this->getRow($primary + $offset, $row);
+                    $loading = ($row instanceof ActiveRow) ? $row->toArray() : (array) $row;
                     $this->cache->save($this->control . ':' . $this->hash . ':' . ($primary + $offset), $html, [Cache::EXPIRE => '+24 hours']);
+                    /** $this->cache->save($this->control . ':array:' . $this->hash . ':' . ($primary + $offset), $loading, [Cache::EXPIRE => '+24 hours']); */
                 }
             }
         }
@@ -570,10 +573,12 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     public function getSum() {
         if(is_int($this->sum)) {
             return $this->sum;
+        } elseif(empty($this->where)) {
+            return $this->sum = $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
         } elseif (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
             $load = $this->getResource();
             return $this->sum = $load->count();
-        } else {
+        } else {            
             $arguments = [];
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
@@ -597,6 +602,11 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $this;
     }
 
+    /** @return IBuilder */
+    public function cloned() {
+        return new NetteBuilder($this->config, $this->translatorModel, $this->exportService, $this->migrationService, $this->mockService, $this->database, $this->storage, $this->httpRequest, $this->linkGenerator);
+    }
+    
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
             
@@ -620,11 +630,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             throw new InvalidStateException('Concate key ' . $key . ' already assigned in ' . __CLASS__ . '.');
         }
         $this->concat[$key] = $value;
-        return $this;
-    }
-
-    public function dialog(IDialogService $dialog) {
-        $this->dialog = $dialog;
         return $this;
     }
 
@@ -895,7 +900,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return '';
     }
 
-    public function filter($view = []) {
+    public function filter(Array $view = []) {
         if(!empty($view)) {
             $filters = $view['filters'];
             $order = $view['order'];

@@ -1,4 +1,4 @@
-<tr id='{$control}-rows-{$offset}'>
+<tr id='rows-{$offset}'>
     {foreach $columns as $columnId => $column}
         {if false == $builder->getAnnotation($columnId, 'unrender') and false == $builder->getAnnotation($columnId, 'range')}
             <td class='grid-col-{$columnId}'>

@@ -21,7 +21,12 @@ final class MockModel extends Object {
         $this->cache = new Cache($storage);
     }
 
-    /** getters */
+    public function getColumns($table) {
+        return $this->database->getConnection()
+                        ->getSupplementalDriver()
+                        ->getColumns($table);
+    }
+
     public function getTestRow($table, Array $clauses = []) {
         $resource = $this->database->table($table);
         foreach ($clauses as $column => $value) {

@@ -23,17 +23,27 @@
     }
     function handleCsv() {
         window.masalaHandler = {link import!, 'stop'=>$stop};
-        window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
+        $('#' + {$control->getName()} + '-process').modal();
     }
-    function handleDialog(offset, id, name) {
-        $('.' + {$control->getName()} + '-widget').animate({ right: '420'}, 'slow');
-        $('.' + {$control->getName()} + '-widget .name-widget').text(name);
-        $('.' + {$control->getName()} + '-widget .name-widget').attr('id', id);
-        $('.' + {$control->getName()} + '-widget .name-widget').attr('offset', offset);
-    }
+    function handleDelete() {
+        
+    }    
     function handleDone() {
 
     }
+    function handleEdit(offset, spice) {
+        var data = getFilters();
+        data.spice = spice;
+        data.offset = offset
+        $.nette.ajax({
+            type: 'post',
+            data: data,
+            url: {link edit!},
+            success: function (payload) {                
+                $('#' + {$control->getName()} + '-edit-modal-body').replaceWith('<div class="modal-body" id="' + {$control->getName()} + '-edit-modal-body">' + payload + '</div>');
+            }
+        });        
+    }    
     function handleExport() {
         var header = new Object();
         $('thead .grid-columns th').each(function () {
@@ -43,7 +53,6 @@
         });
         masalaData['header'] = header;
         window.masalaHandler = {link export!};
-        angular.element('#lengthyProcess').triggerHandler('click');
     }
     function handleFilter(offset) {
         $('#' + {$control->getName()}).addClass('loading');
@@ -88,7 +97,6 @@
     }
     function handleMigrate() {
         window.masalaHandler = {link migrate!};
-        angular.element('#lengthyProcess').triggerHandler('click');
     }
     function handlePaginate(offset) {
         console.log('loading pagination...');
@@ -163,21 +171,20 @@
         $('#' + {$control->getName()}).removeClass('loading');
     }
     function handlePrepare(data) {
-        $('#' + {$control->getName()}).addClass('loading');
+        $('#' + {$control->getName()} + '-process').modal({ show: 'true' }); 
         window.masalaHandler = {link prepare!};
         window.masalaData = data;
-        window.setTimeout(function() { angular.element('#lengthyProcess').triggerHandler('click'); });
     }
-    function handleRedraw(redraw) {
+    function handleRedraw(offset) {
         var data = getFilters();
-        data.offset = redraw.offset;
-        $('tr#rows-' + data.offset).addClass('loading');
+        data.offset = offset;
+        $('tr#rows-' + offset).addClass('loading');
         $.nette.ajax({
             type: 'post',
             url: {link redraw!},
             data: data,
             success: function (payload) {
-                var primary = $('tr#rows-' + data.offset);
+                var primary = 'tr#rows-' + data.offset;
                 if('' === payload) {
                     console.log(primary + ' hidden.');
                     $(primary).hide();
@@ -227,27 +234,36 @@
         }
         handleFilter(1);
     }
-    function handleSubmit(submit) {
+    function handleSubmit(form) {
+        $(form.id).addClass('loading');
         var data = getFilters();
-        $('.' + {$control->getName()} +'-widget .inside-widget textarea').each(function () {
-            var id = $(this).attr('id');
-            data[id] = $(this).val();
+        var dataForm = new Object();
+        $(form.id + ' select').each(function () {
+            dataForm[$(this).attr('name')] = $(this).val();
         });
-        data.submit = submit;
-        data.id = $('.' + {$control->getName()} +'-widget .name-widget').attr('id');
-        data.offset = $('.' + {$control->getName()} + '-widget .name-widget').attr('offset');
-        $('#' + {$control->getName()}).removeClass('loading');
-        if(undefined === data.id) {
-            alert({_'There is nothing to edit. First choose item.'});
-            return false;
-        }
-        $('tr#' + {$control->getName()} + '-rows-' + data.primary.replace(':', '\\:')).addClass('loading');
-        $.nette.ajax({
+        $(form.id + ' input').each(function () {
+            if('checkbox' == $(this).attr('type') && $(this).is(':checked')) {
+                 dataForm[$(this).attr('name')] = 1;
+            } else if('checkbox' == $(this).attr('type')) {
+                dataForm[$(this).attr('name')] = 0;    
+            } else {
+                dataForm[$(this).attr('name')] = $(this).val();
+            }
+        });
+        data.form = dataForm;
+        var link = '&' + {$control->getName()} + '-signal=' + form.signal + '&' + {$control->getName()} + '-spice=' + form.spice;
+        $.ajax({
             type: 'post',
-            url: {link submit!},
+            url: {link submit!} + link,
             data: data,
             success: function(payload) {
-                handleRedraw(payload);
+                if(undefined == payload.offset) {
+                    alert(payload.message);
+                    $(form.id).removeClass('loading');
+                    return false;
+                }
+                $(form.id).removeClass('loading');
+                handleRedraw(payload.offset);
             }
         });
     }

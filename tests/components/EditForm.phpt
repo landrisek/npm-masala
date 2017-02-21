@@ -45,7 +45,7 @@ class EditFormTest extends TestCase {
     private $mockService;
 
     /** @var RowBuilder */
-    private $setting;
+    private $row;
 
     function __construct(Container $container) {
         $this->container = $container;
@@ -66,11 +66,12 @@ class EditFormTest extends TestCase {
         $this->mockModel = new MockModel($context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $grid = $this->mockService->getBuilder('Sale:Google', 'default');
-        $this->setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
+        $this->row = new RowBuilder($parameters['masala'], $context, $cacheStorage);
         $this->monitorModel = $this->container->getByType('Models\MonitorModel');
         $urlScript = new UrlScript();
         $httpRequest = new Request($urlScript);
-        $this->class = new EditForm([], $grid, $translatorModel, $this->mockService, $httpRequest);
+        $builder = $this->container->getByType('Masala\NetteBuilder');
+        $this->class = new EditForm(10, $translatorModel, $this->mockService, $httpRequest);
         $this->tables = $this->mockModel->getTestTables();
     }
 
@@ -79,18 +80,18 @@ class EditFormTest extends TestCase {
     }
 
     /** @todo: check if sql columns used in queries in table triggers exist */
-    public function testSetSetting() {
+    public function testSetRow() {
         $this->setUp();
         $key = 'categories';
-        $this->setting->table($this->monitorModel->upload);
-        Assert::notSame(false, $this->setting, 'There is no VO for testing EditForm.');
-        Assert::true($this->setting instanceof RowBuilder, 'There is no VO for testing EditForm.');
-        Assert::same($this->class, $this->class->setSetting($this->setting), 'Setter does not return class.');
+        $this->row->table($this->monitorModel->upload);
+        Assert::notSame(false, $this->row, 'There is no VO for testing EditForm.');
+        Assert::true($this->row instanceof RowBuilder, 'There is no VO for testing EditForm.');
+        Assert::same($this->class, $this->class->setRow($this->row), 'Setter does not return class.');
     }
 
     /** https://forum.nette.org/cs/21274-test-formulare-podstrceni-tlacitka */
     public function testSucceeded() {
-        $this->testSetSetting();
+        $this->testSetRow();
         Assert::false(empty($source = $this->container->parameters['tables']['write']), 'There is table for source write');
         Assert::false(empty($setting = $this->mockModel->getTestRow($source)), 'There is no test row for source ' . $source);
         $presenter = $this->mockService->getPresenter('App\ContentModule\WritePresenter', WWW_DIR . 'app/ContentModule/templates/Write/edit.latte', ['id' => $setting->id]);
@@ -99,19 +100,18 @@ class EditFormTest extends TestCase {
         /* $submittedBy = Mockery::mock(Nette\Forms\Controls\SubmitButton::class);
           $submittedBy->shouldReceive('getName')->andReturn('save');
           $this->class->shouldReceive('isSubmitted')->andReturn($submittedBy); */
-        Assert::same($this->class->getSetting(), $this->class->getSetting()->setSubmit('save'), 'Set submit method should return class RowBuilder.');
-        Assert::same('save', $this->class->getSetting()->getSubmit(), 'In this test should be form submitted by save component.');
+        Assert::same($this->class, $this->class->signalled('attached'), 'Signalled method should return class EditForm.');
         Assert::same(true, is_object($this->class->getValues()));
         Assert::true($this->class->getValues() instanceof ArrayHash);
     }
 
     public function testAttached() {
-        $this->testSetSetting();
+        $this->testSetRow();
         /** todo: $presenters = $this->mockService->getPresenters('IEditFormFactory'); */
         $presenter = $this->mockService->getPresenter('App\SaleModule\HeurekaPresenter', WWW_DIR . 'app/SaleModule/templates/Heureka/edit.latte');
         Assert::true(is_object($presenter), 'Presenter was not set.');
         $presenter->addComponent($this->class, 'EditForm');
-        Assert::false(empty($columns = $this->class->getSetting()->getColumns()), 'Columns for EditForm are not set.');
+        Assert::false(empty($columns = $this->class->getRow()->getColumns()), 'Columns for EditForm are not set.');
         Assert::false(empty($presenter->monitorModel->upload), 'Source for monitor upload is not set.');
         $columns = $presenter->monitorModel->getColumns($presenter->monitorModel->upload);
         $required = false;
@@ -156,11 +156,11 @@ class EditFormTest extends TestCase {
             'fc_write' => ['class' => 'App\ContentModule\WritePresenter', 'latte' => 'ContentModule/templates/Write/edit.latte']];
         foreach ($compulsories as $name => $compulsory) {
             $setting = $this->mockModel->getTestRow($name);
-            $this->setting->table($name);
+            $this->row->table($name);
             Assert::true($setting instanceof ActiveRow or in_array($name, $excluded), 'There is no row in ' . $name . '. Are you sure it is not useless?');
             if ($setting instanceof ActiveRow) {
                 Assert::true(is_array($columns = $this->monitorModel->getColumns($name)), 'Table columns are not defined.');
-                $this->class->setSetting($this->setting);
+                $this->class->setRow($this->row);
                 $presenter = $this->mockService->getPresenter($compulsory['class'], WWW_DIR . 'app/' . $compulsory['latte'], ['id' => $setting->id]);
                 Assert::true(is_object($presenter), 'Presenter was not set.');
                 $presenter->addComponent($this->class, 'EditForm');

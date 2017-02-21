@@ -5,8 +5,7 @@ namespace Masala;
 use Nette\Database\Table\ActiveRow,
     Nette\Localization\ITranslator,
     Nette\Application\UI\Presenter,
-    Nette\Http\IRequest,
-    Sunra\PhpSimple\HtmlDomParser;
+    Nette\Http\IRequest;
 
 final class ExportService implements IProcessService {
 

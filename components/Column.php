@@ -4,6 +4,7 @@ namespace Masala;
 
 use Nette\Object;
 
+/** @author Lubomir Andrisek */
 final class Column extends Object {
 
     /** @var string */

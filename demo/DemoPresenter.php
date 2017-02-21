@@ -3,7 +3,6 @@
 namespace App\ApiModule;
 
 use Masala\MockModel,
-    Masala\IDialogService,
     Masala\IEditFormFactory,
     Masala\IMasalaFactory,
     Masala\IProcessService,
@@ -24,9 +23,6 @@ class DemoPresenter extends Presenter {
 
     /** @var IProcessService */
     public $export;
-
-    /** @var IDialogService */
-    public $dialog;
 
     /** @var IProcessService */
     public $service;
@@ -97,15 +93,9 @@ class DemoPresenter extends Presenter {
 
     public function actionGrid() {
         $this->grid->table('my_table');
-    }
-
-    public function actionEdit($id = 1) {
-        if (false == $this->setting->source('my_table')
+        $this->setting->source('my_table')
                         ->where('my_column', $id)
-                        ->check()) {
-            $this->flashMessage('Item with ' . $id . ' does not exist.');
-            $this->redirect('Demo:default');
-        }
+                        ->check();
     }
 
     public function actionMock() {
@@ -142,7 +132,7 @@ class DemoPresenter extends Presenter {
 
     protected function createComponentMasalaForm() {
         return $this->masalaFormFactory->create()
-                        ->setSetting($this->setting);
+                        ->setRow($this->setting);
     }
 
 }

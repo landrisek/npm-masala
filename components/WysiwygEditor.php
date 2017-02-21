@@ -6,8 +6,8 @@ use Nette\Application\UI\Presenter,
     Nette\Forms\Controls\TextArea,
     Nette\Utils\Html;
 
-/** @author Lubo Andrisek */
-class WysiwygEditor extends TextArea {
+/** @author Lubomir Andrisek */
+final class WysiwygEditor extends TextArea {
 
     /** @var string type */
     private $type;
@@ -38,7 +38,7 @@ class WysiwygEditor extends TextArea {
         $uri = $this->parent->getContext()->getByType('Nette\Http\Request')->url->baseUrl;
         $path = $uri;
         $script = Html::el();
-        $ckeditor = $this->version == 3 ? 'assets/ckeditor3/ckeditor.js' : 'bower/ckeditor/ckeditor.js';
+        $ckeditor = $this->version == 3 ? 'assets/masala/ckeditor3/ckeditor.js' : 'bower/ckeditor/ckeditor.js';
         $plugins = $this->version == 3 ? 'extraPlugins : "report",' : '';
         //$script->setHtml('<script type="text/javascript" src="' . $path . $ckeditor . '"></script>
         $script->setHtml('<script type="text/javascript">

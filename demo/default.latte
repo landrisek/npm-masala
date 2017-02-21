@@ -41,30 +41,32 @@
 <p>public $MasalaFactory;</p>
 <p>/** @var Masala\IEditFormFactory @inject */</p>
 <p>public $masalaFormFactory;</p>
-<h3>Step3: redefine Presenter parent for Nittro\Bridges\NittroUI\Presenter</h3>
-<p>public actionDefault() { </p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp$this->setDefaultSnippets(['content']);</p>
-<p>}</p>
-<h3>Step4a: call query methods in action method:</h3>
+<h3>Step3: call query methods in action method:</h3>
 <p>public actionDefault() { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp$this->grid->table($table)</p>
 <p>}</p>
-<h3>Step4b: or add grid dependency in model and define query in model:</h3>
+<h3>Step3b: when using more datasource for more gris on same page:</h3>
+<p>public actionDefault() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp$this->grid->table($table)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp$this->anotherGrid->cloned()->table($table)</p>
+<p>}</p>
+<h3>Step4: or add grid dependency in model and define query in model:</h3>
 <p>public function __construct(\Masala\IBuilder $grid) { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;$this->grid = $grid</p>
 <p>}</p>
-<h3>Step4c: add nittro snippet to template:</h3>
-<p>{php echo '<div n:snippet="content" class="loading">'; }</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;{ include #content}</p>
-<p>{php echo '</div>'; }</p>
 <h3>Step5: create components in your presenter:</h3>
 <p>protected function createComponentMasala() { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->MasalaFactory->create()</p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;->setGrid($this->grid);</p>
 <p>}</p>
-<p>protected function createComponentSmartForm() { </p>
+<h3>Step5b: hen using more datasource for more gris on same page:</h3>
+<p>protected function createComponentAnotherMasala() { </p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->MasalaFactory->cloned()->create()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;->setGrid($this->anotherGrid);</p>
+<p>}</p>
+<p>protected function createComponentMasalaForm() { </p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;return $this->masalaFormFactory->create()</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;->setSetting($this->setting);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;->setRow($this->row);</p>
 <p>}</p>
 <h3>Step6: use annotation in $this->grid->select() method OR as comment in MySQL columns</h3>
 <p>'@Api:Demo' => 'not show column in all actions of ApiModule\DemoPresenter',</p>
@@ -90,14 +92,10 @@
 <p>'@textarea' => 'rendet textarea input',</p>
 <p>'@unedit' => 'does not render column in SmartForm',</p>
 <p>'@unfilter' => 'does not render filter for given column',</p>
-<p>'<a class={ $control}-redraw id={ $row->getPrimary()}>update</a>' => 'add this to column.latte to redraw given row'<p>
+<p>'<a href="javascript:;" onclick="handleRedraw({'offset':{$offset}})">update</a>' => 'add this to column.latte to redraw given row'<p>
 <h3>Step7: use this->grid->where() as nette database, third argument is callback for condition</h3>
 <p>'->where("key", "?") => 'use given key as placeholder in query'</p>
-<h3>Step8a: render in template with nitro:</h3>
-<p>{php echo '<div n:snippet="content" class="loading">{ include #content}</div>'; }</p>
-<p>{php echo '<div n:snippet="loading"><script type="text/javascript">$("#snippet--content").removeClass("loading")'; }</script></div>'</p>
-<p>{php echo '{ block #content}{ control masala}{ /block} </div>'; }</p>
-<h3>Step8b: or without nitro:</h3>
+<h3>Step8: render in template:</h3>
 <p>'{ control masala}{ /block}'</p>
 <h3>Other functionality:</h3>
 <p><a n:href="Demo:config">Call default methods and values on column through config.neon</a></p>
@@ -106,7 +104,6 @@
 <p><a n:href="Demo:migration">Migrate SQL to materialized views</a></p>
 <p><a n:href="Demo:noSql">NoSQL</a></p>
 <p><a n:href="Demo:filter">Additional Filtering</a></p>
-<p><a n:href="Demo:dialog">Dialog</a></p>
 <p><a n:href="Demo:arbitrary">Choose arbitrary values</a></p>
 <p><a n:href="Demo:concat">Set values to concat</a></p>
 <p><a n:href="Demo:link">Set links for item</a></p>

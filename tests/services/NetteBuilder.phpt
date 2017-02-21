@@ -6,8 +6,8 @@ use Masala\ImportForm,
     Masala\Masala,
     Masala\MockService,
     Masala\RowBuilder,
-    Models\HelpModel,
-    Models\TranslatorModel,
+    Masala\HelpModel,
+    Masala\MockModel,
     Nette\Application\UI\Presenter,
     Nette\Caching\Storages\FileStorage,
     Nette\Database\Connection,
@@ -30,8 +30,8 @@ class NetteBuilderTest extends TestCase {
     /** @var NetteBuilder */
     private $class;
 
-    /** @var HelpModel */
-    private $helpModel;
+    /** @var MockModel */
+    private $mockModel;
 
     /** @var MockService */
     private $mockService;
@@ -49,16 +49,19 @@ class NetteBuilderTest extends TestCase {
         $parameters = $this->container->getParameters();
         $tables = $parameters['tables'];
         /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
+        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
+        $this->mockModel = $this->container->getByType('Masala\MockModel');
         $this->mockService = new MockService($this->container, $translatorModel);
         $this->class = $this->mockService->getBuilder();
         $setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $this->helpModel = new HelpModel($tables['help'], $this->class, $setting, $context, $cacheStorage);
-        $importForm = new ImportForm($translatorModel);
+        $helpModel = new HelpModel($parameters['masala']['help'], $context, $cacheStorage);
+        $import = new ImportForm($translatorModel);
         $urlScript = new UrlScript;
         $httpRequest = new Request($urlScript);
-        $form = $this->container->getByType('Masala\IFilterFormFactory');
-        $this->masala = new Masala($parameters['masala'], $translatorModel, $importForm, $form, $httpRequest);
+        $filter = $this->container->getByType('Masala\IFilterFormFactory');
+        $edit = $this->container->getByType('Masala\IEditFormFactory');
+        $row = $this->container->getByType('Masala\IRowBuilder');
+        $this->masala = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $row);
     }
 
     public function __destruct() {
@@ -102,7 +105,7 @@ class NetteBuilderTest extends TestCase {
             Assert::false(isset($this->leftJoin), 'Left join in NetteBuilder should be private.');
             Assert::false(isset($this->innerJoin), 'Inner join in NetteBuilder should be private.');
             Assert::same($this->class, $this->class->table($source), 'NetteBuilder:table does not return class itself.');
-            Assert::true(is_array($columns = $this->helpModel->getColumns($source)), 'Table columns are not defined.');
+            Assert::true(is_array($columns = $this->mockModel->getColumns($source)), 'Table columns are not defined.');
             Assert::true($presenter instanceof Presenter, 'Presenter is not set.');
             Assert::true(is_object($this->masala->setGrid($this->class)), 'Masala:setGrid failed.');
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
@@ -117,13 +120,10 @@ class NetteBuilderTest extends TestCase {
         foreach ($presenter->grid->getFilters() as $key => $value) {
             Assert::true(is_object($this->class->where($key, $value)), 'NetteBuilder:where does not return class itself.');
         }
-    }
-
-    public function testGetQuery() {
-        Assert::same($this->class, $this->class->table($this->helpModel->getSource()), 'NetteBuilder:table does not return class itself.');
+        Assert::same($this->class, $this->class->table($this->class->getTable()), 'Assign table for ' . get_class($this->class) . 'failed.');
         Assert::same($this->class, $this->class->group('id ASC'), 'NetteBuilder:group does not return class itself.');
         Assert::same($this->class, $this->class->limit(10), 'NetteBuilder:limit does not return class itself.');
-        Assert::same($this->helpModel->getSource(), $this->class->getTable(), 'Assign table for help failed.');
+        Assert::true(isset($this->container->parameters['masala']['help']), 'Source table for help is not set.');
     }
 
     public function testConfig() {

@@ -1,19 +1,13 @@
 {block widget}
-<link rel="stylesheet" type="text/css" href="{$basePath}/assets/{$control->getName()}/css/widget.css" media="screen">
+<link rel="stylesheet" type="text/css" href="{$basePath}/{$bower}/css/widget.css" media="screen">
 <div class="{$control->getName()}-widget">
     <div class="hole-widget"></div>
     <div class="builder-widget"></div>
     <div class="inside-widget">
         <p class="name-widget btn btn-primary">{_'nothing to edit'|firstUpper}</p>
-        {foreach $grid->getDialog()->getComponents() as $componentId => $component}
-            {if $component['method'] == 'addTextArea'}
-                <textarea id="{$componentId}{*$row->id*}" class="form-control" style="width:390px;height:300px;"></textarea>
-            {elseif $component['method'] == 'addSubmit'}
-                <a href='javascript:;' class='btn btn-success' onclick='handleSubmit("{$componentId|noescape}");' class='ngdialog-button ngdialog-button-primary' style="margin-top:20px;width:200px;">{_"$componentId"|firstUpper}</a>
-            {/if}
-        {/foreach}
+            content
     </div>
 </div>
-<script type="text/javascript" src="{$basePath}/assets/{$control->getName()}/js/widget.js"></script>
+<script type="text/javascript" src="{$basePath}/{$bower}/js/widget.js"></script>
 {/block}
 

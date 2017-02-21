@@ -1,11 +1,3 @@
 {block footer}
-	<script>
-	    if (typeof angular == 'undefined') {
-	        var src = {$basePath} + '/bower/angular/angular.min.js';
-	        document.write(unescape("%3Cscript type='text/javascript' src='" + src + "'%3E%3C/script%3E"));
-	    }
-	</script>
-	<script src="{$basePath}/bower/ng-dialog/js/ngDialog.js"></script>
-	<script src="{$basePath}/assets/{$control->getName()}/js/dialog.js"></script>
 	<div class="modal"><!-- loading --></div>
 {/block}

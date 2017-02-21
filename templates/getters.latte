@@ -64,6 +64,10 @@
                 var column = $(this).attr('id').replace(regex[0], '');
                 filters[column + ' >'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-leftLabel .ui-rangeSlider-label-value').text();
                 filters[column + ' <'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-rightLabel .ui-rangeSlider-label-value').text();
+                if('' == filters[column + ' >'] && '' == filters[column + ' <']) {
+                    filters[column + ' >'] = masalaRanges[$(this).attr('id')][0].from;
+                    filters[column + ' <'] = masalaRanges[$(this).attr('id')][0].to;
+                }
             });
             var data = new Object();
             data.filters = filters;
@@ -71,7 +75,6 @@
             /** order */
             data.order = $('tr.grid-columns').attr('order');
             data.sort = $('tr.grid-columns').attr('sort');
-            data.spice = {$spice};
             url += '&' + {$control->getName()};
             return data;
         }
@@ -90,8 +93,7 @@
                 var hash = JSON.parse(localStorage.getItem({$control->getName()} +':hash'));
                 for (var id in hash) {
                     cache[id] = localStorage.getItem(id);
-                }
-                ;
+                };
                 data.cache = cache;
                 console.log(data);
                 if (false == jQuery.isEmptyObject(storage)) {

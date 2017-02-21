@@ -35,8 +35,7 @@
         <div class="panel-heading">
             <div class="row">
                 <div class="col-xs-11 text-left">
-                    <div class="huge">{_"$title"|firstUpper}</div>
-                    <div><i class="fa fa-file"></i>&nbsp;&nbsp;&nbsp;{_"$subtitle"|firstUpper}</div>
+                    <div><i class="fa fa-file"></i>&nbsp;&nbsp;&nbsp;{_"$title"|firstUpper}</div>
                 </div>
             </div>
         </div>
@@ -56,8 +55,6 @@
                 </div>
             {/if}
         </div>
-        {var $datetimepickers = []}
-        {var $submits = []}
         {foreach $form->getComponents() as $name => $component}
             {if '_do' == $name or $component instanceof \Nette\Forms\Controls\HiddenField}
             {elseif $component instanceof \MultipleFileUpload\MultipleFileUpload or $component instanceof Nette\Forms\Controls\UploadControl}
@@ -76,11 +73,12 @@
                     </div>
                 </div>
             {elseif $component instanceof \Nette\Forms\Controls\Checkbox}
+                <strong>{$form[$name]->caption}:</strong>
+                <div class="row"></div>
                 <div class="row">
-                    {label $name /}
-                    {input $name}
+                    {$form[$name]->getControlPrototype()}
                 </div>
-            {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
+            {elseif $component instanceof \Nette\Forms\Controls\Button or $component instanceof \Masala\Handler}
                 {var $submits[$name] => $component}
             {else}
                 <div class="row">
@@ -93,6 +91,7 @@
                 </div>
             {/if}
         {/foreach}
+        <hr>
         <div class="row">
             <div class="col-lg-12">
                 {foreach $submits as $name => $component}

@@ -1,11 +1,13 @@
 {define row-actions}
-    <div class="btn-group" role="group" aria-label="...">
-        <a type="button" class="btn btn-default" data-toggle="tooltip" title="{_'edit'|firstUpper}"
-           href="{plink ':'.$presenter->getName().':edit', id => $row['id'], $control . '-row' => $spice}">
-            <i class="fa fa-edit"></i>
+        <a class="btn {$control}-edit"
+           type="button"
+           data-attribute="{$spice}"
+           data-target="#{$control}-edit"
+           data-toggle="modal"
+           onclick="handleEdit({$offset}, {$spice})">
         </a>
-	{if isset($row->url)}
-	    <a href="{$row->url}" target="_blank">{_'link'|firstUpper}</a>
-	{/if}
-    </div>
+        <a class="btn {$control}-remove" 
+           data-confirm="{_'Do you really want to delete label?'}"
+           href="javascript:;"
+           onclick="handleRemove({$spice})"></a>
 {/define}

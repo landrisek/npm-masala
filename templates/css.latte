@@ -1,0 +1,35 @@
+{block css}
+    {var rand = rand(1, 15)}
+    <style>
+        .modal{
+            background: rgba( 255, 255, 255, .8 ) 
+            url("{$basePath|noescape}/{$bower}/images/{php echo date('M', strtotime('now'));}/{$rand}.gif")
+            50% 50% 
+            no-repeat;
+        }
+        .{$control->getName()}-edit, .{$control->getName()}-remove {
+            background-size: 100%;
+            height: 40px;
+            width: 40px;
+            border: none;
+        }
+        .{$control->getName()}-edit {
+            background-image: url({$basePath|noescape}/{$bower}/images/edit.png);
+        }
+        .{$control->getName()}-remove {
+            background-image: url({$basePath|noescape}/{$bower}/images/remove.png);
+        }
+        body .modal-content {
+            /* new custom width */
+            width: 840px;
+            /* must be half of the width, minus scrollbar on the left (30px) */
+            margin-left: -180px;
+        }
+        body .form-control {
+            width: 100%;
+        }
+        .col-md-6 {
+            width: 100%;
+        }   
+    </style>
+{/block}

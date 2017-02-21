@@ -10,7 +10,7 @@ use Latte\Engine,
     Nette\Application\UI\Presenter;
 
 /** @author Lubomir Andrisek */
-class ImportForm extends Form implements IImportFormFactory {
+final class ImportForm extends Form implements IImportFormFactory {
 
     /** @var Array */
     private $components;

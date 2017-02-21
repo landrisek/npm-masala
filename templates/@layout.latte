@@ -1,24 +1,28 @@
 {block import}
-    {import 'head.latte'}
-    {import 'filter.latte'}
-    {import 'widget.latte'}
+    {import 'css.latte'}
     {import 'body.latte'}
-    {import 'pagination.latte'}
-    {import 'redraw.latte'}
-    {import 'footer.latte'}
     {import 'dialog.latte'}
+    {import 'filter.latte'}
     {import 'getters.latte'}
     {import 'handlers.latte'}
+    {import 'head.latte'}
+    {import 'widget.latte'}
+    {import 'pagination.latte'}
+    {import 'redraw.latte'}
 {/block}
-{include head}
+{if false == $control->rendered('head')}
+    {include css}
+    {include head}
+{/if}
+<a class="btn btn-success" type="button" data-target="#{$control->getName()}-help" data-toggle="modal">{_'help'|firstUpper}</a>
 {if is_object($grid->getService()) or is_object($grid->getImport())}
-    <a class="btn btn-success" href="javascript:;" onclick="angular.element('#lengthyProcess').triggerHandler('click');">{_'state'|firstUpper}</a><br>
+        <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'state'|firstUpper}</a>
+        <h1></h1>
 {/if}
-{if is_object($grid->getDialog())}
-    {include widget}
-{/if}
+{*include widget*}
 {if is_object($grid->getExport())}
-    <a class="btn btn-success" href="javascript:;" onclick="handleExport();">{_'export'|firstUpper}</a>
+    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal" onclick="handleExport()">{_'export'|firstUpper}</a>
+    <h1></h1>
 {/if}
 {if is_object($grid->getImport())}
     {control importForm}
@@ -34,8 +38,10 @@
     </table>
     {include pagination, type=>'bottom'}
 </div>
-{include redraw}
-{include footer}
-{include dialog}
-{include getters}
-{include handlers}
+<div class="modal"><!-- loading --></div>
+{if false == $control->rendered('footer')}
+    {include dialog}
+    {include getters}
+    {include handlers}
+    {include redraw}
+{/if}

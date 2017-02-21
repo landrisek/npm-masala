@@ -16,9 +16,6 @@ final class RowBuilder implements IRowBuilder {
     private $table;
 
     /** @var Array */
-    private $annotations;
-
-    /** @var Array */
     private $columns = [];
 
     /** @var Array */
@@ -34,13 +31,10 @@ final class RowBuilder implements IRowBuilder {
     private $action = 'default';
 
     /** @var string */
-    private $title = '';
+    private $title = 'edit item';
 
     /** @var string */
-    private $subtitle = 'edit item';
-
-    /** @var string */
-    private $submit;
+    private $spice;
 
     /** @var ActiveRow */
     private $data;
@@ -101,10 +95,12 @@ final class RowBuilder implements IRowBuilder {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
     }
 
+    /** @return string */
     public function getTable() {
         return $this->table;
     }
 
+    /** @return string */
     public function getTitle() {
         return $this->title;
     }
@@ -121,12 +117,9 @@ final class RowBuilder implements IRowBuilder {
         return $this->resource;
     }
 
-    public function getSubmit() {
-        return $this->submit;
-    }
-
-    public function getSubtitle() {
-        return $this->subtitle;
+    /** @return string */
+    public function getSpice() {
+        return $this->spice;
     }
 
     /** @return IBuilder */
@@ -136,12 +129,11 @@ final class RowBuilder implements IRowBuilder {
         return $this;
     }
 
-    public function title($title, $subtitle = '') {
+    public function title($title) {
         $this->check();
         if (isset($this->$title)) {
             $this->title = $this->$title;
         }
-        $this->subtitle = $subtitle;
         return $this;
     }
 
@@ -177,21 +169,14 @@ final class RowBuilder implements IRowBuilder {
         return $this;
     }
 
-    public function submit(EditForm $form) {
-        if (is_object($form->isSubmitted()) and 'new' != $this->submit) {
-            $this->submit = $form->isSubmitted()->getName();
-        }
-        return $this;
-    }
-
     public function check() {
         if (null == $this->data) {
             $this->data = $this->resource->fetch();
             /** select */
             foreach ($this->getDrivers() as $column) {
-                if(isset($this->columns[$column['name']]) and preg_match('/\sAS\s/', $this->columns[$column['name']])) {
+                if(isset($this->columns[$column['name']]) and is_string($this->columns[$column['name']]) and preg_match('/\sAS\s/', $this->columns[$column['name']])) {
                     throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
-                } elseif (isset($this->columns[$column['name']])) {
+                } elseif (isset($this->columns[$column['name']]) and is_string($this->columns[$column['name']])) {
                     $column['vendor']['Comment'] .= '@' . trim(preg_replace('/(.*)\@/', '', $this->columns[$column['name']]));
                 }
                 $this->columns[$column['name']] = $column;
@@ -204,7 +189,6 @@ final class RowBuilder implements IRowBuilder {
                     $this->$key = $row;
                 }
             }
-            $this->submit = 'edit';
         }
         return $this->data;
     }
@@ -213,8 +197,8 @@ final class RowBuilder implements IRowBuilder {
         $this->config[$key][$method] = $parameter;
     }
 
-    public function setSubmit($submit) {
-        $this->submit = (string) $submit;
+    public function setSpice($spice) {
+        $this->spice = $spice;
         return $this;
     }
 
@@ -243,16 +227,15 @@ final class RowBuilder implements IRowBuilder {
                     $this->$rowName = isset($this->defaults[$row['name']]) ? $this->defaults[$row['name']] : $row['default'];
                 }
             }
-            $this->submit = 'new';
         }
         if (is_object($this->service)) {
             $this->service->beforeAttached($form);
         }
     }
 
-    public function afterSucceeded(EditForm $form) {
+    public function afterSucceeded(EditForm $form): string {
         if (is_object($this->service)) {
-            $this->service->afterSucceeded($form);
+            return $this->service->afterSucceeded($form);
         }
     }
 
@@ -265,6 +248,12 @@ final class RowBuilder implements IRowBuilder {
     }
 
     /** update */
+    public function flush() {
+        $hash = strtolower(__NAMESPACE__) . ':' . $this->spice;
+        $this->cache->clean([Cache::ALL => [$hash]]);
+        return $this;
+    }
+    
     public function update(Array $data) {
         return $this->database->table($this->table)
             ->where($this->resource->getPrimary(), $this->data->getPrimary())
