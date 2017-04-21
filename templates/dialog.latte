@@ -4,9 +4,9 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}Label">{_'edit item'|firstUpper}</h4>
+                <h4 class="modal-title" id="{$control->getName()}-label-edit">{_'edit item'|firstUpper}</h4>
             </div>
-            <div class="modal-body" id="{$control->getName()}-edit-modal-body"></div>  
+            <div class="modal-body" id="{$control->getName()}-edit-modal-body"></div>
         </div>  
     </div>  
 </div>
@@ -15,7 +15,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}Label">{_'lengthy process'|firstUpper}</h4>
+                <h4 class="modal-title" id="{$control->getName()}-label-process">{_'lengthy process'|firstUpper}</h4>
             </div>
             <div class="modal-body" id="{$control->getName()}-process-modal-body">
                 <div class="progress">
@@ -32,12 +32,24 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}Label">{_'help'|firstUpper}</h4>
+                <h4 class="modal-title" id="{$control->getName()}-label-help">{_'help'|firstUpper}</h4>
             </div>
             <div class="modal-body" id="{$control->getName()}-process-modal-body">
                 {foreach $help as $key => $helper}
                     <p><span class="badge">{_"$key"}</span>&nbsp;&nbsp;{_"$helper"}</p>
                 {/foreach}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="{$control->getName()}-message" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="{$control->getName()}-label-message">{_'help'|firstUpper}</h4>
+            </div>
+            <div class="modal-body" id="{$control->getName()}-message-modal-body">
             </div>
         </div>
     </div>

@@ -2,15 +2,20 @@
 
 namespace App\ApiModule;
 
-use Masala\MockModel,
+use Masala\HelpModel,
+    Masala\MockModel,
     Masala\IEditFormFactory,
     Masala\IMasalaFactory,
     Masala\IProcessService,
     Masala\MockService,
+    Masala\NetteBuilder,
     Masala\RowBuilder,
     Nette\Application\UI\Presenter;
 
 class DemoPresenter extends Presenter {
+
+    /** @var HelpModel @inject */
+    public $helpModel;
 
     /** @var MockModel @inject */
     public $mockModel;
@@ -33,8 +38,11 @@ class DemoPresenter extends Presenter {
     /** @var IEditFormFactory inject */
     public $masalaFormFactory;
 
-    /** @var RowBuilder */
-    public $setting;
+    /** @var NetteBuilder @inject */
+    public $grid;
+
+    /** @var RowBuilder @inject */
+    public $row;
 
     public function startup() {
         parent::startup();
@@ -76,7 +84,7 @@ class DemoPresenter extends Presenter {
         $this->payload->todo = '@todo';
         $this->sendPayload();
     }
-    
+
     public function actionRedraw() {
         $this->payload->todo = '@todo';
         $this->sendPayload();
@@ -93,9 +101,9 @@ class DemoPresenter extends Presenter {
 
     public function actionGrid() {
         $this->grid->table('my_table');
-        $this->setting->source('my_table')
-                        ->where('my_column', $id)
-                        ->check();
+        $this->row->source('my_table')
+                ->where('my_column', $id)
+                ->check();
     }
 
     public function actionMock() {
@@ -132,7 +140,7 @@ class DemoPresenter extends Presenter {
 
     protected function createComponentMasalaForm() {
         return $this->masalaFormFactory->create()
-                        ->setRow($this->setting);
+                        ->setRow($this->row);
     }
 
 }

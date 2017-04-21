@@ -18,10 +18,10 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @var IHelp */
     private $helpModel;
-    
+
     /** @var IEditFormFactory */
     private $editFormFactory;
-    
+
     /** @var IImportFormFactory */
     private $importFormFactory;
 
@@ -33,7 +33,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @var IRowBuilder */
     private $row;
-    
+
     /** @var IRequest */
     private $request;
 
@@ -44,7 +44,7 @@ final class Masala extends Control implements IMasalaFactory {
     private $stop;
 
     /** @var Array */
-    private $csv = ['header'=>[],'divider'=>',','file'=>null];
+    private $csv = ['header' => [], 'divider' => ',', 'file' => null];
 
     /** @var Array */
     private $columns = [];
@@ -85,11 +85,11 @@ final class Masala extends Control implements IMasalaFactory {
         $presenter = $this->getPresenter();
         foreach ($this->grid->getColumns() as $column => $subquery) {
             if ($presenter->name . ':' . $presenter->action . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $presenter->action . ':' . $column)) {
-
+                
             } elseif ($presenter->name . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $column)) {
-
+                
             } elseif ($subquery != $label = $this->translatorModel->translate($subquery)) {
-
+                
             } else {
                 $label = $this->translatorModel->translate($column);
             }
@@ -101,7 +101,7 @@ final class Masala extends Control implements IMasalaFactory {
     public function getGrid() {
         return $this->grid;
     }
-    
+
     private function getHeader($row, $header) {
         foreach ($row as $key => $column) {
             mb_detect_encoding($column, 'UTF-8', true) == false ? $column = trim(iconv('windows-1250', 'utf-8', $column)) : $column = trim($column);
@@ -114,6 +114,7 @@ final class Masala extends Control implements IMasalaFactory {
                     } elseif ('break' == $feedValue and ! isset($this->csv['header'][$feedColumn])) {
                         $this->csv['header'][$feedColumn] = $key;
                     } elseif ('break' == $feedValue and isset($this->csv['header'][$feedColumn])) {
+                        
                     } elseif (is_array($header->$feedColumn)) {
                         is_numeric($feedValue) ? $this->csv['header'][$feedColumn][$feedValue] = $key : $this->csv['header'][$feedColumn][] = $key;
                     } elseif (is_numeric($feedValue)) {
@@ -155,10 +156,10 @@ final class Masala extends Control implements IMasalaFactory {
             $this->setColumns($presenter);
         }
     }
-    
+
     /** @return Masala */
     public function clones() {
-        return new Masala($this->config, $this->translatorModel, $this->importFormFactory, $this->filterFormFactory, $this->request);        
+        return new Masala($this->config, $this->translatorModel, $this->importFormFactory, $this->filterFormFactory, $this->request);
     }
 
     /** signal methods */
@@ -202,18 +203,19 @@ final class Masala extends Control implements IMasalaFactory {
         $row = $this->presenter->request->getPost('row');
         $service = 'get' . ucfirst($row['status']);
         $this->grid->$service()->done($rows, $this->presenter);
-        $response = new TextResponse($this->presenter->link('this', ['do'=>$this->getName() . '-message', $this->getName() . '-status'=>$row['status']]));
+        $response = new TextResponse($this->presenter->link('this', ['do' => $this->getName() . '-message', $this->getName() . '-status' => $row['status']]));
         return $this->presenter->sendResponse($response);
     }
-    
+
     public function handleEdit() {
-        foreach($this->grid->filter()->getOffset($this->presenter->request->getPost('offset')) as $column => $value) {
+        $this->row->table($this->grid->getTable());
+        foreach ($this->grid->filter()->getOffset($this->presenter->request->getPost('offset')) as $column => $value) {
             $this->row->where($column, $value);
         }
         $masalaFormFactory = $this->editFormFactory->create()
-                        ->setRow($this->row->setSpice($this->presenter->request->getPost('spice')))
-                        ->signalled('attached')
-                        ->attached($this);
+                ->setRow($this->row->setSpice($this->presenter->request->getPost('spice')))
+                ->signalled('attached')
+                ->attached($this);
         $response = new TextResponse($masalaFormFactory->render());
         return $this->presenter->sendResponse($response);
     }
@@ -269,7 +271,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->status = (null == $this->status) ? 'service' : $this->status;
         $prepared = $this->grid->filter()->getService()->prepare($this);
         $this->stop = $prepared['stop'];
-        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'service', 'rows'=> $prepared['rows']]);
+        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'service', 'rows' => $prepared['rows']]);
         return $this->presenter->sendResponse($response);
     }
 
@@ -288,11 +290,11 @@ final class Masala extends Control implements IMasalaFactory {
         $upload = $this->presenter->request->getPost('row');
         $csv = $this->presenter->request->getPost('csv');
         $skip = false;
-        if(!empty($csv['header'])) {
+        if (!empty($csv['header'])) {
             /** skip header */
             $skip = (0 == $upload['run']);
             if (intval(str_replace('M', '', ini_get('post_max_size')) * 1024 * 1024) <
-                (mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
+                    (mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
             ) {
                 throw new InvalidStateException('Uploaded data in post is too large according to post_max_size');
             }
@@ -327,9 +329,9 @@ final class Masala extends Control implements IMasalaFactory {
             eval('function call($row) {' . $sanitize . '}');
             $row = call($row);
         }
-        if(!isset($upload['rows']) and false == $skip) {
+        if (!isset($upload['rows']) and false == $skip) {
             $this->grid->$service()->run($row, [], $this);
-        } elseif(false == $skip) {
+        } elseif (false == $skip) {
             $upload['rows'] = $this->grid->$service()->run($row, $upload['rows'], $this);
         }
         /** $response = new TextResponse($this->presenter->payload->rows = json_encode($result)); */
@@ -340,15 +342,16 @@ final class Masala extends Control implements IMasalaFactory {
     public function handleStorage() {
         $response = [];
         $storage = $this->presenter->request->getPost('storage');
-        foreach($storage as $id => $value) {
+        foreach ($storage as $id => $value) {
             $response[$this->getName() . ':' . $id] = true;
             $primary = preg_replace('/(.*)\_/', '', $id);
             $column = preg_replace('/\_' . $primary . '/', '', $id);
             $this->grid->setRow($primary, [$column => $value]);
         }
         $cache = $this->presenter->request->getPost('cache');
-        foreach($cache as $key => $row) {
+        foreach ($cache as $key => $row) {
             $response[$key] = true;
+            $this->grid->flush($key);
             $this->grid->update($key, $row);
         }
         $json = new JsonResponse($response);
@@ -360,23 +363,35 @@ final class Masala extends Control implements IMasalaFactory {
         foreach ($this->presenter->request->getPost('form') as $componentId => $component) {
             $values[$componentId] = $component;
         }
-        foreach($this->grid->filter()->getOffset($this->presenter->request->getPost('offset')) as $column => $value) {
+        $offset = preg_replace('/(.*)\:/', '', $spice);
+        if (!is_numeric($offset)) {
+            throw new InvalidStateException('Offset extracted with regex from spice is not number.');
+        }
+        $this->row->table($this->grid->getTable());
+        foreach ($this->grid->filter()->getOffset($offset) as $column => $value) {
             $this->row->where($column, $value);
         }
         $masalaFormFactory = $this->editFormFactory->create()
-                        ->setRow($this->row->setSpice($spice))
-                        ->signalled($signal)
-                        ->attached($this)
-                        ->setValues($values);
-        foreach($masalaFormFactory->getComponents() as $name => $component) {
-            if(false == $component->getRules()->validate()) {
+                ->setRow($this->row->setSpice($spice))
+                ->signalled($signal)
+                ->attached($this)
+                ->setValues($values);
+        foreach ($masalaFormFactory->getComponents() as $name => $component) {
+            if (false == $component->getRules()->validate()) {
                 $errors = $component->getErrors();
-                $response = new JsonResponse(['message'=>array_shift($errors)]);
+                $response = new JsonResponse(['message' => array_shift($errors)]);
                 return $this->presenter->sendResponse($response);
             }
         }
-        $response = new JsonResponse(['message'=>$masalaFormFactory->succeeded($masalaFormFactory), 
-                                    'offset'=> preg_replace('/(.*)\:/', '', $spice)]);
+        $response = new JsonResponse(['message' => $masalaFormFactory->succeeded($masalaFormFactory),
+            'offset' => preg_replace('/(.*)\:/', '', $spice),
+            'row' => json_encode($this->row->getData()->toArray())]);
+        return $this->presenter->sendResponse($response);
+    }
+
+    public function handleUpdate() {
+        $this->grid->filter()->flush($this->grid->getHash());
+        $response = new JsonResponse(['message' => ucfirst($this->translatorModel->translate('Grid data were updated.'))]);
         return $this->presenter->sendResponse($response);
     }
 
@@ -387,7 +402,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->grid = $this->grid;
         $this->template->port = $this->config['port'];
         $this->template->settings = json_decode($this->presenter->getUser()->getIdentity()->__get('settings'));
-        $this->template->help = $this->helpModel->getHelp($this->presenter->getName(), $this->presenter->getAction());
+        $this->template->help = $this->helpModel->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $this->template->stop = $this->stop;
         $this->template->trigger = 'handle' . ucfirst($this->getUrl('do')) . '()';
         $this->template->csv = $this->csv;
@@ -396,10 +411,10 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->setFile(__DIR__ . '/templates/@layout.latte');
         $this->template->render();
     }
-    
+
     public function rendered($type) {
-        $post = $this->request->getPost();        
-        if(isset($post[$this->getName() . ':rendered:' . $type])) {
+        $post = $this->request->getPost();
+        if (isset($post[$this->getName() . ':rendered:' . $type])) {
             return true;
         } else {
             $this->request->getUrl()->setQueryParameter($this->getName() . ':rendered:' . $type, true);
@@ -428,7 +443,7 @@ final class Masala extends Control implements IMasalaFactory {
         return $this->filterFormFactory->create()
                         ->setGrid($this->grid);
     }
-    
+
 }
 
 interface IMasalaFactory {

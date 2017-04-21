@@ -20,7 +20,8 @@ use Masala\FilterForm,
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
-class FilterFormTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class FilterFormTest extends TestCase {
 
     /** @var Container */
     private $container;
@@ -52,7 +53,7 @@ class FilterFormTest extends TestCase {
         $this->mockService = new MockService($this->container, $this->translatorModel);
         $request = $this->container->getByType('Nette\Http\IRequest');
         $this->class = new FilterForm($request, $this->translatorModel);
-        $this->presenters = ['App\SuppliersModule\DefaultPresenter' => APP_DIR . '/SuppliersModule/templates/Default/sales.latte'];
+        $this->presenters = ['App\ApiModule\DemoPresenter' => APP_DIR . '/grids/Masala/demo/default.latte'];
     }
 
     public function __destruct() {
@@ -63,17 +64,33 @@ class FilterFormTest extends TestCase {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
+        $builder = $this->container->getByType('Masala\IRowBuilder');
+        foreach($this->container->parameters['tables'] as $table) {
+            $builder->table($table);
+            foreach($builder->getDrivers() as $column) {
+                if('DATETIME' == $column['nativetype']) {
+                    Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
+                    break;
+                }
+            }
+        }
+        Assert::true(isset($date), 'No datetime column to test for range');
         foreach ($this->presenters as $class => $latte) {
             echo $class . "\n";
             $presenter = $this->mockService->getPresenter($class, $latte);
             Assert::true(is_object($presenter), 'Presenter was not set.');
+            Assert::true(is_object($presenter->grid = $this->container->getByType('Masala\IBuilder')), 'Presenter grid was not set.');
+            Assert::true(is_object($presenter->grid->table($table)
+                                            ->where($date . ' >', date('Y-m-d', strtotime('-3 month')), date('Y-m-d', strtotime('-6 month')))
+                                            ->where($date . ' <',date('Y-m-d', strtotime('now')), date('Y-m-d', strtotime('now')))
+                                            ), 'Table of grid was not set.');
             Assert::true(is_object($masala = $this->container->getByType('Masala\Masala')), 'Masala is not set.');
             Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
             Assert::true(is_object($presenter->addComponent($masala, 'masala')), 'Attached Masala failed.');
             Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
             Assert::same($this->class, $this->class->setGrid($presenter->grid), 'Masala\FilterForm:setGrid does not return class itself.');
             Assert::true($masala instanceof Masala, 'Masala has wrong instation.');
-            Assert::true(is_array($range = $presenter->grid->getRange('fc_transactions.date')));
+            Assert::true(is_array($range = $presenter->grid->getRange($date)), 'Range is not set');
             Assert::false(empty($presenter->grid->getColumns()), 'Columns are not set in ' . $class . '.');
             Assert::true(is_object($masala['filterForm']), 'Grid filter is not set in ' . $class . '.');
             Assert::true($masala['filterForm']['filter'] instanceof Forms\Container, 'Form filter has wrong instation.');

@@ -233,7 +233,7 @@ final class RowBuilder implements IRowBuilder {
         }
     }
 
-    public function afterSucceeded(EditForm $form): string {
+    public function afterSucceeded(EditForm $form) {
         if (is_object($this->service)) {
             return $this->service->afterSucceeded($form);
         }

@@ -3,10 +3,10 @@
 namespace Test;
 
 use Masala\ImportForm,
-    Masala\Masala,    
+    Masala\Masala,
     Masala\MockService,
     Masala\RowBuilder,
-    Models\HelpModel,
+    Masala\HelpModel,
     Models\TranslatorModel,
     Nette\Database\Connection,
     Nette\Database\Context,
@@ -21,16 +21,14 @@ use Masala\ImportForm,
 
 $container = require __DIR__ . '/../../../bootstrap.php';
 
-class MasalaTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class MasalaTest extends TestCase {
 
     /** @var Container */
     private $container;
 
     /** @var Masala */
     private $class;
-
-    /** @var HelpModel */
-    private $helpModel;
 
     /** @var MockService */
     private $mockService;
@@ -41,7 +39,7 @@ class MasalaTest extends TestCase {
 
     protected function setUp() {
         /** database */
-        $connection = new Connection('mysql:host=localhost;dbname=cz_4camping', 'worker', 'dokempu');
+        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
         $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
@@ -52,20 +50,18 @@ class MasalaTest extends TestCase {
         $this->mockService = new MockService($this->container, $translatorModel);
         $grid = $this->mockService->getBuilder();
         $setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $this->helpModel = new HelpModel($this->container->parameters['tables']['help'], $grid, $setting, $context, $cacheStorage);
-        $importForm = new ImportForm($translatorModel);
+        $helpModel = new HelpModel($this->container->parameters['tables']['help'], $context, $cacheStorage);
         $urlScript = new UrlScript;
         $httpRequest = new Request($urlScript);
-        $form = $this->container->getByType('Masala\IFilterFormFactory');
-        $this->class = new Masala($parameters['masala'], $translatorModel, $importForm, $form, $httpRequest);
+        $import = new ImportForm($translatorModel);
+        $filter = $this->container->getByType('Masala\IFilterFormFactory');
+        $edit = $this->container->getByType('Masala\EditForm');
+        $row = $this->container->getByType('Masala\IRowBuilder');
+        $this->class = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $row);
     }
 
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
-    }
-
-    public function testOrder() {
-        Assert::true(is_object($presenter = $this->mockService->getPresenter('App\SaleModule\ProductsPresenter', WWW_DIR . 'app/SaleModule/templates/Products/default.latte')));
     }
 
     public function testAttached() {
@@ -86,12 +82,7 @@ class MasalaTest extends TestCase {
             }
         }
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
-        $testParameters = ['feed' => 'laurasport', 
-                            'id' => 1, 
-                            'date' => date('Y-m-d', strtotime('now')), 
-                            'limit' => 10, 
-                            'type' => 'inventure', 'status' => 'translated', 
-                            'producerId'=>126];
+        $testParameters = (isset($this->container->parameters['mockService']['testParameters'])) ? $this->container->parameters['mockService']['testParameters'] : [];
         foreach ($presenters as $class => $presenter) {
             echo 'testing ' . $presenter . "\n";
             /** @todo: when using this->import, Module:Presenter:action MUST be in fc_feeds.source */
@@ -104,7 +95,7 @@ class MasalaTest extends TestCase {
                 $arguments[$parameter->getName()] = $testParameters[$parameter->getName()];
             }
             Assert::true(method_exists($class, $method), 'According to latte file should exist method ' . $method . ' in ' . $class . '.');
-            Assert::same(null, call_user_func_array([$presenter, $method], $arguments), 'Method ' . $method . ' of ' . $class . ' does return something. Do you wish to modify test?');
+            /* Assert::same(null, call_user_func_array([$presenter, $method], $arguments), 'Method ' . $method . ' of ' . $class . ' does return something. Do you wish to modify test?'); */
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
             Assert::true(is_object($presenter->grid->where('id IS NOT NULL')), 'Grid setter method does not return class itself.');
             $this->class->setGrid($presenter->grid);
@@ -113,7 +104,7 @@ class MasalaTest extends TestCase {
             Assert::same($source, $presenter->grid->getTable(), 'Source ' . $source . ' for Masala IBuilder was not set.');
             Assert::true(!empty($serializations = (array) $this->class), 'Serialize of Masala failed.');
             /* Assert::same(null, $presenter->grid->build([], $this->class->getName()), 'Source ' . $source . ' in ' . $class . ':' . $method . ' for Masala failed.'); */
-            Assert::true(isset($serializations["\x00Masala\Masala\x00port"]), 'Port in serialized class is not set.');
+            Assert::true(isset($serializations["\x00Masala\Masala\x00config"]), 'Config in serialized class is not set.');
             Assert::false(isset($presenter->grid->select), 'Select in IBuilder should be private.');
             Assert::false(isset($presenter->grid->join), 'Join in IBuilder should be private.');
             Assert::false(isset($presenter->grid->leftJoin), 'Left join in IBuilder should be private.');
@@ -121,7 +112,7 @@ class MasalaTest extends TestCase {
             Assert::true(is_array($filters = (null != $presenter->grid->getFilters()) ? $presenter->grid->getFilters() : []), 'Filters in Masala IBuilder are not set.');
             /* Assert::same(null, $this->class->getGrid()->build([], $this->class->getName()), 'VO:build does retunn something. Do you wish to modify test?'); */
             Assert::same($presenter->grid, $presenter->grid->table($source), 'Set table of VO does not return class itself.');
-            Assert::true(is_array($columns = $this->helpModel->getColumns($source)), 'Table columns are not defined.');
+            Assert::true(is_array($columns = $presenter->grid->getDrivers()), 'Table columns are not defined.');
             Assert::true(isset($serializations["\x00Masala\Masala\x00columns"]), 'Columns in serialized class is not set.');
             Assert::true(is_array($renderColumns = $serializations["\x00Masala\Masala\x00columns"]), 'No columns was rendered.');
             $notShow = [];
@@ -132,12 +123,25 @@ class MasalaTest extends TestCase {
             }
             $select = $this->class->getGrid()->getColumns();
             foreach ($renderColumns as $renderColumn) {
-                if(isset($notShow[$renderColumn->name])) {
+                if (isset($notShow[$renderColumn->name])) {
                     Assert::true(is_object($reflector = new \ReflectionClass($class)), 'Reflection is not set.');
                     Assert::false(empty($file = $reflector->getFileName()), 'File of ' . $class . ' is not set.');
-                    Assert::same('@todo: check if rendered column is @hidden in select.' . $notShow, $select);
+                    Assert::false(is_object($handle = fopen($file, 'r+')), 'Open tested controller failed.');
+                    echo $file . "\n";
+                    $read = false;
+                    while (!feof($handle)) {
+                        $line = fgets($handle);
+                        if (preg_match('/' . $method . '/', $line)) {
+                            $read = true;
+                        } elseif (true == $read and preg_match('/\}/', $line)) {
+                            break;
+                        } elseif (true == $read and preg_match('/' . $renderColumn->name . '/', $line)) {
+                            echo $line;
+                            Assert::same(0, preg_match('/@hidden/', $line), 'Discovered @hidden annotation in rendered ' . $source . '.' . $renderColumn->name . ' in ' . $class . ':' . $method);
+                        }
+                    }
+                    Assert::false(isset($notShow[$renderColumn->name]), 'Column ' . $renderColumn->name . ' has been rendered even if it does contain @hidden annotation in table ' . $source . '.');
                 }
-                Assert::false(isset($notShow[$renderColumn->name]), 'Column ' . $renderColumn->name . ' has been rendered even if it does contain @hidden annotation in table ' . $source . '.');
             }
             $this->setUp();
         }
@@ -154,11 +158,16 @@ class MasalaTest extends TestCase {
     }
 
     public function testGetComment() {
-        Assert::false(empty($columns = $this->helpModel->getColumns()), 'Columns of HelpModel was not set.');
+        $row = $this->container->getByType('Masala\IRowBuilder');
+        Assert::false(empty($key = array_rand($this->container->parameters['tables'])), 'Test source was not set.');
+        Assert::false(empty($source = $this->container->parameters['tables'][$key]), 'Test source was not set.');
+        Assert::false(empty($columns = $row->table($source)->getDrivers($source)), 'Columns of tables ' . $source . ' was not set.');
+        Assert::false(empty($source = $this->container->parameters['tables']['help']), 'Test source for table help was not set.');
+        Assert::false(empty($columns = $row->table($source)->getDrivers($source)), 'Columns of tables ' . $source . ' was not set.');
         Assert::true(isset($columns[1]), 'Json column was not set');
         Assert::same('json', $columns[1]['name'], 'Json column was not set');
-        Assert::false(empty($comment = $columns[1]['vendor']['Comment']), 'Json column comment shoudl be not empty');
-        Assert::same(1, substr_count($comment, '@hidden'), $this->helpModel->getSource() . '.json should have disabled comment via annotation @hidden.');
+        Assert::false(empty($comment = $columns[1]['vendor']['Comment']), 'Json column comment should be not empty');
+        Assert::same(1, substr_count($comment, '@hidden'), $source . '.json should have disabled comment via annotation @hidden.');
     }
 
 }

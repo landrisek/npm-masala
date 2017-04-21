@@ -26,7 +26,6 @@ final class ImportForm extends Form implements IImportFormFactory {
 
     public function __construct(TranslatorModel $translatorModel) {
         parent::__construct(null, null);
-        //$this->service = $service;
         $this->translatorModel = $translatorModel;
     }
 

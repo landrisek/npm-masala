@@ -7,7 +7,7 @@ use Masala\ImportForm,
     Masala\MockService,
     Masala\RowBuilder,
     Masala\HelpModel,
-    Masala\MockModel,
+    Models\TranslatorModel,
     Nette\Application\UI\Presenter,
     Nette\Caching\Storages\FileStorage,
     Nette\Database\Connection,
@@ -22,7 +22,8 @@ use Masala\ImportForm,
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
-class NetteBuilderTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class NetteBuilderTest extends TestCase {
 
     /** @var Container */
     private $container;
@@ -30,8 +31,8 @@ class NetteBuilderTest extends TestCase {
     /** @var NetteBuilder */
     private $class;
 
-    /** @var MockModel */
-    private $mockModel;
+    /** @var RowBuilder */
+    private $row;
 
     /** @var MockService */
     private $mockService;
@@ -42,26 +43,25 @@ class NetteBuilderTest extends TestCase {
 
     protected function setUp() {
         /** database */
-        $connection = new Connection('mysql:host=localhost;dbname=cz_4camping', 'worker', 'dokempu');
+        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
         $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         $parameters = $this->container->getParameters();
         $tables = $parameters['tables'];
         /** models */
-        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $this->mockModel = $this->container->getByType('Masala\MockModel');
+        $translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $this->class = $this->mockService->getBuilder();
-        $setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $helpModel = new HelpModel($parameters['masala']['help'], $context, $cacheStorage);
+        $this->row = new RowBuilder($parameters['masala'], $context, $cacheStorage);
+        $helpModel = new HelpModel($tables['help'], $context, $cacheStorage);
         $import = new ImportForm($translatorModel);
         $urlScript = new UrlScript;
         $httpRequest = new Request($urlScript);
         $filter = $this->container->getByType('Masala\IFilterFormFactory');
         $edit = $this->container->getByType('Masala\IEditFormFactory');
         $row = $this->container->getByType('Masala\IRowBuilder');
-        $this->masala = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $row);
+        $this->masala = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $this->row);
     }
 
     public function __destruct() {
@@ -105,7 +105,7 @@ class NetteBuilderTest extends TestCase {
             Assert::false(isset($this->leftJoin), 'Left join in NetteBuilder should be private.');
             Assert::false(isset($this->innerJoin), 'Inner join in NetteBuilder should be private.');
             Assert::same($this->class, $this->class->table($source), 'NetteBuilder:table does not return class itself.');
-            Assert::true(is_array($columns = $this->mockModel->getColumns($source)), 'Table columns are not defined.');
+            Assert::true(is_array($columns = $this->row->table($source)->getDrivers($source)), 'Table columns are not defined.');
             Assert::true($presenter instanceof Presenter, 'Presenter is not set.');
             Assert::true(is_object($this->masala->setGrid($this->class)), 'Masala:setGrid failed.');
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
@@ -120,17 +120,20 @@ class NetteBuilderTest extends TestCase {
         foreach ($presenter->grid->getFilters() as $key => $value) {
             Assert::true(is_object($this->class->where($key, $value)), 'NetteBuilder:where does not return class itself.');
         }
-        Assert::same($this->class, $this->class->table($this->class->getTable()), 'Assign table for ' . get_class($this->class) . 'failed.');
+    }
+
+    public function testGetQuery() {
+        Assert::same($this->class, $this->class->table($this->container->parameters['tables']['help']), 'NetteBuilder:table does not return class itself.');
         Assert::same($this->class, $this->class->group('id ASC'), 'NetteBuilder:group does not return class itself.');
         Assert::same($this->class, $this->class->limit(10), 'NetteBuilder:limit does not return class itself.');
-        Assert::true(isset($this->container->parameters['masala']['help']), 'Source table for help is not set.');
+        Assert::same($this->container->parameters['tables']['help'], $this->class->getTable(), 'Assign table for help failed.');
     }
 
     public function testConfig() {
         Assert::true(is_object($mockModel = $this->container->getByType('Masala\MockModel')), 'MockModel is not set.');
-        Assert::true(isset($this->container->parameters['tables']['users']), 'Table of users is not set.');
+        Assert::true(isset($this->container->parameters['mockService']['users']), 'Table of users is not set.');
         Assert::true(isset($this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
-        Assert::false(empty($table = $this->container->parameters['tables']['users']), 'Column for setting of user is not set.');
+        Assert::false(empty($table = $this->container->parameters['mockService']['users']), 'Column for setting of user is not set.');
         Assert::false(empty($column = $this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
         Assert::true(is_object($user = $mockModel->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
         Assert::true(is_object(json_decode($user->$column)), 'Setting of user ' . $user->$column . ' is not valid json.');

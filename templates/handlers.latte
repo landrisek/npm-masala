@@ -1,5 +1,4 @@
 {block handlers}
-<script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
 <script type="text/javascript">
     /** triggers */
     window.masalaData = [];
@@ -39,11 +38,13 @@
             type: 'post',
             data: data,
             url: {link edit!},
-            success: function (payload) {                
-                $('#' + {$control->getName()} + '-edit-modal-body').replaceWith('<div class="modal-body" id="' + {$control->getName()} + '-edit-modal-body">' + payload + '</div>');
+            success: function (payload) {
+                $('#' + {$control->getName()} + '-edit-modal-body').html(''); 
+                $(payload).appendTo('#' + {$control->getName()} + '-edit-modal-body');
+                /**$('#' + {$control->getName()} + '-edit-modal-body').replaceWith('<div class="modal-body" id="' + {$control->getName()} + '-edit-modal-body">' + payload + '</div>');*/
             }
         });        
-    }    
+    }
     function handleExport() {
         var header = new Object();
         $('thead .grid-columns th').each(function () {
@@ -252,20 +253,23 @@
         });
         data.form = dataForm;
         var link = '&' + {$control->getName()} + '-signal=' + form.signal + '&' + {$control->getName()} + '-spice=' + form.spice;
-        $.ajax({
+        var response = $.ajax({
             type: 'post',
+            async: false,
             url: {link submit!} + link,
             data: data,
             success: function(payload) {
-                if(undefined == payload.offset) {
-                    alert(payload.message);
-                    $(form.id).removeClass('loading');
-                    return false;
-                }
-                $(form.id).removeClass('loading');
-                handleRedraw(payload.offset);
+                return payload;
             }
-        });
+        }).responseJSON;
+        if(undefined == response.offset) {
+            return true;
+        }
+        /*$('#' + {$control->getName()} + '-message-modal-body').text(response.message);
+        $('#' + {$control->getName()} + '-message').modal({ show: 'true' });*/
+        alert(response.message);
+        handleRedraw(response.offset);
+        return false;
     }
     function handleStart() {
         var data = getFilters();
@@ -300,6 +304,21 @@
         hash[parent.attr('id')] = true;
         localStorage.setItem({$control->getName()} + ':keys', JSON.stringify(keys));
         localStorage.setItem({$control->getName()} + ':hash', JSON.stringify(hash));
+    }
+    function handleUpdate() {
+        var data = getFilters();
+        data.offset = 0;
+        $.nette.ajax({
+            type: 'post',
+            data: data,
+            url: {link update!},
+            success: function (payload) {
+                handleFilter(0);
+                $('#' + {$control->getName()}).removeClass('loading');
+                $('#' + {$control->getName()} + '-message-modal-body').text(payload.message);
+                $('#' + {$control->getName()} + '-message').modal({ show: 'true' });
+            }
+        });
     }
 </script>
 {/block}

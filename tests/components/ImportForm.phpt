@@ -18,7 +18,8 @@ use Masala\ImportForm,
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
-class ImportFormTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class ImportFormTest extends TestCase {
 
     /** @var Container */
     private $container;
@@ -46,9 +47,7 @@ class ImportFormTest extends TestCase {
         $translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $this->class = new ImportForm($translatorModel);
-        $this->presenters['App\StockModule\DefaultPresenter'] = APP_DIR . '/StockModule/templates/Default/default.latte';
-        $this->presenters['App\SaleModule\HeurekaPresenter'] = APP_DIR . '/SaleModule/templates/Heureka/default.latte';
-        $this->presenters['App\SaleModule\ProductsPresenter'] = APP_DIR . '/SaleModule/templates/Products/shipping.latte';
+        $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
     }
 
     public function __destruct() {

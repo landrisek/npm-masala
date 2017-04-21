@@ -35,6 +35,16 @@ final class MockModel extends Object {
         return $resource->order('RAND()')
                         ->fetch();
     }
+    
+    public function getTestRows($table, Array $clauses = [], $limit) {
+        $resource = $this->database->table($table);
+        foreach ($clauses as $column => $value) {
+            is_bool($value) ? $resource->where($column) : $resource->where($column, $value);
+        }
+        return $resource->order('RAND()')
+                        ->limit($limit)
+                        ->fetchAll();
+    }
 
     public function getTestTables() {
         return $this->database->query('SHOW TABLES;')

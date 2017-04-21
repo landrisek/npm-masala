@@ -5,6 +5,6 @@ namespace Masala;
 interface IHelp {
 
     /** @return array */
-    function getHelp($controller, $action);
+    function getHelp($controller, $action, $parameters);
     
 }

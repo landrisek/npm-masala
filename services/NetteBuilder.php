@@ -913,6 +913,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             $offset = $this->presenter->request->getPost('offset');
         }
         foreach ($filters as $column => $value) {
+            $value = preg_replace('/\;/', '', htmlspecialchars($value));
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($subfilters = $this->getAnnotation($column, 'filter'))) {
                 foreach ($subfilters as $filter) {

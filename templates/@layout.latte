@@ -14,10 +14,12 @@
     {include css}
     {include head}
 {/if}
-<a class="btn btn-success" type="button" data-target="#{$control->getName()}-help" data-toggle="modal">{_'help'|firstUpper}</a>
+{if !empty($help)}
+    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-help" data-toggle="modal">{_'help'|firstUpper}</a>
+{/if}
 {if is_object($grid->getService()) or is_object($grid->getImport())}
-        <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'state'|firstUpper}</a>
-        <h1></h1>
+    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'state'|firstUpper}</a>
+    <h1></h1>
 {/if}
 {*include widget*}
 {if is_object($grid->getExport())}

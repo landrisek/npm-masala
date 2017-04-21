@@ -2,13 +2,6 @@
 <!-- ckeditor -->
 <script type="text/javascript" src="{$basePath}/assets/masala/ckeditor3/ckeditor.js"></script>
 <script type="text/javascript" src="{$basePath}/bower/ckeditor/ckeditor.js"></script>
-<!-- bootstrap datetimepicker -->
-<script type="text/javascript" src="{$basePath}/bower/moment/min/moment.min.js"></script>
-<script type="text/javascript" src="{$basePath}/bower/moment/min/moment-with-locales.min.js"></script>
-<script type="text/javascript" src="{$basePath}/bower/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"></script>
-<link rel="stylesheet" href="{$basePath}/bower/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
-<link rel="stylesheet" href="{$basePath}/bower/jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.css" />
-<script src="{$basePath}/bower/jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.js"></script>
 <script type="text/javascript" src="{$basePath}/vendor/vojtech-dobes/nette.ajax.js/nette.ajax.js"></script>
 <script type="text/javascript" src="{$basePath}/vendor/landrisek/MultipleFileUpload/public/MFUFallbackController.js"></script>
 <!--uploadify -->
@@ -49,7 +42,7 @@
     <div class="panel-body">
     {form $form}
         <div class="row header">
-            {if !is_object($setting)}
+            {if !is_object($row)}
                 <div class="col-lg-12">
                     <span>{_'new item'|firstUpper}</span>
                 </div>
@@ -65,12 +58,10 @@
                 {var $datetimepickers['#datetimepicker_' . $name] = $form[$name]->getValue()->__toString()}
                 {label $name}
                 <div class="form-group">
-                    <div class="input-group date" id="datetimepicker1x">
                         {input $name}
                         <span class="input-group-addon">
                             <span class="glyphicon glyphicon-calendar"></span>
                         </span>
-                    </div>
                 </div>
             {elseif $component instanceof \Nette\Forms\Controls\Checkbox}
                 <strong>{$form[$name]->caption}:</strong>
@@ -91,7 +82,7 @@
                 </div>
             {/if}
         {/foreach}
-        <hr>
+        <h1></h1>
         <div class="row">
             <div class="col-lg-12">
                 {foreach $submits as $name => $component}
@@ -103,14 +94,26 @@
     </div>
 </div>
 <script type="text/javascript">
-    $(function () {
-        {foreach $datetimepickers as $datetimepicker => $value}
-            $({$datetimepicker}).datetimepicker({
-                /** defaultDate: {$value}, */
-                format: 'YYYY-MM-DD HH:MM:SS'
-            });
-            $('input' + {$datetimepicker}).val({$value});
-        {/foreach}
+      $.nette.init();
+      $.nette.ext('editForm', {
+        before: function (settings, ui, e) {
+
+        },
+        complete: function (payload, ui, e) {
+            console.log('Hi, I am nette ajax. I should submit form by ajax but I do not.');
+        }
+    }, {
+        row: null,
+        form: null
     });
-    $('.MultipleFileUpload a').trigger('click');
+    $(document).ready(function () {
+        $(function () {
+            {foreach $datetimepickers as $datetimepicker => $value}
+                console.log($('input' + {$datetimepicker}), $('input' + {$datetimepicker}).length);
+                $('input' + {$datetimepicker}).datetimepicker({'dateFormat':'yy-mm-dd', 'timeFormat':"hh:mm:ss"});
+                $('input' + {$datetimepicker}).val({$value});
+            {/foreach}
+        });
+        $('.MultipleFileUpload a').trigger('click');
+    });
 </script>

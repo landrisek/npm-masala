@@ -13,8 +13,10 @@ interface IRowBuilder {
     /** @return string */
     function getSpice();
     
-    /** @retrun int */
+    /** @return int */
     function update(Array $data);
     
+    /** @return array */
+    function getColumns();
 
 }

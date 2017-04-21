@@ -1,4 +1,12 @@
-<h2>{_'source'|firstUpper} {$feed}</h2>
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <div class="row">
+            <div class="col-xs-11 text-left">
+                <div><i class="fa fa-file"></i>&nbsp;&nbsp;{_'source'|firstUpper} {$feed}</div>
+            </div>
+        </div>
+    </div>
+</div>
 {form $form}
     {foreach $form->getComponents() as $component}
         {if '_do' == $component->name}

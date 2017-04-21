@@ -27,6 +27,7 @@
                             {/foreach}
                             <th class="grid-col-actions">
                                 <a class="btn btn-success" href="javascript:;" onclick="handleFilter();">{_'filter'|firstUpper}</a>
+                                <a class="btn btn-success" href="javascript:;" onclick="handleUpdate();">{_'update'|firstUpper}</a>
                                 <a id="{$control->getName()}-cancel-filter" class="btn btn-warning noajax" style="display:none;" href="javascript:;" onclick="handleCancel();">{_'cancel filter'}</a>
                             </th>
                         {/formContainer}
@@ -35,4 +36,17 @@
             {/ifset}
         </thead>
         {/form}
+        <script type="text/javascript">
+            $(document).ready(function () {
+                $(function () {
+                    {*foreach $datetimepickers as $datetimepicker => $value}
+                        $({$datetimepicker}).datetimepicker({
+                            /** defaultDate: {$value}, */
+                            format: 'YYYY-MM-DD HH:MM:SS'
+                        });
+                        $('input' + {$datetimepicker}).val({$value});
+                    {/foreach*}
+                });
+            });
+        </script>
 {/define}

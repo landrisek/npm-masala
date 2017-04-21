@@ -19,7 +19,8 @@ use Masala\EditForm,
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
-class MockServiceTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class MockServiceTest extends TestCase {
 
     /** @var Container */
     private $container;
@@ -48,7 +49,7 @@ class MockServiceTest extends TestCase {
 
     function setUp() {
         /** database */
-        $connection = new Connection('mysql:host=localhost;dbname=cz_4camping', 'worker', 'dokempu');
+        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
         $this->cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
         $structure = new Structure($connection, $this->cacheStorage);
         $this->context = new Context($connection, $structure, null, $this->cacheStorage);
@@ -68,14 +69,7 @@ class MockServiceTest extends TestCase {
 
     public function testGetCall() {
         Assert::true(method_exists($this->class, 'getCall'), 'MockService:getCall method is not set.');
-        $compulsories = ['fc_write.content' => ['class' => 'App\ContentModule\WritePresenter', 'latte' => 'app/ContentModule/templates/Write/edit.latte', 'service' => 'writeModel', 'method' => 'getWrite'],
-            'fc_write.fc_listing_id' => ['class' => 'App\ContentModule\WritePresenter', 'latte' => 'app/ContentModule/templates/Write/edit.latte', 'service' => 'writeModel', 'method' => 'getWrite', 'parameters' => 4],
-            'fc_filters_words.filters_key' => ['class' => 'App\ContentModule\WritePresenter', 'latte' => 'app/ContentModule/templates/Write/filterWords.latte', 'service' => 'filtersModel'],
-            'fc_mapper_categories.shopio_categories_id' => ['class' => 'App\StockModule\MapperPresenter', 'latte' => 'app/StockModule/templates/Mapper/category.latte', 'service' => 'categoriesModel'],
-            'fc_mapper_categories.shopio_parameters_id' => ['class' => 'App\StockModule\MapperPresenter', 'latte' => 'app/StockModule/templates/Mapper/parameter.latte', 'service' => 'parametersModel'],
-            'fc_mapper_parameters.shopio_parameters_id' => ['class' => 'App\StockModule\MapperPresenter', 'latte' => 'app/StockModule/templates/Mapper/parameter.latte', 'service' => 'parametersModel'],
-            'fc_mapper_parameters.shopio_parameters_codebooks_id' => ['class' => 'App\StockModule\MapperPresenter', 'latte' => 'app/StockModule/templates/Mapper/parameter.latte', 'service' => 'parametersModel'],
-        ];
+        $compulsories = (isset($this->container->parameters['mockService']['calls'])) ? $this->container->parameters['mockService']['calls'] : [];
         $presenters = [];
         $parameters = $this->container->parameters['masala'];
         foreach ($compulsories as $table => $annotations) {
@@ -88,11 +82,11 @@ class MockServiceTest extends TestCase {
                 $row = $this->mockModel->getTestRow($tableName);
                 $presenters[$compulsories[$table]['class']] = $this->class->getPresenter($compulsories[$table]['class'], WWW_DIR . $compulsories[$table]['latte'], ['id' => $row->id]);
                 Assert::true(is_object($presenter = $presenters[$compulsories[$table]['class']]), 'Presenter ' . $compulsories[$table]['class'] . ' was not instantiated.');
-                Assert::false(empty($presenter->getAction()), 'Action of presenter ' . $compulsories[$table]['class'] . ' is not set.');
-                $row = new RowBuilder($parameters, $this->context, $this->cacheStorage);
+                Assert::false(empty($presenter->getAction()), 'Action of presenter ' . $compulsories[$table]['class'] . ' is not set for annotation ' . $table . '.');
+                $setting = new RowBuilder($parameters, $this->context, $this->cacheStorage);
                 $grid = $this->class->getBuilder($presenter->getName(), 'default');
                 $form = new EditForm(10, $this->translatorModel, $this->class, $this->request);
-                $form->setRow($row->table($tableName));
+                $form->setRow($setting->table($tableName));
                 $presenters[$compulsories[$table]['class']]->addComponent($form, 'EditForm');
                 Assert::true(is_object($presenters[$compulsories[$table]['class']]), 'Presenter was not set.');
             }

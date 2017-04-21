@@ -14,7 +14,8 @@ use Masala\MockModel,
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
-class MockModelTest extends TestCase {
+/** @author Lubomir Andrisek */
+final class MockModelTest extends TestCase {
 
     /** @var Container */
     private $container;

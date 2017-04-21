@@ -14,10 +14,12 @@ use Latte\Engine,
     Nette\Database\Connection,
     Nette\Database\Context,
     Nette\Database\Structure,
+    Nette\Security\User,
     Mockery,
-    Security\User,
+    Sunra\PhpSimple\HtmlDomParser,
     Tester\Assert;
 
+/** @author Lubomir Andrisek */
 final class MockService {
 
     /** @var Container */
@@ -76,8 +78,8 @@ final class MockService {
         Assert::true(is_object($this->router = new Application\Routers\RouteList), 'Router is not set.');
         $this->getUser();
         /** database */
-        $connection = new Connection('mysql:host=localhost;dbname=cz_4camping', 'worker', 'dokempu');
-        $temp = WWW_DIR . '/tests/temp';
+        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
+        $temp = WWW_DIR . $this->config['mockService']['temp'];
         $journal = new SQLiteJournal($temp);
         $this->cacheStorage = new FileStorage($temp, $journal);
         $structure = new Structure($connection, $this->cacheStorage);
@@ -237,8 +239,8 @@ final class MockService {
         Assert::false(empty($name = ltrim($name, ':')), 'Name of presenter is empty');
         $presenter = Mockery::mock($class . '[redirect,getName]', ['__get']);
         $action = preg_replace('/(.*)\/|\.latte/', '', $latteFile);
-        if(property_exists($presenter, 'setting')) {
-            $presenter->setting = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
+        if(property_exists($presenter, 'row')) {
+            $presenter->row = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
         }
         if(property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
@@ -307,17 +309,19 @@ final class MockService {
                 Assert::false(empty($dependencies[] = $this->container->$method()), 'Dependency ' . $parameter->getName() . ' creation failed.');
             } elseif ('grid' == $parameter->getName()) {
                 Assert::false(empty($dependencies[] = $this->getBuilder()), 'Source for model ' . $class . ' was not set as parameter.');
-            } elseif ('setting' == $parameter->getName()) {
+            } elseif ('row' == $parameter->getName()) {
                 $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-                $cacheStorage = new FileStorage(__DIR__ . $this->config['mockService']['temp']);
+                $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp']);
                 $structure = new Structure($connection, $cacheStorage);
                 $context = new Context($connection, $structure, null, $cacheStorage);
                 Assert::false(empty($dependencies[] = new RowBuilder($this->config['masala'], $context, $cacheStorage)), 'Source for model ' . $class . ' was not set as parameter.');
             } elseif ('storage' == $parameter->getName()) {
-                Assert::false(empty($dependencies[] = new FileStorage(__DIR__ . '/../../../../tests/temp')), 'Storage was not set.');
+                Assert::false(empty($dependencies[] = new FileStorage(__DIR__ . '/../../../tests/temp')), 'Storage was not set.');
+            } elseif ('parser' == $parameter->getName()) {
+                Assert::false(empty($dependencies[] = new HtmlDomParser()), 'HtmlDomParser was not set.');
             } elseif ('database' == $parameter->getName()) {
                 $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-                $cacheStorage = new FileStorage(__DIR__ . $this->config['mockService']['temp']);
+                $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp']);
                 $structure = new Structure($connection, $cacheStorage);
                 Assert::false(empty($dependencies[] = new Context($connection, $structure, null, $cacheStorage)), 'Context was not set.');
             } elseif ('source' == $parameter->getName()) {
@@ -327,7 +331,7 @@ final class MockService {
             } elseif (isset($this->config[lcfirst(preg_replace('/(.*)\\\/', '', $class))])) {
                 Assert::false(empty($dependencies[] = $this->config[lcfirst(preg_replace('/(.*)\\\/', '', $class))]), 'Source for model ' . $class . ' was not set as parameter.');
             } else {
-                Assert::same(1, lcfirst(preg_replace('/(.*)\\\/', '', $class)));
+                Assert::same($parameter->getName(), lcfirst(preg_replace('/(.*)\\\/', '', $class)));
                 Assert::false(empty($dependencies[] = $this->config[$parameter->getName()]), 'Parameter ' . $parameter->getName() . ' was not set as parameter.');
             }
             Assert::notSame($i, count($dependencies), 'Increment of dependencies for constructor failed on ' . $parameter->getName());
@@ -402,8 +406,8 @@ final class MockService {
         $module = preg_replace('/\:(.*)/', '', $source);
         $presenter = strtolower(preg_replace('/(.*)\:/', '', $source));
         $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-        $journal = new SQLiteJournal(__DIR__ . $this->config['mockService']['temp']);
-        $cacheStorage = new FileStorage(__DIR__ . $this->config['mockService']['temp'], $journal);
+        $journal = new SQLiteJournal(WWW_DIR . $this->config['mockService']['temp']);
+        $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp'], $journal);
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure);
         $translatorModel = new TranslatorModel($this->config['tables']['translator'], $context, $cacheStorage);

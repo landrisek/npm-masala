@@ -75,7 +75,7 @@ final class EditForm extends Form implements IEditFormFactory {
         }
         if ($this->presenter instanceof IPresenter) {
             $this->setMethod('post');
-            $this->row->beforeAttached($this);
+            $this->row->beforeAttached($this, true);
             foreach ($this->row->getColumns() as $column) {
                 $name = $column['name'];
                 $config = $this->row->getConfig($this->row->getTable() . '.' . $name);
@@ -105,13 +105,18 @@ final class EditForm extends Form implements IEditFormFactory {
                 } elseif (in_array($column['nativetype'], ['DATETIME', 'TIMESTAMP', 'DATE'])) {
                     /** https://github.com/radekdostal/Nette-DateTimePicker */
                     $default = (is_object($this->row->$name)) ? $this->row->$name->__toString() : date('Y-m-d H:i:s', strtotime('now'));
-                    $this->addDateTimePicker($name, $labelComponent . ':', 10)
+                    $this->addDateTimePicker($name, $labelComponent . ':', 100)
                             ->setAttribute('id', 'datetimepicker_' . $name)
                             ->setReadOnly(false)
                             ->setDefaultValue($default);
                     $this->components[$name] = $column['nativetype'];
                 } elseif ($column['nativetype'] == 'TINYINT') {
                     $this->addCheckbox($name, $labelComponent)->setAttribute('name', $name);
+                    $this[$name]->setDefaultValue($this->row->$name);
+                    1 == $this->row->$name ? $this[$name]->setAttribute('checked', 'checked') : null;
+                    $this->components[$name] = $column['nativetype'];
+                } elseif (0 < substr_count($column['vendor']['Comment'], '@textarea')) {
+                    $this->addTextArea($name, $labelComponent . ':');
                     $this[$name]->setDefaultValue($this->row->$name);
                     $this->components[$name] = $column['nativetype'];
                 } elseif (0 < substr_count($column['nativetype'], 'TEXT')) {
@@ -155,7 +160,9 @@ final class EditForm extends Form implements IEditFormFactory {
                 /** components methods */
                 if (isset($this[$name])) {
                     $this[$name]->setAttribute('class', 'form-control');
-                    false == $column['nullable'] and null === $column['default'] and 0 === substr_count($column['vendor']['Comment'], '@multiupload') ? $this[$name]->setRequired(true) : null;
+                    if(false == $column['nullable'] and null === $column['default'] and 0 === substr_count($column['vendor']['Comment'], '@multiupload')) {
+                        $this[$name]->setRequired($this->translatorModel->translate($name));
+                    }
                     0 === substr_count($column['vendor']['Comment'], '@disable') ? null : $this[$name]->controlPrototype->readonly = 'readonly';
                     0 === substr_count($column['vendor']['Comment'], '@onchange') ? null : $this[$name]->setAttribute('onchange', 'submit()');
                     foreach ($config as $method => $data) {
@@ -169,16 +176,21 @@ final class EditForm extends Form implements IEditFormFactory {
             if(!empty($this->signal) and false == $this->row->getData()) {
                 $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
                 $this->addHandler('new');
-            } elseif(!empty($this->signal)) {
-                $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
-                $this->addHandler('save');
-                $this->addHandler('delete');
             } else {
                 $this->addSubmit('save', ucfirst($this->translatorModel->translate('save')))->setAttribute('class', 'btn btn-success');
-                $this->addSubmit('grid', ucfirst($this->translatorModel->translate('save and on grid')))->setAttribute('class', 'btn btn-success');
                 $this->addSubmit('delete', ucfirst($this->translatorModel->translate('delete')))
                         ->setAttribute('class', 'btn btn-danger pull-right')
                         ->setAttribute('data-confirm', $this->translatorModel->translate('Do you really wish to delete?'));    
+            }
+            if(!empty($this->signal) and false != $this->row->getData()) {
+                $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
+                $this['save']->setAttribute('onclick', 'handleSubmit(' 
+                        . json_encode(['id' => '#' . $this->getElementPrototype()->getId(), 'spice' => $this->row->getSpice(), 'signal' => 'save']) .'); return false;');
+                $this['delete']->setAttribute('onclick', 'return handleSubmit(' 
+                        . json_encode(['id' => '#' . $this->getElementPrototype()->getId(), 'spice' => $this->row->getSpice(), 'signal' => 'delete']) .'); return false;');
+                $this->addButton('close', ucfirst($this->translatorModel->translate('close')))->setAttribute('class', 'btn btn-success')
+                        ->setAttribute('data-dismiss', 'modal')
+                        ->setAttribute('aria-hidden', 'true');
             }
             $this->row->afterAttached($this);
             $this->onSuccess[] = [$this, 'succeeded'];
@@ -197,12 +209,13 @@ final class EditForm extends Form implements IEditFormFactory {
         $columns = [];
         foreach ($this->row->getColumns() as $column => $row) {
             $column = $row['name'];
-            if (!isset($this->components[$column]) and isset($this->row->$column)) {
+            if (!isset($this->components[$column]) and isset($values->$column)) {
+                $columns[$column] = $values->$column;
+            } elseif (!isset($this->components[$column]) and isset($this->row->$column)) {
                 $columns[$column] = $this->row->$column;
             } elseif (isset($this->components[$column]) and ( 'DATE' == $this->components[$column] or 'DATETIME' == $this->components[$column])) {
                 $columns[$column] = $values->$column->__toString();
-            } elseif (!isset($this->components[$column]) or ! isset($values->$column)) {
-                
+            } elseif (!isset($this->components[$column]) and ! isset($values->$column)) {
             } elseif (isset($this->components[$column]) and ( 'INT' == $this->components[$column] or 'TINYINT' == $this->components[$column])) {
                 $columns[$column] = intval($values->$column);
             } elseif (isset($this->components[$column]) and 'MULTI' == $this->components[$column]) {
@@ -273,7 +286,7 @@ final class EditForm extends Form implements IEditFormFactory {
         $template->setTranslator($this->translatorModel);
         $template->form = $this;
         $template->basePath = $this->presenter->template->basePath;
-        $template->setting = $this->row;
+        $template->row = $this->row;
         $template->title = $this->row->getTitle();
         $template->components = $this->components;
         $template->submits = [];

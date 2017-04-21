@@ -13,7 +13,7 @@ interface IProcessService {
     /** @return IProcessService */
     function setSetting(ActiveRow $setting);
 
-    /** @return Array */
+    /** @return array */
     function prepare(IMasalaFactory $masala);
 
     /** @return Array */
