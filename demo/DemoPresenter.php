@@ -3,13 +3,13 @@
 namespace App\ApiModule;
 
 use Masala\HelpModel,
-    Masala\MockModel,
+    Masala\IBuilder,
     Masala\IEditFormFactory,
     Masala\IMasalaFactory,
     Masala\IProcessService,
+    Masala\IRowBuilder,
+    Masala\MockModel,
     Masala\MockService,
-    Masala\NetteBuilder,
-    Masala\RowBuilder,
     Nette\Application\UI\Presenter;
 
 class DemoPresenter extends Presenter {
@@ -38,10 +38,10 @@ class DemoPresenter extends Presenter {
     /** @var IEditFormFactory inject */
     public $masalaFormFactory;
 
-    /** @var NetteBuilder @inject */
+    /** @var IBuilder @inject */
     public $grid;
 
-    /** @var RowBuilder @inject */
+    /** @var IRowBuilder @inject */
     public $row;
 
     public function startup() {
@@ -100,9 +100,10 @@ class DemoPresenter extends Presenter {
     }
 
     public function actionGrid() {
-        $this->grid->table('my_table');
-        $this->row->source('my_table')
-                ->where('my_column', $id)
+        $testTable = reset($this->context->parameters['tables']);
+        $this->grid->table($testTable);
+        $this->row->source($testTable)
+                /*->where('my_column', $id)*/
                 ->check();
     }
 
@@ -110,7 +111,6 @@ class DemoPresenter extends Presenter {
         $this->mockService->getPresenters();
         $this->sendPayload();
     }
-
     public function actionTest() {
         $this->template->setFile(__DIR__ . '/test.latte');
     }

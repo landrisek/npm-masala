@@ -239,10 +239,10 @@ final class MockService {
         Assert::false(empty($name = ltrim($name, ':')), 'Name of presenter is empty');
         $presenter = Mockery::mock($class . '[redirect,getName]', ['__get']);
         $action = preg_replace('/(.*)\/|\.latte/', '', $latteFile);
-        if(property_exists($presenter, 'row')) {
+        if (property_exists($presenter, 'row')) {
             $presenter->row = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
         }
-        if(property_exists($presenter, 'grid')) {
+        if (property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
         }
         foreach ($this->services as $serviceId => $method) {
@@ -341,6 +341,10 @@ final class MockService {
             return [$class, '__construct'];
         };
         Assert::true(is_object($service = new $class(...$dependencies)));
+        if (true == $reflection->hasMethod('setLocale')) {
+            Assert::false(empty($localization = array_keys($this->container->parameters['localization'])), 'Localization section in config is not set.');
+            Assert::same(null, $service->setLocale(reset($localization)), 'ITranslator:setLocale succeeded but it does return something. Do you wish to modify test?');
+        }
         return $service;
     }
 
@@ -410,7 +414,9 @@ final class MockService {
         $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp'], $journal);
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure);
-        $translatorModel = new TranslatorModel($this->config['tables']['translator'], $context, $cacheStorage);
+        $translatorModel = new TranslatorModel($this->config['localization'], $this->config['tables']['translator'], $context, $cacheStorage);
+        $localization = array_keys($this->container->parameters['localization']);
+        $translatorModel->setLocale(reset($localization));
         $urlScript = new Http\UrlScript();
         $urlScript->setScriptPath($root);
         $urlScript->setPath($root . $presenter . '/');

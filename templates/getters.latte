@@ -37,11 +37,15 @@
             $('tr.grid-filters th select').each(function () {
                 var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
                 var column = $(this).attr('id').replace(regex[0], '');
-                var value = $(this).find('option:selected').val();
-                if ('' !== value) {
-                    filters[column] = value;
-                    url += {$control->getName()} +'-filter[' + column + ']=' + value;
-                }
+                var selected = new Object();
+                $(this).find('option:selected').each(function(i, option){ 
+                    var value = $(option).val();
+                    if ('' !== value) {
+                        selected[i] = value;
+                        url += {$control->getName()} +'-filter[' + column + ']=' + value;
+                    }
+                });
+                filters[column] = selected;
             });
             $('tr.grid-filters th input:text').each(function () {
                 var id = $(this).attr('id');
@@ -55,6 +59,7 @@
                     }
                 }
             });
+
             if (0 < Object.keys(filters).length) {
                 $('#' + {$control->getName()} +'-cancel-filter').show();
             }

@@ -45,7 +45,7 @@ class ReactForm extends Control implements IReactFormFactory {
         foreach($validators as $validatorId => $validator) {
             $validations[$validatorId] = ['value' => $validator, 'style' => ['display' => 'none']];
         }
-        $this->data[$key] = ['method' => $method, 'attributes' => $attributes, 'validators' => $validations];
+        $this->data[$key] = ['Method' => $method, 'Attributes' => $attributes, 'Validators' => $validations];
         return $this;
     }
     
