@@ -159,8 +159,9 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         }
         if (isset($this->concat[$column]) and isset($this->concat[$column][$cell])) {
             $cell .= $this->concat[$column][$cell];
-        }
-        if (is_array($href = $this->getAnnotation($column, 'url'))) {
+        } else if (is_array($href = $this->getAnnotation($column, 'url')) and preg_match('/\//', $href[0])) {
+            return '<a href="' . $href[0] . '=' . $row['url_id'] . '" target="_blank">' . $cell . '</a>';
+        } else if (is_array($href = $this->getAnnotation($column, 'url'))) {
             return '<a href="' . $this->linkGenerator->link($href[0], ['id' => $row['url_id']]) . '" target="_blank">' . $cell . '</a>';
         } elseif (is_array($joinColumns = $this->getAnnotation($column, 'join'))) {
             foreach ($joinColumns as $annotation) {
