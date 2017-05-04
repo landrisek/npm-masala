@@ -4,9 +4,24 @@
                 {foreach $columns as $column}
                     {if false == $grid->getAnnotation($column->name, 'unrender') and false == $grid->getAnnotation($column->name, 'range')}
                         <th class="grid-col-{$column->name}">
-                            <a href="javascript:;" onclick="handleSort({$column->name});">{$column->label}</a>
-                            <img style="display: none;" width="20px;" src="{$basePath}/{$bower}/images/asc.png" id="{$control->getName()}-{$column->name}-asc" class="sort">
-                            <img style="display: none;" width="20px;" src="{$basePath}/{$bower}/images/desc.png" id="{$control->getName()}-{$column->name}-desc" class="sort">
+                            <!--<a href="javascript:;" onclick="handleSort({*$column->name});">{$column->label*}-->
+                             <div class="row fontawesome-icon-list">
+                                <div class="fa-hover sort" id="{$control->getName()}-{$column->name}-sort">
+                                    <a class="fa-hover" href="javascript:;" onclick="handleSort({$column->name});" title={_'sort ascending'|firstUpper}>
+                                        {$column->label}<i class="fa fa-sort" aria-hidden="true"></i>
+                                    </a>
+                                </div> 
+                                <div class="fa-hover sort" style="display: none;" id="{$control->getName()}-{$column->name}-asc">
+                                    <a class="fa-hover" href="javascript:;" onclick="handleSort({$column->name});"  title={_'sort ascending'|firstUpper}>
+                                        {$column->label}<i class="fa fa-sort-asc" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                                <div class="fa-hover sort" style="display: none;" id="{$control->getName()}-{$column->name}-desc">
+                                    <a class="fa-hover" href="javascript:;" onclick="handleSort({$column->name});"  title={_'sort descending'|firstUpper}>
+                                        {$column->label}<i class="fa fa-sort-desc" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </th>
                     {/if}
                 {/foreach}
@@ -28,7 +43,7 @@
                             <th class="grid-col-actions">
                                 <a class="btn btn-success" href="javascript:;" onclick="handleFilter();">{_'filter'|firstUpper}</a>
                                 <a class="btn btn-success" href="javascript:;" onclick="handleUpdate();">{_'update'|firstUpper}</a>
-                                <a id="{$control->getName()}-cancel-filter" class="btn btn-warning noajax" style="display:none;" href="javascript:;" onclick="handleCancel();">{_'cancel filter'}</a>
+                                <a id="{$control->getName()}-cancel-filter" class="btn btn-warning noajax" style="display:none;" href="javascript:;" onclick="handleCancel();">{_'cancel filter'|firstUpper}</a>
                             </th>
                         {/formContainer}
                     {/form}

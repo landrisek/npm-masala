@@ -7,22 +7,23 @@
         </div>
     </div>
 </div>
-{form $form}
-    {foreach $form->getComponents() as $component}
-        {if '_do' == $component->name}
-        {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
-            {label $component->name}
-            {input $component->name}
-        {else}
-        <div class="row">
-            <div class="form-group col-md-6">
-                <div class="form-group input-group">
-                    <span class="input-group-addon">{label$component->name /}</span>
+<div class="panel panel-default">
+    <div class="row">
+        {form $form}
+            {foreach $form->getComponents() as $component}
+                {if '_do' == $component->name}
+                {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
+                    {label $component->name}
                     {input $component->name}
-                </div>
-            </div>
-        </div>
-        {/if}
-        <hr>
-    {/foreach}
-{/form}
+                {else}
+                    <div class="form-group col-md-6">
+                        <div class="form-group input-group">
+                            {label$component->name /}
+                            {input $component->name}
+                        </div>
+                    </div>
+                {/if}
+            {/foreach}
+        {/form}
+    </div>
+</div>

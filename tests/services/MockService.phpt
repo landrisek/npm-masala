@@ -17,7 +17,7 @@ use Masala\EditForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class MockServiceTest extends TestCase {
@@ -50,13 +50,13 @@ final class MockServiceTest extends TestCase {
     function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $this->cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $this->cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $this->cacheStorage);
         $this->context = new Context($connection, $structure, null, $this->cacheStorage);
         $parameters = $this->container->getParameters();
         /** models */
         $this->mockModel = new MockModel($this->context, $this->cacheStorage);
-        $this->translatorModel = new TranslatorModel($parameters['tables']['translator'], $this->context, $this->cacheStorage);
+        $this->translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $this->context, $this->cacheStorage);
         $this->class = new MockService($this->container, $this->translatorModel);
         $this->tables = $this->mockModel->getTestTables();
         $urlScript = new UrlScript();
@@ -80,7 +80,7 @@ final class MockServiceTest extends TestCase {
             if (is_array($annotations) and ! isset($presenters[$compulsories[$table]['class']])) {
                 $tableName = preg_replace('/\.(.*)/', '', $table);
                 $row = $this->mockModel->getTestRow($tableName);
-                $presenters[$compulsories[$table]['class']] = $this->class->getPresenter($compulsories[$table]['class'], WWW_DIR . $compulsories[$table]['latte'], ['id' => $row->id]);
+                $presenters[$compulsories[$table]['class']] = $this->class->getPresenter($compulsories[$table]['class'], WWW_DIR . '/' . $compulsories[$table]['latte'], ['id' => $row->id]);
                 Assert::true(is_object($presenter = $presenters[$compulsories[$table]['class']]), 'Presenter ' . $compulsories[$table]['class'] . ' was not instantiated.');
                 Assert::false(empty($presenter->getAction()), 'Action of presenter ' . $compulsories[$table]['class'] . ' is not set for annotation ' . $table . '.');
                 $setting = new RowBuilder($parameters, $this->context, $this->cacheStorage);

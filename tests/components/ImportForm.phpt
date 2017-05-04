@@ -16,7 +16,7 @@ use Masala\ImportForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class ImportFormTest extends TestCase {
@@ -40,11 +40,12 @@ final class ImportFormTest extends TestCase {
     protected function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
+        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
+        $translatorModel->setLocale('cs');
         $this->mockService = new MockService($this->container, $translatorModel);
         $this->class = new ImportForm($translatorModel);
         $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
@@ -57,9 +58,11 @@ final class ImportFormTest extends TestCase {
     public function testSetService() {
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $this->presenters[$class]);
+            Assert::false(empty($localization = array_keys($this->container->parameters['localization'])), 'Localization section in config file is not set.');
+            Assert::true(is_object($presenter->translatorModel->setLocale(reset($localization))), 'ITranslator:setLocale does not return class itself.');
             Assert::true(is_object($masala = $presenter->context->getByType('Masala\Masala')), 'Masala is not set.');
             Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
-            Assert::true(is_object($presenter->addComponent($this->container->getByType('Masala\Masala'), 'masala')), 'Attached Masala failed.');                        
+            Assert::true(is_object($presenter->addComponent($this->container->getByType('Masala\Masala'), 'masala')), 'Attached Masala failed.');
             Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
             Assert::same(null, $masala->attached($presenter), 'Masala:attached succeed but method return something. Do you wish to modify test?');
             Assert::true(is_object($presenter), 'Presenter was not set.');

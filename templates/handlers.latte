@@ -8,7 +8,7 @@
         {$trigger|noescape};
     }
     function handleActive(button) {
-        $('#' + {$control->getName()}).addClass('loading');
+        $('body').addClass('loading');
         var page = parseInt($(button).text());
         $('.paginate.paginate-dark.wrapper li a').attr('class', '');
         $('#pagination-top-current').val(page);
@@ -16,7 +16,7 @@
         handleFilter(page);
     }
     function handleCancel() {
-        $('#' + {$control->getName()}).addClass('loading');
+        $('body').addClass('loading');
         location.href = location.href.replace(/&?masala-spice=([^&]$|[^&]*)/i, '');
         return true;
     }
@@ -56,7 +56,7 @@
         window.masalaHandler = {link export!};
     }
     function handleFilter(offset) {
-        $('#' + {$control->getName()}).addClass('loading');
+        $('body').addClass('loading');
         console.log('loading filter...');
         var data = getFilters();
         data.offset = offset;
@@ -88,13 +88,13 @@
                 }
                 window.history.pushState('', 'title', url[0] + append);
                 $('tbody').replaceWith(payload.rows);
-                $('#' + {$control->getName()}).removeClass('loading');
+                $('body').removeClass('loading');
                 handlePaginate(data.offset);
             }
         });
     }
     function handleMessage() {
-        $('#' + {$control->getName()}).removeClass('loading');
+        $('body').removeClass('loading');
     }
     function handleMigrate() {
         window.masalaHandler = {link migrate!};
@@ -112,17 +112,17 @@
                 if(0 < $('tbody input').length) {
                     getStorage();
                 }
-                if(40 < payload) {
+                if(payload < 40) {
                     $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(1, payload, 'bottom'));
                     $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, payload, 'top'));
                 } else {
                     $('.paginate.paginate-dark.wrapper.bottom').replaceWith(getPages(data.offset, payload, 'bottom'));
-                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(1, payload, 'top'));
+                    $('.paginate.paginate-dark.wrapper.top').replaceWith(getPages(data.offset, payload, 'top'));
                 }
                 var page = $('input#pagination-top-current').val();
                 $('a#page-top-' + page).attr('class', 'active');
                 $('a#page-bottom-' + page).attr('class', 'active');
-                $('#' + {$control->getName()}).removeClass('loading');
+                $('body').removeClass('loading');
                 if(40 < payload) {
                     $('div#pagination-top').slider({
                         range: false,
@@ -169,7 +169,7 @@
         });
     }
     function handlePostpone() {
-        $('#' + {$control->getName()}).removeClass('loading');
+        $('body').removeClass('loading');
     }
     function handlePrepare(data) {
         $('#' + {$control->getName()} + '-process').modal({ show: 'true' }); 
@@ -179,7 +179,7 @@
     function handleRedraw(offset) {
         var data = getFilters();
         data.offset = offset;
-        $('tr#rows-' + offset).addClass('loading');
+        $('body').addClass('loading');
         $.nette.ajax({
             type: 'post',
             url: {link redraw!},
@@ -192,7 +192,7 @@
                 } else {
                     console.log(primary + ' loading...');
                     $(primary).replaceWith(payload);
-                    $(primary).removeClass('loading');
+                    $('body').removeClass('loading');
                 }
             }
         });
@@ -222,14 +222,15 @@
         }
     }
     function handleSort(column) {
-        var id = 'img#' + {$control->getName()} + '-' + column + '-';
+        var id = 'div#' + {$control->getName()} + '-' + column + '-';
         $('tr.grid-columns').attr('order', column);
+        $(id + 'sort').hide();
         if('display: none;' == $(id + 'desc').attr('style')) {
-            $('.grid-columns img.sort').hide();
+            $(id + 'asc').hide();
             $(id + 'desc').show();
             $('tr.grid-columns').attr('sort', 'desc');
         } else if('display: none;' == $(id + 'asc').attr('style')) {
-            $('.grid-columns img.sort').hide();
+            $(id + 'desc').hide();
             $(id + 'asc').show();
             $('tr.grid-columns').attr('sort', 'asc');
         }
@@ -314,7 +315,7 @@
             url: {link update!},
             success: function (payload) {
                 handleFilter(0);
-                $('#' + {$control->getName()}).removeClass('loading');
+                $('body').removeClass('loading');
                 $('#' + {$control->getName()} + '-message-modal-body').text(payload.message);
                 $('#' + {$control->getName()} + '-message').modal({ show: 'true' });
             }

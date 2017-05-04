@@ -1,4 +1,12 @@
 {block #scripts}
+<!-- bootstrap datetimepicker -->
+<script type="text/javascript" src="{$basePath}/bower/moment/min/moment.min.js"></script>
+<script type="text/javascript" src="{$basePath}/bower/moment/min/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="{$basePath}/bower/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"></script>
+<link rel="stylesheet" href="{$basePath}/bower/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
+<link rel="stylesheet" href="{$basePath}/bower/jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.css" />
+<script src="{$basePath}/bower/jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.js"></script>
+
 <!-- ckeditor -->
 <script type="text/javascript" src="{$basePath}/assets/masala/ckeditor3/ckeditor.js"></script>
 <script type="text/javascript" src="{$basePath}/bower/ckeditor/ckeditor.js"></script>
@@ -39,7 +47,6 @@
             <div class="col-sm-6">{_'items'|firstUpper}</div>
         </div>
     </div>
-    <div class="panel-body">
     {form $form}
         <div class="row header">
             {if !is_object($row)}
@@ -48,6 +55,7 @@
                 </div>
             {/if}
         </div>
+        <div class="bd-example" data-example-id="">
         {foreach $form->getComponents() as $name => $component}
             {if '_do' == $name or $component instanceof \Nette\Forms\Controls\HiddenField}
             {elseif $component instanceof \MultipleFileUpload\MultipleFileUpload or $component instanceof Nette\Forms\Controls\UploadControl}
@@ -76,13 +84,13 @@
                     <div class="form-group col-md-6">
                         <div class="form-group input-group">
                             <span class="input-group-addon">{label $name /}</span>
-                            {input $name}
+                            {input $name class=>'form-control'}
                         </div>
                     </div>
                 </div>
             {/if}
         {/foreach}
-        <h1></h1>
+        </div>
         <div class="row">
             <div class="col-lg-12">
                 {foreach $submits as $name => $component}
@@ -91,8 +99,6 @@
             </div>
         </div>
     {/form}
-    </div>
-</div>
 <script type="text/javascript">
       $.nette.init();
       $.nette.ext('editForm', {

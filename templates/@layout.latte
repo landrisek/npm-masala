@@ -19,12 +19,10 @@
 {/if}
 {if is_object($grid->getService()) or is_object($grid->getImport())}
     <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'state'|firstUpper}</a>
-    <h1></h1>
 {/if}
 {*include widget*}
 {if is_object($grid->getExport())}
     <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal" onclick="handleExport()">{_'export'|firstUpper}</a>
-    <h1></h1>
 {/if}
 {if is_object($grid->getImport())}
     {control importForm}

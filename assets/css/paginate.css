@@ -123,8 +123,8 @@ body {
     background-image: linear-gradient(top, #303338, #2d3034);
     filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#303338', EndColorStr='#2d3034'); }
 .ui-slider span.ui-slider-pip {
-    width: 30px;
-    height: 20px;
+    width: 20px;
+    height: 10px;
     background-image: url('../images/pipe.png');
 }
 .ui-slider-line, .ui-slider-label, .ui-slider span.ui-slider-pip .ui-slider-label {

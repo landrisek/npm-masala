@@ -66,11 +66,14 @@ final class FilterForm extends Form implements IFilterFormFactory {
                 } elseif (true == $this->grid->getAnnotation($name, 'range') or is_array($this->grid->getRange($name))) {
                     $this['filter']->addRange($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name]);
                 } elseif (is_array($defaults[$name]) and ! empty($defaults[$name]) and true == $this->grid->getAnnotation($name, 'multi')) {
+                    $defaults[$name] = [null => $this->translatorModel->translate('--unchosen--')] + $defaults[$name];
                     $this['filter']->addMultiSelect($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name])
+                            ->setAttribute('min-width', '10px;')
                             ->setAttribute('class', 'form-control');
                 } elseif (is_array($defaults[$name]) and ! empty($defaults[$name])) {
                     $this['filter']->addSelect($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name])
                             ->setAttribute('class', 'form-control')
+                            ->setAttribute('style', 'height:100%')
                             ->setAttribute('onchange', 'handleFilter()')
                             ->setPrompt($this->translatorModel->translate('--unchosen--'));
                 } else {
@@ -79,7 +82,7 @@ final class FilterForm extends Form implements IFilterFormFactory {
                 /** default values */
                 if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {
                     
-                } elseif (!empty($spice) and isset($spice->$name) and isset($defaults[$name][$spice->$name])) {
+                } elseif (!empty($spice) and isset($spice->$name) and isset($defaults[$name]) and !is_array($defaults[$name])) {
                     $this['filter'][$name]->setDefaultValue($spice->$name);
                 } elseif (true == $this->grid->getAnnotation($name, 'fetch') and ! preg_match('/\(/', $annotation) and is_array($default = $defaults[$name])) {
                     $default = array_shift($default);
@@ -90,7 +93,7 @@ final class FilterForm extends Form implements IFilterFormFactory {
                 } elseif (is_array($defaults[$name]) and isset($defaults[$name][$this->grid->getFilter($this->grid->getColumn($name))])) {
                     $this['filter'][$name]->setDefaultValue($this->grid->getFilter($this->grid->getColumn($name)));
                 } elseif (is_array($defaults[$name]) and false == $this->grid->getAnnotation($name, 'range')) {
-                    $this['filter'][$name]->setPrompt('-- ' . $this->translatorModel->translate('choose') . ' ' . $this->translatorModel->translate($name) . ' --');
+                    $this['filter'][$name]->setPrompt('-- ' . $this->translatorModel->translate('choose') . ' ' . $this->translatorModel->translate($name, 1) . ' --');
                 } elseif (isset($defaults[$name]) and false == $this->grid->getAnnotation($name, 'range')) {
                     $this['filter'][$name]->setDefaultValue($defaults[$name]);
                 }

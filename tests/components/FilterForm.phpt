@@ -18,7 +18,7 @@ use Masala\FilterForm,
     Tester\TestCase;
     
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class FilterFormTest extends TestCase {
@@ -45,15 +45,15 @@ final class FilterFormTest extends TestCase {
     protected function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         /** models */
-        $this->translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
-        $this->mockService = new MockService($this->container, $this->translatorModel);
+        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
+        $this->mockService = new MockService($this->container, $translatorModel);
         $request = $this->container->getByType('Nette\Http\IRequest');
-        $this->class = new FilterForm($request, $this->translatorModel);
-        $this->presenters = ['App\ApiModule\DemoPresenter' => APP_DIR . '/grids/Masala/demo/default.latte'];
+        $this->class = new FilterForm($request, $translatorModel);
+        $this->presenters = ['App\ApiModule\DemoPresenter' => APP_DIR . '/Masala/demo/default.latte'];
     }
 
     public function __destruct() {

@@ -99,7 +99,7 @@ final class EditForm extends Form implements IEditFormFactory {
                             $defaults[$select] = $this->translatorModel->translate($select);
                         }
                     }
-                    $this->addSelect($name, $labelComponent . ':', $defaults);
+                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
                     (null == $this->row->$name or '' == $this->row->$name or is_array($this->row->$name) or ! isset($defaults[$this->row->$name])) ? null : $this[$name]->setDefaultValue($this->row->$name);
                     $this->components[$name] = $column['nativetype'];
                 } elseif (in_array($column['nativetype'], ['DATETIME', 'TIMESTAMP', 'DATE'])) {
@@ -125,7 +125,7 @@ final class EditForm extends Form implements IEditFormFactory {
                     $this[$name]->setDefaultValue($this->row->$name);
                     $this->components[$name] = $column['nativetype'];
                 } elseif (!empty($defaults) and is_array($defaults) and is_array($this->row->$name) and 'INT' == $column['nativetype']) {
-                    $this->addSelect($name, $labelComponent . ':', $defaults);
+                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
                     $this[$name]->setDefaultValue($this->row->$name[key($this->row->$name)]);
                     $this->components[$name] = $column['nativetype'];
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@multi') or ( !empty($defaults) and is_array($defaults) and is_array($this->row->$name))) {
@@ -134,7 +134,7 @@ final class EditForm extends Form implements IEditFormFactory {
                     $this[$name]->setDefaultValue($multiDefault);
                     $this->components[$name] = 'MULTI';
                 } elseif (!empty($defaults) and is_array($defaults)) {
-                    $this->addSelect($name, $labelComponent . ':', $defaults);
+                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
                     (null == $this->row->$name or '' == $this->row->$name or ! isset($defaults[$this->row->$name])) ? $this[$name]->setPrompt('---') : $this[$name]->setDefaultValue($this->row->$name);
                     $this->components[$name] = $column['nativetype'];
                 } elseif ('DECIMAL' == $column['nativetype'] or 'FLOAT' == $column['nativetype']) {
@@ -177,6 +177,7 @@ final class EditForm extends Form implements IEditFormFactory {
                 $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
                 $this->addHandler('new');
             } else {
+                $this->addSubmit('grid', ucfirst($this->translatorModel->translate('save and on grid')))->setAttribute('class', 'btn btn-success');
                 $this->addSubmit('save', ucfirst($this->translatorModel->translate('save')))->setAttribute('class', 'btn btn-success');
                 $this->addSubmit('delete', ucfirst($this->translatorModel->translate('delete')))
                         ->setAttribute('class', 'btn btn-danger pull-right')

@@ -10,7 +10,7 @@
                 console.log('loading pagination with nodejs...');
                 console.log(data.sum);
                 $('a#last-page').attr('href', {link paginate!} + '&smart-Gridpage=' + data.sum);
-                $('span#page-count').text(data.sum);
+                $('#pagination').text(data.sum);
             });
         </script>
 {/block}

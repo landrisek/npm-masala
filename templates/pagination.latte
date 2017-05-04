@@ -1,9 +1,10 @@
 {block pagination}
-    <div style="margin-top:20px;"></div>
-    <label>{_'page'|firstUpper}&nbsp;</label><input type='text' id='pagination' style='border:0;font-weight:bold;' value='1' readonly>
-    <label>{_'current page'|firstUpper}&nbsp;</label><input type='text' id='pagination-{$type}-current' style='border:0;font-weight:bold;' value='1' readonly>
-    <span id="page-count"></span>
-    <div id='pagination-{$type}'></div>
-    <div style="margin-top:40px;">
-    <div class="paginate paginate-dark wrapper {$type}"></div>
+    <button class='btn btn-primary' type='button'>&nbsp;{_'Extent'|firstUpper}&nbsp;
+        <span class='badge'><input type='text' id='pagination' style='border:0;font-weight:bold;' value='1' readonly></span>&nbsp;{_'pages'}
+    </button>
+    <button class='btn btn-primary' type='button'>&nbsp;{_'current page'|firstUpper}&nbsp;
+        <span class='badge'><input type='text' id='pagination-{$type}-current' style='border:0;font-weight:bold;' value='1' readonly></span>
+    </button>
+	<div id='pagination-{$type}'></div>
+	<div class='paginate paginate-dark wrapper {$type}'></div>
 {/block}

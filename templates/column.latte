@@ -1,13 +1,14 @@
 {define row-actions}
-        <a class="btn {$control}-edit"
-           type="button"
-           data-attribute="{$spice}"
-           data-target="#{$control}-edit"
-           data-toggle="modal"
-           onclick="handleEdit({$offset}, {$spice})">
-        </a>
-        <a class="btn {$control}-remove" 
-           data-confirm="{_'Do you really want to delete label?'}"
-           href="javascript:;"
-           onclick="handleRemove({$spice})"></a>
+    <div class='row fontawesome-icon-list'>
+        <div class='fa-hover'>
+            <a class='fa-hover' data-attribute='{$spice}' data-target='#{$control}-edit' data-toggle='modal' 
+               onclick='handleEdit({$offset}, {$spice})' title='{_'edit'|firstUpper}'>
+                <i class='fa fa-edit' aria-hidden='true'></i></a>
+        </div>
+        <div class='fa-hover'>
+            <a class='fa-hover' data-confirm='{_'Do you really want to delete item?'}'
+               onclick='handleRemove({$spice})' title='{_'delete'|firstUpper}'>
+                <i class='fa fa-remove' aria-hidden='true'></i></a>
+        </div>
+    </div>
 {/define}

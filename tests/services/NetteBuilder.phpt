@@ -20,7 +20,7 @@ use Masala\ImportForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class NetteBuilderTest extends TestCase {
@@ -44,13 +44,13 @@ final class NetteBuilderTest extends TestCase {
     protected function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         $parameters = $this->container->getParameters();
         $tables = $parameters['tables'];
         /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['tables']['translator'], $context, $cacheStorage);
+        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $this->class = $this->mockService->getBuilder();
         $this->row = new RowBuilder($parameters['masala'], $context, $cacheStorage);

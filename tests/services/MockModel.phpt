@@ -12,7 +12,7 @@ use Masala\MockModel,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class MockModelTest extends TestCase {
@@ -30,7 +30,7 @@ final class MockModelTest extends TestCase {
     protected function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         /** models */
@@ -43,7 +43,7 @@ final class MockModelTest extends TestCase {
 
     /** spread on all models */
     public function testGetters() {
-        $path = APP_DIR . '/grids/Masala/services/MockModel.php';
+        $path = APP_DIR . '/Masala/services/MockModel.php';
         Assert::true(is_file($path), 'File ' . $path . ' for parsing was not found.');
         /** pares methods */
         $methods = [];

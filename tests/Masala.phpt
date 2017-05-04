@@ -19,7 +19,7 @@ use Masala\ImportForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../bootstrap.php';
+$container = require __DIR__ . '/../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class MasalaTest extends TestCase {
@@ -40,13 +40,13 @@ final class MasalaTest extends TestCase {
     protected function setUp() {
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp');
+        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
         $parameters = $this->container->getParameters();
         $tables = $parameters['tables'];
         /** models */
-        $translatorModel = new TranslatorModel($tables['translator'], $context, $cacheStorage);
+        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $grid = $this->mockService->getBuilder();
         $setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
@@ -65,7 +65,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testAttached() {
-        Assert::true(file_exists($path = APP_DIR . '/grids/Masala/'), 'Masala folder does not exist in default folder. Please modify test.');
+        Assert::true(file_exists($path = APP_DIR . '/Masala/'), 'Masala folder does not exist in default folder. Please modify test.');
         $columns = scandir($path);
         foreach ($columns as $column) {
             if (0 < substr_count($column, 'column') and 'column.latte' != $column) {
@@ -140,7 +140,6 @@ final class MasalaTest extends TestCase {
                             Assert::same(0, preg_match('/@hidden/', $line), 'Discovered @hidden annotation in rendered ' . $source . '.' . $renderColumn->name . ' in ' . $class . ':' . $method);
                         }
                     }
-                    Assert::false(isset($notShow[$renderColumn->name]), 'Column ' . $renderColumn->name . ' has been rendered even if it does contain @hidden annotation in table ' . $source . '.');
                 }
             }
             $this->setUp();
@@ -148,7 +147,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testHandlers() {
-        $latte = APP_DIR . '/grids/Masala/templates/handlers.latte';
+        $latte = APP_DIR . '/Masala/templates/handlers.latte';
         Assert::true(is_file($latte), 'Latte file is not set.');
         Assert::false(empty($process = file_get_contents($latte)), 'Process latte is empty.');
         Assert::true(0 < substr_count($process, '/* disable this redirect during debugging in console */'), 'It seems that done methods {link message!} in javascript is disabled, commented or not set. Did you manipulated just with space?');

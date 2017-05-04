@@ -6,7 +6,6 @@ use Masala\EditForm,
     Masala\MockModel,
     Masala\MockService,
     Masala\RowBuilder,
-    Models\TranslatorModel,
     Nette\Utils\ArrayHash,
     Nette\Caching\Storages\FileStorage,
     Nette\Caching\Storages\SQLiteJournal,
@@ -21,7 +20,7 @@ use Masala\EditForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class EditFormTest extends TestCase {
@@ -59,7 +58,7 @@ final class EditFormTest extends TestCase {
         $parameters = $this->container->getParameters();
         $tables = $parameters['tables'];
         /** models */
-        $translatorModel = new TranslatorModel($tables['translator'], $context, $cacheStorage);
+        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
         $this->mockModel = new MockModel($context, $cacheStorage);
         $this->mockService = new MockService($this->container, $translatorModel);
         $grid = $this->mockService->getBuilder('Sale:Google', 'default');
@@ -92,7 +91,7 @@ final class EditFormTest extends TestCase {
         $this->testSetRow();
         Assert::false(empty($source = reset($this->container->parameters['tables'])), 'There is no table for test source.');
         Assert::false(empty($setting = $this->mockModel->getTestRow($source)), 'There is no test row for source ' . $source);
-        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/grids/Masala/demo/default.latte', ['id' => $setting->id]);
+        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $setting->id]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
         //$presenter->addComponent($this->class, 'EditForm');
         /* $submittedBy = Mockery::mock(Nette\Forms\Controls\SubmitButton::class);
@@ -106,7 +105,7 @@ final class EditFormTest extends TestCase {
     public function testAttached() {
         $this->testSetRow();
         /** todo: $presenters = $this->mockService->getPresenters('IEditFormFactory'); */
-        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/grids/Masala/demo/default.latte', ['id' => $this->row->id]);
+        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $this->row->id]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
         $presenter->addComponent($this->class, 'EditForm');
         Assert::false(empty($columns = $this->class->getRow()->getColumns()), 'Columns for EditForm are not set.');
@@ -182,7 +181,7 @@ final class EditFormTest extends TestCase {
     }
 
     public function testAddDateTimePicker() {
-        Assert::same(0, substr_count(preg_replace('/\s/', '', file_get_contents(WWW_DIR . '/app/grids/Masala/templates/edit.latte')), '{input$componentclass'), 'Components of Masala\EditForm must not have class in latte as it will overide datetimepicker class.');
+        Assert::same(0, substr_count(preg_replace('/\s/', '', file_get_contents(WWW_DIR . '/app/Masala/templates/edit.latte')), '{input$componentclass'), 'Components of Masala\EditForm must not have class in latte as it will overide datetimepicker class.');
     }
 
 }
