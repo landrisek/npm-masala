@@ -24,10 +24,14 @@ final class ExportService implements IProcessService {
     /** @var string */
     private $link;
     
-    public function __construct($tempDir, ITranslator $translatorModel, IRequest $request) {
+    /** @var int */
+    private $speed;
+    
+    public function __construct($tempDir, $speed, ITranslator $translatorModel, IRequest $request) {
         $this->translatorModel = $translatorModel;
         $this->directory = $tempDir;
         $this->request = $request;
+        $this->speed = $speed;
         $url = $this->request->getUrl();
         $this->link = $url->scheme . '://' . $url->host . '/' . $url->scriptPath;
     }
@@ -49,15 +53,19 @@ final class ExportService implements IProcessService {
         $folder = $this->directory . '/' . $masala->getName() . '/export';
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $file = $folder . '/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        file_put_contents($file, implode(',', $this->request->getPost('header')));
+        $header = '';
+        foreach(array_keys($masala->getGrid()->getOffset(1)) as $column) {
+            $header .= $this->translatorModel->translate($column) . ';';
+        }
+        file_put_contents($file, $header);
         return $sum;
     }
 
     public function run(Array $row, Array $rows, IMasalaFactory $masala) {
         $folder = $this->directory . '/' . $masala->getName() . '/export';
         $file = $folder . '/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        $handle = fopen($file, 'a');
-        fputs($handle, PHP_EOL . implode(',', $row) . ',');
+        $handle = fopen('nette.safe://' . $file, 'a');
+        fputs($handle, PHP_EOL . implode(';', $row) . ';');
         fclose($handle);
         $rows['status'] = 'export';
         return $rows;

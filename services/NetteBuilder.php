@@ -541,7 +541,11 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                                 ->fetchAll();
                 } else {
                     $arguments = array_values($this->arguments);
-                    $data = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
+                    try {
+                        $data = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
+                    } catch (\Exception $e) {
+                        throw new InvalidStateException("Invalid query " . $this->query);
+                    }
                 }
                 $data = array_values($data);
                 foreach ($data as $primary => $row) {
@@ -879,28 +883,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->sumQuery .= $from;
     }
 
-    /** @encryption: https://gist.github.com/pradipchitrakar/7371118 */
-    private function encrypt($key) {
-        if(!empty($spice = $this->presenter->request->getPost($key))) {
-            $limbo = hex2bin($spice);
-            $cipher = mcrypt_module_open(MCRYPT_RIJNDAEL_128, '', MCRYPT_MODE_CBC, '');
-            mcrypt_generic_init($cipher, $this->config['password'], $this->config['hash']);
-            return (array) json_decode(preg_replace('/\\x00/', '', mdecrypt_generic($cipher, $limbo)));
-        }
-        return [];
-    }
-
-    private function decrypt($key) {
-        if(!empty($spice = $this->presenter->request->getPost($key))) {
-            $cipher = mcrypt_module_open(MCRYPT_RIJNDAEL_128, '', MCRYPT_MODE_CBC, '');
-            mcrypt_generic_init($cipher, $this->config['password'], $this->config['hash']);
-            $secret = mcrypt_generic($cipher, json_encode($spice, JSON_UNESCAPED_UNICODE));
-            mcrypt_generic_deinit($cipher);
-            return bin2hex($secret);
-        }
-        return '';
-    }
-
     public function filter(Array $view = []) {
         if(!empty($view)) {
             $filters = $view['filters'];
@@ -916,7 +898,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
-                $this->where[$key] = $value;
+                $this->where[$this->columns[$key]] = $value;
                 continue;
             }
             $value = preg_replace('/\;/', '', htmlspecialchars($value));

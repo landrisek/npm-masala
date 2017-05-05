@@ -169,6 +169,7 @@ final class RowBuilder implements IRowBuilder {
         return $this;
     }
 
+    /** @return ActiveRow */
     public function check() {
         if (null == $this->data) {
             $this->data = $this->resource->fetch();
