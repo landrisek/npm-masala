@@ -2,19 +2,9 @@
 
 namespace Test;
 
-use Masala\ImportForm,
-    Masala\Masala,
+use Masala\Masala,
     Masala\MockService,
-    Masala\RowBuilder,
-    Masala\HelpModel,
-    Models\TranslatorModel,
-    Nette\Database\Connection,
-    Nette\Database\Context,
-    Nette\Database\Structure,
     Nette\DI\Container,
-    Nette\Caching\Storages\FileStorage,
-    Nette\Http\Request,
-    Nette\Http\UrlScript,
     Nette\Reflection\Method,
     Tester\Assert,
     Tester\TestCase;
@@ -38,26 +28,8 @@ final class MasalaTest extends TestCase {
     }
 
     protected function setUp() {
-        /** database */
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
-        $structure = new Structure($connection, $cacheStorage);
-        $context = new Context($connection, $structure, null, $cacheStorage);
-        $parameters = $this->container->getParameters();
-        $tables = $parameters['tables'];
-        /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
-        $this->mockService = new MockService($this->container, $translatorModel);
-        $grid = $this->mockService->getBuilder();
-        $setting = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $helpModel = new HelpModel($this->container->parameters['tables']['help'], $context, $cacheStorage);
-        $urlScript = new UrlScript;
-        $httpRequest = new Request($urlScript);
-        $import = new ImportForm($translatorModel);
-        $filter = $this->container->getByType('Masala\IFilterFormFactory');
-        $edit = $this->container->getByType('Masala\EditForm');
-        $row = $this->container->getByType('Masala\IRowBuilder');
-        $this->class = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $row);
+        $this->mockService = $this->container->getByType('Masala\MockService');
+        $this->class = $this->container->getByType('Masala\Masala');
     }
 
     public function __destruct() {

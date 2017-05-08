@@ -5,14 +5,8 @@ namespace Test;
 use Masala\EditForm,
     Masala\MockModel,
     Masala\MockService,
-    Masala\RowBuilder,
     Models\TranslatorModel,
     Nette\DI\Container,
-    Nette\Caching\Storages\FileStorage,
-    Nette\Database\Connection,
-    Nette\Database\Context,
-    Nette\Database\Structure,
-    Nette\Http\UrlScript,
     Nette\Http\Request,
     Tester\Assert,
     Tester\TestCase;
@@ -34,12 +28,6 @@ final class MockServiceTest extends TestCase {
     /** @var Request */
     private $request;
 
-    /** @var FileStorage */
-    private $cacheStorage;
-
-    /** @var Context */
-    private $context;
-
     /** @var MockService */
     private $class;
 
@@ -48,19 +36,11 @@ final class MockServiceTest extends TestCase {
     }
 
     function setUp() {
-        /** database */
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $this->cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
-        $structure = new Structure($connection, $this->cacheStorage);
-        $this->context = new Context($connection, $structure, null, $this->cacheStorage);
-        $parameters = $this->container->getParameters();
-        /** models */
-        $this->mockModel = new MockModel($this->context, $this->cacheStorage);
-        $this->translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $this->context, $this->cacheStorage);
-        $this->class = new MockService($this->container, $this->translatorModel);
+        $this->mockModel = $this->container->getByType('Masala\MockModel');
+        $this->translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
+        $this->class = $this->container->getByType('Masala\MockService');
         $this->tables = $this->mockModel->getTestTables();
-        $urlScript = new UrlScript();
-        $this->request = new Request($urlScript);
+        $this->request = $this->container->getByType('Nette\Http\IRequest');
     }
 
     function __destruct() {
@@ -83,7 +63,7 @@ final class MockServiceTest extends TestCase {
                 $presenters[$compulsories[$table]['class']] = $this->class->getPresenter($compulsories[$table]['class'], WWW_DIR . '/' . $compulsories[$table]['latte'], ['id' => $row->id]);
                 Assert::true(is_object($presenter = $presenters[$compulsories[$table]['class']]), 'Presenter ' . $compulsories[$table]['class'] . ' was not instantiated.');
                 Assert::false(empty($presenter->getAction()), 'Action of presenter ' . $compulsories[$table]['class'] . ' is not set for annotation ' . $table . '.');
-                $setting = new RowBuilder($parameters, $this->context, $this->cacheStorage);
+                $setting = $this->container->getByType('Masala\IRowBuilder');
                 $grid = $this->class->getBuilder($presenter->getName(), 'default');
                 $form = new EditForm(10, $this->translatorModel, $this->class, $this->request);
                 $form->setRow($setting->table($tableName));

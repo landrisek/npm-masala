@@ -19,14 +19,18 @@ class BuilderExtension extends CompilerExtension {
         'upload' => 10,
         'views' => 'view'];
 
-    public function loadConfiguration() {
-        $builder = $this->getContainerBuilder();
-        $parameters = $builder->parameters;
+    public function getConfiguration(array $parameters) {
         foreach($this->defaults as $key => $parameter) {
             if(!isset($parameters['masala'][$key])) {
                 $parameters['masala'][$key] = $parameter;
             }
         }
+        return $parameters;
+    }
+    
+    public function loadConfiguration() {
+        $builder = $this->getContainerBuilder();
+        $parameters = $this->getConfiguration($builder->parameters);
         $builder->addDefinition($this->prefix('filterForm'))
                 ->setClass('Masala\FilterForm');
         $builder->addDefinition($this->prefix('importForm'))
@@ -51,6 +55,8 @@ class BuilderExtension extends CompilerExtension {
                 ->setClass('Masala\MigrationService', [$parameters['masala']['views']]);
         $builder->addDefinition($this->prefix('mockService'))
                 ->setClass('Masala\MockService', []);
+        $builder->addDefinition($this->prefix('builderExtension'))
+                ->setClass('Masala\BuilderExtension', []);
     }
 
     public function beforeCompile() {

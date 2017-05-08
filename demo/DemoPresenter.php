@@ -39,7 +39,7 @@ class DemoPresenter extends Presenter {
     public function actionDefault() {
         $testTable = reset($this->context->parameters['tables']);
         $this->grid->table($testTable);
-        $this->row->source($testTable)
+        $this->row->table($testTable)
                 ->check();
     }
 

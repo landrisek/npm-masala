@@ -19,23 +19,22 @@ use Latte\Engine,
     Sunra\PhpSimple\HtmlDomParser,
     Tester\Assert;
 
-/** @author Lubomir Andrisek */
 final class MockService {
 
     /** @var Container */
     private $container;
 
-    /** @var TranslatorModel */
-    public $translatorModel;
-
-    /** @var User */
-    private $user;
-
     /** @var Context */
     private $cacheStorage;
 
+    /** @var Array */
+    private $config;
+
     /** @var Context */
     private $context;
+
+    /** @var BuilderExtension */
+    private $extension;
 
     /** @var Http\Request */
     private $httpRequest;
@@ -53,14 +52,18 @@ final class MockService {
     private $templateFactory;
 
     /** @var Array */
-    private $config;
-
-    /** @var Array */
     private $services;
 
-    public function __construct(Container $container, TranslatorModel $translatorModel) {
+    /** @var TranslatorModel */
+    public $translatorModel;
+
+    /** @var User */
+    private $user;
+
+    public function __construct(Container $container, TranslatorModel $translatorModel, BuilderExtension $extension) {
         $this->container = $container;
         $this->config = $container->getParameters();
+        $this->extension = $extension;
         $this->translatorModel = $translatorModel;
     }
 
@@ -295,59 +298,6 @@ final class MockService {
         return $presenter;
     }
 
-    public function getService($class) {
-        $this->setDependencies();
-        Assert::true(class_exists($class), 'Try to instantiate non exist class ' . $class);
-        Assert::true(is_object($reflection = new \ReflectionClass($class)), 'Reflection of ' . $class . ' failed.');
-        Assert::true(is_object($constructor = $reflection->getConstructor()), 'Reflection of Constructor of ' . $class . ' failed.');
-        $dependencies = [];
-        $i = 0;
-        foreach ($constructor->getParameters() as $parameter) {
-            Assert::true(is_object($parameter), 'Reflection of parameter in constructor ' . $class . ' is not object.');
-            if (isset($this->services[$parameter->getName()])) {
-                Assert::false(empty($method = $this->services[$parameter->getName()]), 'Dependency ' . $parameter->getName() . ' was not set as service.');
-                Assert::false(empty($dependencies[] = $this->container->$method()), 'Dependency ' . $parameter->getName() . ' creation failed.');
-            } elseif ('grid' == $parameter->getName()) {
-                Assert::false(empty($dependencies[] = $this->getBuilder()), 'Source for model ' . $class . ' was not set as parameter.');
-            } elseif ('row' == $parameter->getName()) {
-                $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-                $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp']);
-                $structure = new Structure($connection, $cacheStorage);
-                $context = new Context($connection, $structure, null, $cacheStorage);
-                Assert::false(empty($dependencies[] = new RowBuilder($this->config['masala'], $context, $cacheStorage)), 'Source for model ' . $class . ' was not set as parameter.');
-            } elseif ('storage' == $parameter->getName()) {
-                Assert::false(empty($dependencies[] = new FileStorage(__DIR__ . '/../../../tests/temp')), 'Storage was not set.');
-            } elseif ('parser' == $parameter->getName()) {
-                Assert::false(empty($dependencies[] = new HtmlDomParser()), 'HtmlDomParser was not set.');
-            } elseif ('database' == $parameter->getName()) {
-                $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-                $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp']);
-                $structure = new Structure($connection, $cacheStorage);
-                Assert::false(empty($dependencies[] = new Context($connection, $structure, null, $cacheStorage)), 'Context was not set.');
-            } elseif ('source' == $parameter->getName()) {
-                Assert::false(empty($dependencies[] = $this->config['tables'][lcfirst(preg_replace('/(.*)\\\|Model/', '', $class))]), 'Source for model ' . $class . ' was not set as parameter.');
-            } elseif (isset($this->config['tables'][$parameter->getName()])) {
-                Assert::false(empty($dependencies[] = $this->config['tables'][$parameter->getName()]), 'Source for model ' . $class . ' was not set as parameter.');
-            } elseif (isset($this->config[lcfirst(preg_replace('/(.*)\\\/', '', $class))])) {
-                Assert::false(empty($dependencies[] = $this->config[lcfirst(preg_replace('/(.*)\\\/', '', $class))]), 'Source for model ' . $class . ' was not set as parameter.');
-            } else {
-                Assert::same($parameter->getName(), lcfirst(preg_replace('/(.*)\\\/', '', $class)));
-                Assert::false(empty($dependencies[] = $this->config[$parameter->getName()]), 'Parameter ' . $parameter->getName() . ' was not set as parameter.');
-            }
-            Assert::notSame($i, count($dependencies), 'Increment of dependencies for constructor failed on ' . $parameter->getName());
-            $i++;
-        }
-        $callback = function () use ($class) {
-            return [$class, '__construct'];
-        };
-        Assert::true(is_object($service = new $class(...$dependencies)));
-        if (true == $reflection->hasMethod('setLocale')) {
-            Assert::false(empty($localization = array_keys($this->container->parameters['localization'])), 'Localization section in config is not set.');
-            Assert::same(null, $service->setLocale(reset($localization)), 'ITranslator:setLocale succeeded but it does return something. Do you wish to modify test?');
-        }
-        return $service;
-    }
-
     public function getFiles($suffix, $regex = null) {
         $scan = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(WWW_DIR . '/app'));
         $files = [];
@@ -402,10 +352,12 @@ final class MockService {
                 $arguments[] = $parameter;
             }
         }
+        $debug = call_user_func_array([$overload, $method], $arguments);
         return call_user_func_array([$overload, $method], $arguments);
     }
 
     public function getBuilder($source = 'Sale:Billing', $action = 'default') {
+        $config = $this->extension->getConfiguration($this->config);
         $root = '/';
         $module = preg_replace('/\:(.*)/', '', $source);
         $presenter = strtolower(preg_replace('/(.*)\:/', '', $source));
@@ -426,7 +378,7 @@ final class MockService {
         $router = new Application\Routers\RouteList($module);
         $router[] = new Application\Routers\Route('<presenter>/<action>', $presenter . ':' . $action);
         $linkGenerator = new Application\LinkGenerator($router, $this->httpRequest->getUrl());
-        $builder = new NetteBuilder($this->config['masala'], $translatorModel, $exportService, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
+        $builder = new NetteBuilder($config['masala'], $translatorModel, $exportService, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
         return $builder;
     }
 

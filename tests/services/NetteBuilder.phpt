@@ -2,20 +2,10 @@
 
 namespace Test;
 
-use Masala\ImportForm,
-    Masala\Masala,
-    Masala\MockService,
+use Masala\MockService,
     Masala\RowBuilder,
-    Masala\HelpModel,
-    Models\TranslatorModel,
     Nette\Application\UI\Presenter,
-    Nette\Caching\Storages\FileStorage,
-    Nette\Database\Connection,
-    Nette\Database\Context,
-    Nette\Database\Structure,
     Nette\DI\Container,
-    Nette\Http\Request,
-    Nette\Http\UrlScript,
     Nette\Reflection\Method,
     Tester\Assert,
     Tester\TestCase;
@@ -34,6 +24,9 @@ final class NetteBuilderTest extends TestCase {
     /** @var RowBuilder */
     private $row;
 
+    /** @var Masala */
+    private $masala;
+    
     /** @var MockService */
     private $mockService;
 
@@ -42,26 +35,10 @@ final class NetteBuilderTest extends TestCase {
     }
 
     protected function setUp() {
-        /** database */
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
-        $structure = new Structure($connection, $cacheStorage);
-        $context = new Context($connection, $structure, null, $cacheStorage);
-        $parameters = $this->container->getParameters();
-        $tables = $parameters['tables'];
-        /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
-        $this->mockService = new MockService($this->container, $translatorModel);
+        $this->mockService = $this->container->getByType('Masala\MockService');
         $this->class = $this->mockService->getBuilder();
-        $this->row = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $helpModel = new HelpModel($tables['help'], $context, $cacheStorage);
-        $import = new ImportForm($translatorModel);
-        $urlScript = new UrlScript;
-        $httpRequest = new Request($urlScript);
-        $filter = $this->container->getByType('Masala\IFilterFormFactory');
-        $edit = $this->container->getByType('Masala\IEditFormFactory');
-        $row = $this->container->getByType('Masala\IRowBuilder');
-        $this->masala = new Masala($parameters['masala'], $helpModel, $translatorModel, $edit, $filter, $import, $httpRequest, $this->row);
+        $this->row = $this->container->getByType('Masala\IRowBuilder');
+        $this->masala = $this->container->getByType('Masala\Masala');
     }
 
     public function __destruct() {
@@ -131,10 +108,12 @@ final class NetteBuilderTest extends TestCase {
 
     public function testConfig() {
         Assert::true(is_object($mockModel = $this->container->getByType('Masala\MockModel')), 'MockModel is not set.');
+        Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set.');
+        Assert::false(empty($configuration = $extension->getConfiguration([])), 'Default configuration is not set.');
         Assert::true(isset($this->container->parameters['mockService']['users']), 'Table of users is not set.');
-        Assert::true(isset($this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
+        Assert::true(isset($configuration['masala']['user']), 'Column for setting of user is not set.');
         Assert::false(empty($table = $this->container->parameters['mockService']['users']), 'Column for setting of user is not set.');
-        Assert::false(empty($column = $this->container->parameters['masala']['user']), 'Column for setting of user is not set.');
+        Assert::false(empty($column = $configuration['masala']['user']), 'Column for setting of user is not set.');
         Assert::true(is_object($user = $mockModel->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
         Assert::true(is_object(json_decode($user->$column)), 'Setting of user ' . $user->$column . ' is not valid json.');
     }

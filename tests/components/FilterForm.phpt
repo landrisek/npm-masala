@@ -5,13 +5,8 @@ namespace Test;
 use Masala\FilterForm,
     Masala\Masala,
     Masala\MockService,
-    Models\TranslatorModel,
-    Nette\Database\Connection,
-    Nette\Database\Context,
-    Nette\Database\Structure,
     Nette\DI\Container,
     Nette\Forms,
-    Nette\Caching\Storages\FileStorage,
     Nette\Reflection\Method,
     Nette\Utils\ArrayHash,
     Tester\Assert,
@@ -26,16 +21,13 @@ final class FilterFormTest extends TestCase {
     /** @var Container */
     private $container;
 
-    /** @var MockService @inject */
+    /** @var MockService */
     private $mockService;
-
-    /** @var TranslatorModel */
-    private $translatorModel;
 
     /** @var FilterForm */
     private $class;
 
-    /** @var Array */
+    /** @var array */
     private $presenters;
 
     public function __construct(Container $container) {
@@ -43,17 +35,9 @@ final class FilterFormTest extends TestCase {
     }
 
     protected function setUp() {
-        /** database */
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
-        $structure = new Structure($connection, $cacheStorage);
-        $context = new Context($connection, $structure, null, $cacheStorage);
-        /** models */
-        $translatorModel = new TranslatorModel($this->container->parameters['localization'], $this->container->parameters['tables']['translator'], $context, $cacheStorage);
-        $this->mockService = new MockService($this->container, $translatorModel);
-        $request = $this->container->getByType('Nette\Http\IRequest');
-        $this->class = new FilterForm($request, $translatorModel);
-        $this->presenters = ['App\ApiModule\DemoPresenter' => APP_DIR . '/Masala/demo/default.latte'];
+        $this->mockService = $this->container->getByType('Masala\MockService');
+        $this->class = $this->container->getByType('Masala\IFilterFormFactory');
+        $this->presenters = ['App\DemoPresenter' => APP_DIR . '/Masala/demo/default.latte'];
     }
 
     public function __destruct() {

@@ -7,16 +7,9 @@ use Masala\EditForm,
     Masala\MockService,
     Masala\RowBuilder,
     Nette\Utils\ArrayHash,
-    Nette\Caching\Storages\FileStorage,
-    Nette\Caching\Storages\SQLiteJournal,
-    Nette\Database\Connection,
-    Nette\Database\Context,
-    Nette\Database\Structure,
     Nette\Database\Row,
     Nette\Database\Table\ActiveRow,
     Nette\DI\Container,
-    Nette\Http\Request,
-    Nette\Http\UrlScript,
     Tester\Assert,
     Tester\TestCase;
 
@@ -47,27 +40,13 @@ final class EditFormTest extends TestCase {
         $this->container = $container;
     }
 
-    /** @todo: mock beforeRender in presenter */
     protected function setUp() {
-        /** database */
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $journal = new SQLiteJournal(__DIR__ . '/../../../../temp');
-        $cacheStorage = new FileStorage(__DIR__ . '/../../../../temp', $journal);
-        $structure = new Structure($connection, $cacheStorage);
-        $context = new Context($connection, $structure);
-        $parameters = $this->container->getParameters();
-        $tables = $parameters['tables'];
-        /** models */
+        $this->mockModel = $this->container->getByType('Masala\MockModel');
+        $this->mockService = $this->container->getByType('Masala\MockService');
+        $httpRequest = $this->container->getByType('Nette\Http\IRequest');
         $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $this->mockModel = new MockModel($context, $cacheStorage);
-        $this->mockService = new MockService($this->container, $translatorModel);
-        $grid = $this->mockService->getBuilder('Sale:Google', 'default');
-        $this->row = new RowBuilder($parameters['masala'], $context, $cacheStorage);
-        $this->helpModel = $this->container->getByType('Masala\HelpModel');
-        $urlScript = new UrlScript();
-        $httpRequest = new Request($urlScript);
-        $builder = $this->container->getByType('Masala\NetteBuilder');
         $this->class = new EditForm(10, $translatorModel, $this->mockService, $httpRequest);
+        $this->row = $this->container->getByType('Masala\IRowBuilder');
         $this->tables = $this->mockModel->getTestTables();
     }
 
@@ -75,7 +54,6 @@ final class EditFormTest extends TestCase {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    /** @todo: check if sql columns used in queries in table triggers exist */
     public function testSetRow() {
         $this->setUp();
         $key = 'categories';
@@ -86,17 +64,12 @@ final class EditFormTest extends TestCase {
         Assert::same($this->class, $this->class->setRow($this->row), 'Setter does not return class.');
     }
 
-    /** https://forum.nette.org/cs/21274-test-formulare-podstrceni-tlacitka */
     public function testSucceeded() {
         $this->testSetRow();
         Assert::false(empty($source = reset($this->container->parameters['tables'])), 'There is no table for test source.');
         Assert::false(empty($setting = $this->mockModel->getTestRow($source)), 'There is no test row for source ' . $source);
-        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $setting->id]);
+        $presenter = $this->mockService->getPresenter('App\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $setting->id]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
-        //$presenter->addComponent($this->class, 'EditForm');
-        /* $submittedBy = Mockery::mock(Nette\Forms\Controls\SubmitButton::class);
-          $submittedBy->shouldReceive('getName')->andReturn('save');
-          $this->class->shouldReceive('isSubmitted')->andReturn($submittedBy); */
         Assert::same($this->class, $this->class->signalled('attached'), 'Signalled method should return class EditForm.');
         Assert::same(true, is_object($this->class->getValues()));
         Assert::true($this->class->getValues() instanceof ArrayHash);
@@ -105,7 +78,7 @@ final class EditFormTest extends TestCase {
     public function testAttached() {
         $this->testSetRow();
         /** todo: $presenters = $this->mockService->getPresenters('IEditFormFactory'); */
-        $presenter = $this->mockService->getPresenter('App\ApiModule\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $this->row->id]);
+        $presenter = $this->mockService->getPresenter('App\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $this->row->id]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
         $presenter->addComponent($this->class, 'EditForm');
         Assert::false(empty($columns = $this->class->getRow()->getColumns()), 'Columns for EditForm are not set.');
@@ -147,7 +120,6 @@ final class EditFormTest extends TestCase {
                     $tables[] = $table->$structure;
                 }
             }
-            
         }
         foreach ($tables as $name) {
             Assert::false(empty($name));
@@ -164,7 +136,7 @@ final class EditFormTest extends TestCase {
             if ($setting instanceof ActiveRow) {
                 Assert::true(is_array($columns = $this->row->getColumns($name)), 'Table columns are not defined.');
                 $this->class->setRow($this->row);
-                $presenter = $this->mockService->getPresenter($compulsory['class'], WWW_DIR . 'app/' . $compulsory['latte'], ['id' => $setting->id]);
+                $presenter = $this->mockService->getPresenter($compulsory['class'], WWW_DIR . '/app/' . $compulsory['latte'], ['id' => $setting->id]);
                 Assert::true(is_object($presenter), 'Presenter was not set.');
                 $presenter->addComponent($this->class, 'EditForm');
                 Assert::true(is_array($formComponents = array_keys((array) $this->class->getComponents())), 'Form components are not set.');
