@@ -26,10 +26,10 @@ final class HelpModel implements IHelp {
     }
 
     /** @return ActiveRow */
-    public function getHelp($controller, $action) {
+    public function getHelp($controller, $action, $parameters = []) {
         if (false == $help = $this->database->table($this->source)
                 ->select('*')
-                ->where('source = ? OR source = ?', $controller, $controller . ':' . $action)
+                ->where('source IN', [$controller, $controller . ':' . $action, $controller . ':' . $action . ':' . $parameters])
                 ->fetch()) {
             return [];
         }

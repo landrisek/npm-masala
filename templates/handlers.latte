@@ -1,5 +1,8 @@
 {block handlers}
 <script type="text/javascript">
+    $('input.datetimepicker').each(function() {
+        $(this).datetimepicker({'format':'Y-M-D H:m:s'});
+    });
     /** triggers */
     window.masalaData = [];
     if('handle()' === {$trigger}) {

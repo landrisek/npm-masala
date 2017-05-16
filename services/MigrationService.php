@@ -35,11 +35,11 @@ final class MigrationService implements IProcessService {
     public function getView($source) {
         $spice = $this->spiceModel->getSpice($source);
         $views = [];
-        foreach($this->spiceModel->getView($spice->query, (array) json_decode($spice->arguments)) as $viewId => $view) {
+        foreach ($this->spiceModel->getView($spice->query, (array) json_decode($spice->arguments)) as $viewId => $view) {
             $type = gettype($view);
-            if(null == $type) {
+            if (null == $type) {
                 $views[$viewId] = 'string';
-            } elseif(is_object($type)) {
+            } elseif (is_object($type)) {
                 $views[$viewId] = 'datetime';
             } else {
                 $views[$viewId] = $type;
@@ -58,11 +58,11 @@ final class MigrationService implements IProcessService {
         $presenter->addComponent($this->masalaFactory->create()->setGrid($builder), 'masalaFactory');
         $builder->attached($this->masalaFactory);
         $builder->filter($view);
-        if(false == function_exists('murmurhash3')) {
+        if (false == function_exists('murmurhash3')) {
             throw new InvalidArgumentException('Murmurhash3 token hash for php is not enabled. Install it from https://github.com/lastguest/murmurhash-php.');
         }
-        for($i=$view['offset'];$i < 50;$i++) {
-            if(is_object($offset = $builder->getOffset($i))) {
+        for ($i = $view['offset']; $i < 50; $i++) {
+            if (is_object($offset = $builder->getOffset($i))) {
                 $row = (array) $offset;
                 $row['token'] = murmurhash3(implode((array) $row, '|'));
                 $this->spiceModel->addView($this->views . '_' . $id, (array) $row);
@@ -83,11 +83,11 @@ final class MigrationService implements IProcessService {
     }
 
     public function done(Array $rows, Presenter $presenter) {
-        return ['status'=>'migration'];
+        return ['status' => 'migration'];
     }
 
     public function message(IMasalaFactory $masala) {
-
+        
     }
 
 }

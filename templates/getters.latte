@@ -64,7 +64,7 @@
                 $('#' + {$control->getName()} +'-cancel-filter').show();
             }
             $('div.' + {$control->getName()} +'-ranges > div').each(function () {
-                var regex = new RegExp('(.*)\-').exec($(this).attr('id'));
+                var regex = new RegExp('\-(.*)').exec($(this).attr('id'));
                 var column = $(this).attr('id').replace(regex[0], '');
                 filters[column + ' >'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-leftLabel .ui-rangeSlider-label-value').text();
                 filters[column + ' <'] = $('#' + $(this).attr('id') + ' .ui-rangeSlider-rightLabel .ui-rangeSlider-label-value').text();

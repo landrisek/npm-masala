@@ -13,8 +13,12 @@
             {foreach $form->getComponents() as $component}
                 {if '_do' == $component->name}
                 {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
-                    {label $component->name}
-                    {input $component->name}
+                    <div class="form-group col-md-12">
+                        <div class="form-group input-group">
+                            {label $component->name}
+                            {input $component->name}
+                        </div>
+                    </div>
                 {else}
                     <div class="form-group col-md-6">
                         <div class="form-group input-group">

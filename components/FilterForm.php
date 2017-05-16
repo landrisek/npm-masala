@@ -2,26 +2,25 @@
 
 namespace Masala;
 
-use Models\TranslatorModel,
-    Nette\Forms\Container,
-    Nette\Http\IRequest,
-    Nette\Application\UI\Form,
-    Nette\Application\UI\Presenter;
+use Nette\Application\IPresenter,
+    Nette\Application\UI\Control,
+    Nette\Localization\ITranslator,
+    Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
-final class FilterForm extends Form implements IFilterFormFactory {
+final class FilterForm extends ReactForm implements IFilterFormFactory {
 
     /** @var IBuilder */
     private $grid;
 
-    /** @var Request */
+    /** @var IRequest */
     private $request;
 
     /** @var TranslatorModel */
     private $translatorModel;
 
-    public function __construct(IRequest $request, TranslatorModel $translatorModel) {
-        parent::__construct(null, null);
+    public function __construct(IRequest $request, ITranslator $translatorModel) {
+        parent::__construct($request, $translatorModel);
         $this->request = $request;
         $this->translatorModel = $translatorModel;
     }
@@ -31,78 +30,65 @@ final class FilterForm extends Form implements IFilterFormFactory {
         return $this;
     }
 
-    /** setters */
+    /** @return IFilterFormFactory */
     public function setGrid(IBuilder $grid) {
         $this->grid = $grid;
         return $this;
     }
 
+    /** @return array */
+    private function getDefaults() {
+        $defaults = $this->grid->getDefaults();
+        if (null == $spice = json_decode(urldecode($this->request->getUrl()->getQueryParameter(strtolower($this->getParent()->getName()) . '-spice')))) {
+            $spice = [];
+        }
+        foreach ($spice as $key => $grain) {
+            $column = preg_replace('/\s(.*)/', '', $key);
+            if (preg_match('/\s>/', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['>']) and $key == $column . ' >') {
+                $defaults[$column]['>'] = $grain;
+            } elseif (preg_match('/\s</', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['<']) and $key == $column . ' <') {
+                    $defaults[$column]['<'] = $grain;
+            } elseif (isset($defaults[$column]) and ! is_array($defaults[$column])) {
+                $defaults[$column] = $grain;
+            }
+        }
+        return $defaults;
+    }
+
+
     public function attached($presenter) {
         parent::attached($presenter);
-        if ($presenter instanceof Presenter) {
-            $this->setMethod('post');
-            $this['filter'] = new Container;
-            $defaults = $this->grid->getDefaults();
-            if (null == $spice = json_decode(urldecode($this->request->getUrl()->getQueryParameter(strtolower($this->getParent()->getName()) . '-spice')))) {
-                $spice = [];
-            }
-            foreach ($spice as $key => $grain) {
-                $column = preg_replace('/\s(.*)/', '', $key);
-                if (preg_match('/\s>/', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['>']) and $key == $column . ' >') {
-                    $defaults[$column]['>'] = $grain;
-                } elseif (preg_match('/\s</', $key) and isset($defaults[$column]) and is_array($defaults[$column]) and isset($defaults[$column]['<']) and $key == $column . ' <') {
-                    $defaults[$column]['<'] = $grain;
-                } elseif (isset($defaults[$column]) and ! is_array($defaults[$column])) {
-                    $defaults[$column] = $grain;
-                }
-            }
+        if ($presenter instanceof IPresenter) {
             foreach ($this->grid->getColumns() as $name => $annotation) {
-                /** filter */
-                if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {
-                    
-                } elseif (true == $this->grid->getAnnotation($name, 'date')) {
-                    $this['filter']->addDateTimePicker($name, ucfirst($this->translatorModel->translate($name)), 100)
-                            ->setReadOnly(false);
+                $defaults = $this->getDefaults();
+                if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {                    
+                } elseif (true == $this->grid->getAnnotation($name, 'addDate')) {
+                    $this->addDateTimePicker($name, []);
                 } elseif (true == $this->grid->getAnnotation($name, 'range') or is_array($this->grid->getRange($name))) {
-                    $this['filter']->addRange($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name]);
+                    $this->addRange($name, $defaults[$name]);
                 } elseif (is_array($defaults[$name]) and ! empty($defaults[$name]) and true == $this->grid->getAnnotation($name, 'multi')) {
                     $defaults[$name] = [null => $this->translatorModel->translate('--unchosen--')] + $defaults[$name];
-                    $this['filter']->addMultiSelect($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name])
-                            ->setAttribute('min-width', '10px;')
-                            ->setAttribute('class', 'form-control');
+                    $this->addMultiSelect($name, ['values'=>$defaults[$name], 'min-width'=>'10px;', 'class'=>'form-control']);
                 } elseif (is_array($defaults[$name]) and ! empty($defaults[$name])) {
-                    $this['filter']->addSelect($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name])
-                            ->setAttribute('class', 'form-control')
-                            ->setAttribute('style', 'height:100%')
-                            ->setAttribute('onchange', 'handleFilter()')
-                            ->setPrompt($this->translatorModel->translate('--unchosen--'));
+                    $defaults[$name] = [null => $this->translatorModel->translate('--unchosen--')] + $defaults[$name];
+                    $this->addSelect($name, ['values' => $defaults[$name], 
+                                            'class' => 'form-control',
+                                            'style' => 'height:100%',
+                                            'onchange' => 'handleFilter()']);
                 } else {
-                    $this['filter']->addText($name, ucfirst($this->translatorModel->translate($name)))->setAttribute('class', 'form-control');
-                }
-                /** default values */
-                if (true == $this->grid->getAnnotation($name, ['unfilter', 'hidden'])) {
-                    
-                } elseif (!empty($spice) and isset($spice->$name) and isset($defaults[$name]) and !is_array($defaults[$name])) {
-                    $this['filter'][$name]->setDefaultValue($spice->$name);
-                } elseif (true == $this->grid->getAnnotation($name, 'fetch') and ! preg_match('/\(/', $annotation) and is_array($default = $defaults[$name])) {
-                    $default = array_shift($default);
-                    $default = is_object($default) ? $default->__toString() : $default;
-                    $this['filter'][$name]->setDefaultValue($default);
-                } elseif (is_array($this->grid->getFilter($this->grid->getColumn($name))) or true == $this->grid->getAnnotation($name, 'multi')) {
-                    
-                } elseif (is_array($defaults[$name]) and isset($defaults[$name][$this->grid->getFilter($this->grid->getColumn($name))])) {
-                    $this['filter'][$name]->setDefaultValue($this->grid->getFilter($this->grid->getColumn($name)));
-                } elseif (is_array($defaults[$name]) and false == $this->grid->getAnnotation($name, 'range')) {
-                    $this['filter'][$name]->setPrompt('-- ' . $this->translatorModel->translate('choose') . ' ' . $this->translatorModel->translate($name, 1) . ' --');
-                } elseif (isset($defaults[$name]) and false == $this->grid->getAnnotation($name, 'range')) {
-                    $this['filter'][$name]->setDefaultValue($defaults[$name]);
+                    $this->addText($name, ['class' => 'form-control']);
                 }
             }
         }
     }
 
-    protected function createComponentRange() {
-        return $this->rangeFactory->create();
+    public function submit(Control $control) {
+        
+    }
+    
+    public function succeeded(array $data) {
+        $parameters = parent::succeeded($data);
+        die();
     }
 
 }

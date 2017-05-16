@@ -2,7 +2,7 @@
 
 namespace Test;
 
-use Masala\FilterForm,
+use Masala\INetteFilterFormFactory,
     Masala\Masala,
     Masala\MockService,
     Nette\DI\Container,
@@ -16,7 +16,7 @@ use Masala\FilterForm,
 $container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
-final class FilterFormTest extends TestCase {
+final class NetteFilterFormTest extends TestCase {
 
     /** @var Container */
     private $container;
@@ -24,7 +24,7 @@ final class FilterFormTest extends TestCase {
     /** @var MockService */
     private $mockService;
 
-    /** @var FilterForm */
+    /** @var INetteFilterFormFactory */
     private $class;
 
     /** @var array */
@@ -36,7 +36,7 @@ final class FilterFormTest extends TestCase {
 
     protected function setUp() {
         $this->mockService = $this->container->getByType('Masala\MockService');
-        $this->class = $this->container->getByType('Masala\IFilterFormFactory');
+        $this->class = $this->container->getByType('Masala\INetteFilterFormFactory');
         $this->presenters = ['App\DemoPresenter' => APP_DIR . '/Masala/demo/default.latte'];
     }
 
@@ -77,7 +77,7 @@ final class FilterFormTest extends TestCase {
             Assert::true(is_array($range = $presenter->grid->getRange($date)), 'Range is not set');
             Assert::false(empty($presenter->grid->getColumns()), 'Columns are not set in ' . $class . '.');
             Assert::true(is_object($masala['filterForm']), 'Grid filter is not set in ' . $class . '.');
-            Assert::true($masala['filterForm']['filter'] instanceof Forms\Container, 'Form filter has wrong instation.');
+            Assert::true($masala['netteFilterForm']['filter'] instanceof Forms\Container, 'Form filter has wrong instation.');
             Assert::true(isset($range['>']), 'From in range parameter is not set.');
             Assert::true(isset($range['<']), 'To in range parameter is not set.');
             Assert::true(isset($range['min']), 'Min in range parameter is not set.');
@@ -93,15 +93,15 @@ final class FilterFormTest extends TestCase {
             Assert::true(is_object($presenter), 'Presenter is not class.');
             Assert::true(in_array('addComponent', get_class_methods($presenter)), 'Presenter has no method addComponent.');
             Assert::true(is_object($this->class), 'Form was not set.');
-            Assert::true($this->class instanceof FilterForm, 'Form has wrong instantion.');
+            Assert::true($this->class instanceof INetteFilterFormFactory, 'Form has wrong instantion.');
             Assert::true(is_object($this->class->getValues()), 'Form values are not set.');
             Assert::true($this->class->getValues() instanceof ArrayHash, 'Form values are not set.');
             Assert::true(property_exists($this->class, 'translatorModel'), 'Translator model was not set');
             Assert::true(is_string($key = 'range'), 'Key is not set.');
-            Assert::true(is_object($component = $masala['filterForm']['filter']));
+            Assert::true(is_object($component = $masala['netteFilterForm']['filter']));
             $masala->attached($presenter);
-            Assert::false(empty($methods = get_class_methods($masala['filterForm'])), 'Masala\Form does not have any method.');
-            Assert::false(isset($methods['succeeded']) or isset($methods['formSucceeded']), 'Masala\FiltwerForm:succeed is redundant as submit is provided by javascript.');
+            Assert::false(empty($methods = get_class_methods($masala['netteFilterForm'])), 'Masala\INetteFilterFormFactory does not have any method.');
+            Assert::false(isset($methods['succeeded']) or isset($methods['formSucceeded']), 'Masala\INetteFilterForm:succeed is redundant as submit is provided by javascript.');
             $presenter->removeComponent($masala);
             $this->setUp();
         }
@@ -109,4 +109,4 @@ final class FilterFormTest extends TestCase {
 
 }
 
-id(new FilterFormTest($container))->run();
+id(new NetteFilterFormTest($container))->run();

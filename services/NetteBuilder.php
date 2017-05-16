@@ -615,7 +615,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
             
-        } elseif (true == $this->getAnnotation($column, 'filter') and ! preg_match('/\(/', $this->columns[$column])) {
+        } elseif (true == $this->getAnnotation($column, 'addSelect') and ! preg_match('/\(/', $this->columns[$column])) {
             $this->defaults[$column] = $this->getList($this->columns[$column]);
         } elseif (false != $range = $this->getRange($this->table . '.' . $column) or false != $range = $this->getRange($column)) {
             $this->annotations[$column]['range'] = true;
@@ -766,7 +766,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             $this->where[$key] = $column;
             $this->range[preg_replace('/ (.*)/', '', $key)]['>'] = $column;
             $this->range[preg_replace('/ (.*)/', '', $key)]['min'] = $condition;
-            $this->annotations[preg_replace('/ (.*)|(.*)\./', '', $key)]['unrender'] = true;
+            $this->annotations[preg_replace('/ (.*)|(.*)\./', '', $key)]['unrender'] = true;            
         } elseif (preg_match('/\</', $key) and is_string($condition)) {
             $this->where[$key] = $column;
             $this->range[preg_replace('/ (.*)/', '', $key)]['<'] = $column;
@@ -814,7 +814,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->cache->save($key, $row);
     }
 
-    /** process methods */
     public function attached(Masala $masala) {
         $this->presenter = $masala->getPresenter();
         $this->control = $masala->getName();

@@ -4,7 +4,8 @@ namespace Masala;
 
 use Nette\Application\IPresenter,
     Nette\Application\UI\Control,
-    Nette\Http\IRequest;
+    Nette\Http\IRequest,
+    Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
 class ReactForm extends Control implements IReactFormFactory {
@@ -17,9 +18,13 @@ class ReactForm extends Control implements IReactFormFactory {
     
     /** @var array */
     protected $data;
+
+    /** @var ITranslator */
+    private $translatorModel;
     
-    public function __construct(IRequest $request) {
+    public function __construct(IRequest $request, ITranslator $translatorModel) {
         $this->request = $request;
+        $this->translatorModel = $translatorModel;
     }
 
     /** @return IReactFormFactory */
@@ -45,9 +50,17 @@ class ReactForm extends Control implements IReactFormFactory {
         foreach($validators as $validatorId => $validator) {
             $validations[$validatorId] = ['value' => $validator, 'style' => ['display' => 'none']];
         }
-        $this->data[$key] = ['Method' => $method, 'Attributes' => $attributes, 'Validators' => $validations];
+        $this->data[$key] = ['Label' => $this->translatorModel->translate($key),
+                            'Method' => $method, 
+                            'Attributes' => $attributes, 
+                            'Validators' => $validations];
         return $this;
     }
+
+    /** @return IReactFormFactory */
+    public function addDateTimePicker($key, array $attributes = [], array $validators = []) {
+        return $this->add($key, __FUNCTION__, $attributes, $validators);
+    }    
     
     public function addMessage($key, array $attributes = []) {
         return $this->add($key, __FUNCTION__, $attributes);
@@ -59,7 +72,22 @@ class ReactForm extends Control implements IReactFormFactory {
     }
 
     /** @return IReactFormFactory */
+    public function addRange($key, array $attributes = [], array $validators = []) {
+        return $this->add($key, __FUNCTION__, $attributes, $validators);
+    }    
+
+    /** @return IReactFormFactory */
     public function addSubmit($key, array $attributes = []) {
+        return $this->add($key, __FUNCTION__, $attributes);
+    }
+
+    /** @return IReactFormFactory */
+    public function addSelect($key, array $attributes = [], array $validators = []) {
+        return $this->add($key, __FUNCTION__, $attributes);
+    }
+
+    /** @return IReactFormFactory */
+    public function addMultiSelect($key, array $attributes = [], array $validators = []) {
         return $this->add($key, __FUNCTION__, $attributes);
     }
     
@@ -90,6 +118,7 @@ class ReactForm extends Control implements IReactFormFactory {
     public function render(...$args) {
         $this->template->setFile(__DIR__ . '/../templates/react.latte');
         $this->template->component = $this->getName();
+        $this->template->control = $this->getParent();
         $this->template->data = json_encode($this->data);
         $this->template->basePath = $this->basePath;
         $this->template->render();

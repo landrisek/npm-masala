@@ -1,5 +1,6 @@
 {define #filter}
-        {form filterForm}
+        {*control filterForm*}
+        {form netteFilterForm}
             <tr n:if="!empty($columns)" class="grid-columns" order="{$columns[0]->name}" sort="desc">
                 {foreach $columns as $column}
                     {if false == $grid->getAnnotation($column->name, 'unrender') and false == $grid->getAnnotation($column->name, 'range')}
@@ -29,7 +30,7 @@
             </tr>
             {ifset $form['filter']}
                 <tr class="grid-filters">
-                    {form filterForm}
+                    {form netteFilterForm}
                         {formContainer filter}
                             {foreach $columns as $column}
                                 {if isset($form['filter'][$column->name]) and true == $grid->getAnnotation($column->name, 'range')}

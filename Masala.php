@@ -8,7 +8,8 @@ use Nette\Application\Responses\JsonResponse,
     Nette\Application\UI\Presenter,
     Nette\InvalidStateException,
     Nette\Localization\ITranslator,
-    Nette\Http\IRequest;
+    Nette\Http\IRequest,
+    Masala\React;
 
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
@@ -27,6 +28,9 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @var IFilterFormFactory */
     protected $filterFormFactory;
+    
+    /** @var INetteFilterFormFactory */
+    protected $netteFilterFormFactory;
 
     /** @var IBuilder */
     private $grid;
@@ -49,16 +53,16 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var Array */
     private $columns = [];
 
-    /** @var Array */
+    /** @var array */
     private $parameters;
 
-    /** @var Array */
+    /** @var array */
     private $config;
 
     /** @var string */
     private $status;
 
-    public function __construct(Array $config, IHelp $helpModel, ITranslator $translatorModel, IEditFormFactory $editFormFactory, IFilterFormFactory $filterFormFactory, IImportFormFactory $importFormFactory, IRequest $request, IRowBuilder $row) {
+    public function __construct(Array $config, IHelp $helpModel, ITranslator $translatorModel, IEditFormFactory $editFormFactory, IFilterFormFactory $filterFormFactory, INetteFilterFormFactory $netteFilterFormFactory, IImportFormFactory $importFormFactory, IRequest $request, IRowBuilder $row) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->helpModel = $helpModel;
@@ -66,6 +70,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->editFormFactory = $editFormFactory;
         $this->filterFormFactory = $filterFormFactory;
         $this->importFormFactory = $importFormFactory;
+        $this->netteFilterFormFactory = $netteFilterFormFactory;
         $this->request = $request;
         $this->row = $row;
         $this->config['port'] = isset($config['port']) ? $request->getUrl()->getHost() . ':' . $config['port'] : false;
@@ -155,11 +160,6 @@ final class Masala extends Control implements IMasalaFactory {
             /** columns */
             $this->setColumns($presenter);
         }
-    }
-
-    /** @return Masala */
-    public function clones() {
-        return new Masala($this->config, $this->translatorModel, $this->importFormFactory, $this->filterFormFactory, $this->request);
     }
 
     /** signal methods */
@@ -433,15 +433,22 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->render();
     }
 
-    /** components methods */
+    /** @return IImportFormFactory */
     protected function createComponentImportForm() {
         return $this->importFormFactory->create()
                         ->setService($this->grid->getImport());
     }
 
+    /** @return IFilterFormFactory */
     protected function createComponentFilterForm() {
         return $this->filterFormFactory->create()
-                        ->setGrid($this->grid);
+                    ->setGrid($this->grid);                       
+    }
+    
+    /** @return INetteFilterFormFactory */
+    protected function createComponentNetteFilterForm() {
+        return $this->netteFilterFormFactory->create()
+                    ->setGrid($this->grid);
     }
 
 }

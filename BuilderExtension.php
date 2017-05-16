@@ -2,7 +2,8 @@
 
 namespace Masala;
 
-use Nette\DI\CompilerExtension,
+use Exception,
+    Nette\DI\CompilerExtension,
     Nette\PhpGenerator\ClassType;
 
 class BuilderExtension extends CompilerExtension {
@@ -37,6 +38,8 @@ class BuilderExtension extends CompilerExtension {
                 ->setClass('Masala\ImportForm');
         $builder->addDefinition($this->prefix('editForm'))
                 ->setClass('Masala\EditForm', [$parameters['masala']['upload']]);
+        $builder->addDefinition($this->prefix('netteFilterForm'))
+                ->setClass('Masala\NetteFilterForm');
         $builder->addDefinition($this->prefix('exportService'))
                 ->setClass('Masala\ExportService', [$builder->parameters['tempDir'], $parameters['masala']['exportSpeed']]);
         $builder->addDefinition($this->prefix('helpModel'))
@@ -60,6 +63,11 @@ class BuilderExtension extends CompilerExtension {
     }
 
     public function beforeCompile() {
+        if(!class_exists('Nette\Application\Application')) {
+            throw new MissingDependencyException('Please install and enable https://github.com/nette/nette.');
+        } elseif(!class_exists('MultipleFileUpload\MultipleFileUpload')) {
+            throw new MissingDependencyException('Please install and enable https://github.com/jkuchar/MultipleFileUpload.');            
+        }
         parent::beforeCompile();
     }
 
@@ -69,3 +77,5 @@ class BuilderExtension extends CompilerExtension {
     }
 
 }
+
+class MissingDependencyException extends Exception { }
