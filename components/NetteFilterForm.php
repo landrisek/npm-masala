@@ -69,8 +69,8 @@ final class NetteFilterForm extends Form implements INetteFilterFormFactory {
                 } elseif (true == $this->grid->getAnnotation($name, 'addDate')) {
                     $this['filter']->addDateTimePicker($name, ucfirst($this->translatorModel->translate($name)), 100)
                             ->setReadOnly(false);
-                } elseif (true == $this->grid->getAnnotation($name, 'addCheckbox') or is_array($this->grid->getRange($name))) {
-                    dump('@todo: NetteFilterForm:attached:addCheckbox'); exit;
+                } elseif (true == $this->grid->getAnnotation($name, 'addCheckbox')) {
+                    $this->addCheckbox($name);
                 } elseif (true == $this->grid->getAnnotation($name, 'range') or is_array($this->grid->getRange($name))) {
 
                     $this['filter']->addRange($name, ucfirst($this->translatorModel->translate($name)), $defaults[$name]);
