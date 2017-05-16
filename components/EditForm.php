@@ -128,7 +128,7 @@ final class EditForm extends Form implements IEditFormFactory {
                     $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
                     $this[$name]->setDefaultValue($this->row->$name[key($this->row->$name)]);
                     $this->components[$name] = $column['nativetype'];
-                } elseif (0 < substr_count($column['vendor']['Comment'], '@addMulti') or ( !empty($defaults) and is_array($defaults) and is_array($this->row->$name))) {
+                } elseif (0 < substr_count($column['vendor']['Comment'], '@addMultiSelect') or ( !empty($defaults) and is_array($defaults) and is_array($this->row->$name))) {
                     $this->addMultiSelect($name, $labelComponent . ':', $defaults);
                     $multiDefault = is_array($this->row->$name) ? $this->row->$name : json_decode($this->row->$name);
                     $this[$name]->setDefaultValue($multiDefault);

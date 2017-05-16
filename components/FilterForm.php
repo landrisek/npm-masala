@@ -66,7 +66,7 @@ final class FilterForm extends ReactForm implements IFilterFormFactory {
                     $this->addDateTimePicker($name, []);
                 } elseif (true == $this->grid->getAnnotation($name, 'range') or is_array($this->grid->getRange($name))) {
                     $this->addRange($name, $defaults[$name]);
-                } elseif (is_array($defaults[$name]) and ! empty($defaults[$name]) and true == $this->grid->getAnnotation($name, 'multi')) {
+                } elseif (is_array($defaults[$name]) and ! empty($defaults[$name]) and true == $this->grid->getAnnotation($name, 'addMultiSelect')) {
                     $defaults[$name] = [null => $this->translatorModel->translate('--unchosen--')] + $defaults[$name];
                     $this->addMultiSelect($name, ['values'=>$defaults[$name], 'min-width'=>'10px;', 'class'=>'form-control']);
                 } elseif (is_array($defaults[$name]) and ! empty($defaults[$name])) {
