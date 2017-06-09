@@ -10,9 +10,9 @@ export default class SurveyForm extends Form {
     click(event) {
         var content = this.state.content;
         if('questions5' == event.target.value) {
-            content.attributes.style = { display: 'block' };
+            content.Attributes.style = { display: 'block' };
         } else {
-            content.attributes.style = { display: 'none' };
+            content.Attributes.style = { display: 'none' };
         }
         var answer = this.state.answer;
         answer.value = event.target.value;
@@ -21,24 +21,23 @@ export default class SurveyForm extends Form {
     }
     change(event) {
         var element = this.state[event.target.id];
-        element.attributes.value = event.target.value;
-        element.attributes.data.delay = element.attributes.data.delay + 1;
+        element.Attributes.value = event.target.value;
+        element.Attributes.data.delay = element.Attributes.data.delay + 1;
         var state = [];
         state[event.target.id] = element;
         this.setState(state);
-        if(element.attributes.data.delay < 5 || element.attributes.data.delay % 10 === 0) {
+        if(element.Attributes.data.delay < 5 || element.Attributes.data.delay % 10 === 0) {
             this.succeeded();
         }
     }
     submit(event) {
         event.preventDefault();
         var message = this.state['message'];
-        message.attributes.style = { display : 'block' };
+        message.Attributes.style = { display : 'block' };
         this.setState({ submited: { display: 'none' }, message: message });
     }
     render() {
         return <div>
-                {this.addMessage('message')}
                 <form onSubmit={this.submit} style={this.state.submited}>
                 {this.attached()}
                 </form>

@@ -1,33 +1,3 @@
-<div class="panel panel-primary">
-    <div class="panel-heading">
-        <div class="row">
-            <div class="col-xs-11 text-left">
-                <div><i class="fa fa-file"></i>&nbsp;&nbsp;{_'source'|firstUpper} {$feed}</div>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="panel panel-default">
-    <div class="row">
-        {form $form}
-            {foreach $form->getComponents() as $component}
-                {if '_do' == $component->name}
-                {elseif $component instanceof \Nette\Forms\Controls\SubmitButton}
-                    <div class="form-group col-md-12">
-                        <div class="form-group input-group">
-                            {label $component->name}
-                            {input $component->name}
-                        </div>
-                    </div>
-                {else}
-                    <div class="form-group col-md-6">
-                        <div class="form-group input-group">
-                            {label$component->name /}
-                            {input $component->name}
-                        </div>
-                    </div>
-                {/if}
-            {/foreach}
-        {/form}
-    </div>
-</div>
+{if is_object($grid->getImport())}
+    {control importForm}
+{/if}

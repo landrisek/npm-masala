@@ -3,14 +3,12 @@
 namespace Masala;
 
 use Nette\Database\Table\ActiveRow,
-    Nette\Localization\ITranslator,
-    Nette\Application\UI\Presenter,
     Nette\Http\IRequest;
 
 final class ExportService implements IProcessService {
 
-    /** @var ITranslator */
-    private $translatorModel;
+    /** @var string */
+    private $link;
 
     /** IRequest */
     private $request;
@@ -19,65 +17,48 @@ final class ExportService implements IProcessService {
     private $setting;
 
     /** @var string */
-    private $directory;
+    private $tempDir;
 
-    /** @var string */
-    private $link;
-    
-    /** @var int */
-    private $speed;
-    
-    public function __construct($tempDir, $speed, ITranslator $translatorModel, IRequest $request) {
-        $this->translatorModel = $translatorModel;
-        $this->directory = $tempDir;
+    public function __construct($tempDir, IRequest $request) {
+        $this->tempDir = $tempDir;
         $this->request = $request;
-        $this->speed = $speed;
         $url = $this->request->getUrl();
-        $this->link = $url->scheme . '://' . $url->host . '/' . $url->scriptPath;
+        $this->link = $url->scheme . '://' . $url->host . $url->scriptPath;
     }
 
-    /** getters */
+    /** @return void */
+    public function attached(IReactFormFactory $form) {
+    }
+
+    /** @return string */
+    public function getFile() {
+        return $this->tempDir;
+    }
+
+    /** @return ActiveRow */
     public function getSetting() {
         return $this->setting;
     }
 
-    /** setters */
+    /** @return IProcessService */
     public function setSetting(ActiveRow $setting) {
         $this->setting = $setting;
         return $this;
     }
 
-    /** process methods */
-    public function prepare(IMasalaFactory $masala) {
-        $sum = $masala->getGrid()->getSum();
-        $folder = $this->directory . '/' . $masala->getName() . '/export';
-        !file_exists($folder) ? mkdir($folder, 0755, true) : null;
-        $file = $folder . '/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        $header = '';
-        foreach(array_keys($masala->getGrid()->getOffset(1)) as $column) {
-            $header .= $this->translatorModel->translate($column) . ';';
-        }
-        file_put_contents($file, $header);
-        return $sum;
+    /** @return array */
+    public function prepare(array $response, IMasalaFactory $masala) {
+        return $response;
     }
 
-    public function run(Array $row, Array $rows, IMasalaFactory $masala) {
-        $folder = $this->directory . '/' . $masala->getName() . '/export';
-        $file = $folder . '/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        $handle = fopen('nette.safe://' . $file, 'a');
-        fputs($handle, PHP_EOL . implode(';', $row) . ';');
-        fclose($handle);
-        $rows['status'] = 'export';
-        return $rows;
+    /** @return array */
+    public function run(array $response, IMasalaFactory $masala) {
+        return $response;
     }
 
-    public function done(Array $rows, Presenter $presenter) {
-        return ['status'=>'export'];
-    }
-
-    public function message(IMasalaFactory $masala) {
-        $link = $this->link . 'temp/' . $masala->getName() . '/export/' . md5($masala->presenter->getName() . $masala->presenter->getAction() . $masala->presenter->getUser()->getIdentity()->getId()) . '.csv';
-        return '<a href="' . $link . '">' . $this->translatorModel->translate('Click here to download your file.') . '<a/>';
+    /** @return array */
+    public function done(array $response, IMasalaFactory $masala) {
+        return ['link' => $this->link . 'temp/' . $response['file']];
     }
 
 }

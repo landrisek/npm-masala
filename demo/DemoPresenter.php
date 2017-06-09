@@ -28,7 +28,7 @@ class DemoPresenter extends Presenter {
     public $masalaFactory;
 
     /** @var IEditFormFactory inject */
-    public $masalaFormFactory;
+    public $editFormFactory;
 
     /** @var IBuilder @inject */
     public $grid;
@@ -48,8 +48,8 @@ class DemoPresenter extends Presenter {
         return $this->masalaFactory->create();
     }
 
-    protected function createComponentMasalaForm() {
-        return $this->masalaFormFactory->create()
+    protected function createComponentEditForm() {
+        return $this->editFormFactory->create()
                         ->setRow($this->row);
     }
 

@@ -1,57 +1,17 @@
 {block dialog}
-<div class="modal fade" id="{$control->getName()}-edit" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}-label-edit">{_'edit item'|firstUpper}</h4>
-            </div>
-            <div class="modal-body" id="{$control->getName()}-edit-modal-body"></div>
-        </div>  
-    </div>  
-</div>
-<div class="modal fade" id="{$control->getName()}-process" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}-label-process">{_'lengthy process'|firstUpper}</h4>
-            </div>
-            <div class="modal-body" id="{$control->getName()}-process-modal-body">
-                <div class="progress">
-                    <div class="progress-bar" role="progressbar"></div>
+    {foreach $dialogs as $dialogId}
+        <div class="modal fade" id="{$control->getName()}-{$dialogId}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="{$control->getName()}-label-{$dialogId}">{_"$dialogId"|firstUpper}</h4>
+                    </div>
+                    <div class="modal-body" id="{$control->getName()}-{$dialogId}-modal-body">
+                        {include $dialogId . '.latte'}
+                    </div>
                 </div>
-                    <a href="javascript:;" class="btn btn-success" style="margin-left:10px;" onclick="handleStart();">{_'run'|firstUpper}</a>
-                    <a href="{link postpone!}" class="btn btn-danger">{_'postpone'|firstUpper}</a>
             </div>
         </div>
-    </div>
-</div>
-<div class="modal fade" id="{$control->getName()}-help" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}-label-help">{_'help'|firstUpper}</h4>
-            </div>
-            <div class="modal-body" id="{$control->getName()}-process-modal-body">
-                {foreach $help as $key => $helper}
-                    <p><span class="badge">{_"$key"}</span>&nbsp;&nbsp;{_"$helper"}</p>
-                {/foreach}
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="{$control->getName()}-message" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:1099;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="{$control->getName()}-label-message">{_'help'|firstUpper}</h4>
-            </div>
-            <div class="modal-body" id="{$control->getName()}-message-modal-body">
-            </div>
-        </div>
-    </div>
-</div>
+    {/foreach}
 {/block}

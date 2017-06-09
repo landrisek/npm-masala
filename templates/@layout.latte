@@ -1,47 +1,21 @@
 {block import}
     {import 'css.latte'}
-    {import 'body.latte'}
     {import 'dialog.latte'}
-    {import 'filter.latte'}
-    {import 'getters.latte'}
-    {import 'handlers.latte'}
     {import 'head.latte'}
     {import 'widget.latte'}
-    {import 'pagination.latte'}
-    {import 'redraw.latte'}
 {/block}
-{if false == $control->rendered('head')}
-    {include css}
-    {include head}
+{include css}
+{include head}
+{if is_object($grid->getImport())}
+    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-import" data-toggle="modal">{_'import'|firstUpper}</a>
 {/if}
 {if !empty($help)}
     <a class="btn btn-success" type="button" data-target="#{$control->getName()}-help" data-toggle="modal">{_'help'|firstUpper}</a>
 {/if}
-{if is_object($grid->getService()) or is_object($grid->getImport())}
-    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'state'|firstUpper}</a>
+{if is_object($grid->getService())}
+    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'process'|firstUpper}</a>
 {/if}
 {*include widget*}
-{if is_object($grid->getExport())}
-    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal" onclick="handleExport()">{_'export'|firstUpper}</a>
-{/if}
-{if is_object($grid->getImport())}
-    {control importForm}
-{/if}
-{if is_object($grid->getMigration())}
-    <a class="btn btn-success" href="javascript:;" onclick="handleMigrate();">{_'migrate'|firstUpper}</a>
-{/if}
-<div id="{$control->getName()}" class="grid" data-grid-name="{$control->getUniqueId()}">
-    {include pagination, type=>'top'}
-    <table class="table table-striped table-hover">
-        <thead>{include filter}</thead>
-        <tbody></tbody>
-    </table>
-    {include pagination, type=>'bottom'}
-</div>
-<div class="modal"><!-- loading --></div>
-{if false == $control->rendered('footer')}
-    {include dialog}
-    {include getters}
-    {include handlers}
-    {include redraw}
-{/if}
+{control grid}
+<div class='modal'><!-- loading --></div>
+{include dialog}

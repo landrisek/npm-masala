@@ -5,104 +5,58 @@ namespace Masala;
 use Nette\Application\Responses\JsonResponse,
     Nette\Application\Responses\TextResponse,
     Nette\Application\UI\Control,
-    Nette\Application\UI\Presenter,
-    Nette\InvalidStateException,
+    Nette\Application\IPresenter,
     Nette\Localization\ITranslator,
-    Nette\Http\IRequest,
-    Masala\React;
+    Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
 
+    /** @var array */
+    private $config;
+
     /** @var ITranslator */
     private $translatorModel;
 
-    /** @var IHelp */
+    /** @var IHelpModel */
     private $helpModel;
-
-    /** @var IEditFormFactory */
-    private $editFormFactory;
-
-    /** @var IImportFormFactory */
-    private $importFormFactory;
-
-    /** @var IFilterFormFactory */
-    protected $filterFormFactory;
-    
-    /** @var INetteFilterFormFactory */
-    protected $netteFilterFormFactory;
 
     /** @var IBuilder */
     private $grid;
 
-    /** @var IRowBuilder */
-    private $row;
+    /** @var IGridFactory */
+    protected $gridFactory;
+
+    /** @var array */
+    private $header;
+
+    /** @var IImportFormFactory */
+    private $importFormFactory;
+
+    /** @var IProcessFormFactory */
+    private $processFormFactory;
 
     /** @var IRequest */
     private $request;
 
-    /** @var string */
-    private $action;
-
-    /** @var int */
-    private $stop;
-
-    /** @var Array */
-    private $csv = ['header' => [], 'divider' => ',', 'file' => null];
-
-    /** @var Array */
-    private $columns = [];
-
-    /** @var array */
-    private $parameters;
-
-    /** @var array */
-    private $config;
-
-    /** @var string */
-    private $status;
-
-    public function __construct(Array $config, IHelp $helpModel, ITranslator $translatorModel, IEditFormFactory $editFormFactory, IFilterFormFactory $filterFormFactory, INetteFilterFormFactory $netteFilterFormFactory, IImportFormFactory $importFormFactory, IRequest $request, IRowBuilder $row) {
+    public function __construct(Array $config, IGridFactory $gridFactory, IHelpModel $helpModel, IImportFormFactory $importFormFactory,  IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
         parent::__construct(null, null);
         $this->config = $config;
+        $this->gridFactory = $gridFactory;
         $this->helpModel = $helpModel;
-        $this->translatorModel = $translatorModel;
-        $this->editFormFactory = $editFormFactory;
-        $this->filterFormFactory = $filterFormFactory;
         $this->importFormFactory = $importFormFactory;
-        $this->netteFilterFormFactory = $netteFilterFormFactory;
+        $this->processFormFactory = $processFormFactory;
         $this->request = $request;
-        $this->row = $row;
-        $this->config['port'] = isset($config['port']) ? $request->getUrl()->getHost() . ':' . $config['port'] : false;
+        $this->translatorModel = $translatorModel;
     }
 
-    /** setters */
+    /** @return Masala */
     public function setGrid(IBuilder $grid) {
         $this->grid = $grid;
         return $this;
     }
 
-    public function setColumn($name, $label) {
-        return $this->columns[] = new Column($name, $label, $this->grid);
-    }
-
-    public function setColumns() {
-        $presenter = $this->getPresenter();
-        foreach ($this->grid->getColumns() as $column => $subquery) {
-            if ($presenter->name . ':' . $presenter->action . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $presenter->action . ':' . $column)) {
-                
-            } elseif ($presenter->name . ':' . $column != $label = $this->translatorModel->translate($presenter->name . ':' . $column)) {
-                
-            } elseif ($subquery != $label = $this->translatorModel->translate($subquery)) {
-                
-            } else {
-                $label = $this->translatorModel->translate($column);
-            }
-            $this->setColumn($column, ucfirst($label));
-        }
-    }
-
-    /** getters */
+    /** @return IBuilder */
     public function getGrid() {
         return $this->grid;
     }
@@ -112,37 +66,28 @@ final class Masala extends Control implements IMasalaFactory {
             mb_detect_encoding($column, 'UTF-8', true) == false ? $column = trim(iconv('windows-1250', 'utf-8', $column)) : $column = trim($column);
             if (isset($header->$column)) {
                 foreach ($header->$column as $feedColumn => $feedValue) {
-                    if (!isset($this->csv['header'][$feedColumn]) and is_numeric($feedValue)) {
-                        $this->csv['header'][$feedColumn] = [$feedValue => $key];
-                    } elseif (!isset($this->csv['header'][$feedColumn]) and is_bool($feedColumn)) {
-                        $this->csv['header'][$feedColumn] = $key;
-                    } elseif ('break' == $feedValue and ! isset($this->csv['header'][$feedColumn])) {
-                        $this->csv['header'][$feedColumn] = $key;
-                    } elseif ('break' == $feedValue and isset($this->csv['header'][$feedColumn])) {
+                    if (!isset($this->header[$feedColumn]) and is_numeric($feedValue)) {
+                        $this->header[$feedColumn] = [$feedValue => $key];
+                    } elseif (!isset($this->header[$feedColumn]) and is_bool($feedColumn)) {
+                        $this->header[$feedColumn] = $key;
+                    } elseif ('break' == $feedValue and ! isset($this->header[$feedColumn])) {
+                        $this->header[$feedColumn] = $key;
+                    } elseif ('break' == $feedValue and isset($this->header[$feedColumn])) {
                         
                     } elseif (is_array($header->$feedColumn)) {
-                        is_numeric($feedValue) ? $this->csv['header'][$feedColumn][$feedValue] = $key : $this->csv['header'][$feedColumn][] = $key;
+                        is_numeric($feedValue) ? $this->header[$feedColumn][$feedValue] = $key : $this->header[$feedColumn][] = $key;
                     } elseif (is_numeric($feedValue)) {
-                        $this->csv['header'][$feedColumn] = [0 => $key, $feedValue => $header->$feedColumn];
+                        $this->header[$feedColumn] = [0 => $key, $feedValue => $header->$feedColumn];
                     }
                 }
             }
         }
-        if (!empty($this->csv['header'])) {
+        if (!empty($this->header)) {
             foreach (json_decode($this->grid->getImport()->getSetting()->validator) as $validator => $value) {
-                if (!isset($this->csv['header'][$validator])) {
-                    return $this->csv['header'] = $this->translatorModel->translate('Header does not contains validator') . ' ' . $this->translatorModel->translate($validator) . '.';
+                if (!isset($this->header[$validator])) {
+                    return $this->header = $this->translatorModel->translate('Header does not contains validator') . ' ' . $this->translatorModel->translate($validator) . '.';
                 }
             }
-        }
-    }
-
-    public function getUrl($id) {
-        $url = $this->request->getUrl()->getQueryParameters();
-        if (isset($url[$this->getName() . '-' . $id])) {
-            return preg_replace('/\+/', ' ', $url[$this->getName() . '-' . $id]);
-        } elseif ('do' == $id and isset($url[$id])) {
-            return preg_replace('/\-(.*)/', '', preg_replace('/' . lcfirst($this->getName()) . '\-/', '', $url[$id]));
         }
     }
 
@@ -151,194 +96,177 @@ final class Masala extends Control implements IMasalaFactory {
         return $this;
     }
 
+    /** @return void */
     public function attached($presenter) {
         parent::attached($presenter);
-        if ($presenter instanceof Presenter and null != $this->grid->getTable()) {
-            /** IBuilder */
-            $this->action = $presenter->action;
+        if ($presenter instanceof IPresenter and null != $this->grid->getTable()) {
             $this->grid->attached($this);
-            /** columns */
-            $this->setColumns($presenter);
         }
     }
 
-    /** signal methods */
-    public function handleCsv($file, $divider) {
-        $this->grid->log('csv');
+    private function getDivider($file) {
+        $handle = fopen($file, 'r');
+        $dividers = [];
+        foreach ([',', ';', '"'] as $divider) {
+            $line = fgetcsv($handle, 10000, $divider);
+            $dividers[count($line)] = $divider;
+        }
+        fclose($handle);
+        ksort($dividers);
+        $divider = array_reverse($dividers);
+        return array_shift($divider);
+    }
+
+    /** @return array */
+    private function getResponse() {
+        $response = ['file' => $this->request->getPost('file'),
+            'data' => $this->request->getPost('data'),
+            'divider' => $this->request->getPost('divider'),
+            'header' => $this->request->getPost('header'),
+            'filters' => $this->request->getPost('filters'),
+            'offset' => $this->request->getPost('offset'),
+            'status' => $this->request->getPost('status'),
+            'stop'=>$this->request->getPost('stop'),
+        ];
+        if(null == $response['data'] = $this->presenter->request->getPost('data')) {
+            $response['data'] = [];
+        }
+        return $response;
+    }
+
+    /** @return JsonResponse */
+    public function handleDone() {
+        $this->grid->log('done');
+        $service = 'get' . ucfirst($this->presenter->request->getPost('status'));
+        return $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
+    }
+
+    /** @return JsonResponse */
+    public function handleExport() {
+        $folder = $this->grid->getExport()->getFile();
+        !file_exists($folder) ? mkdir($folder, 0755, true) : null;
+        $header = '';
+        foreach(array_keys($this->grid->filter()->getOffset(1)) as $column) {
+            $header .= $this->translatorModel->translate($column) . ';';
+        }
+        $file = $this->grid->getId('export') . '.csv';
+        file_put_contents($folder . '/' . $file, $header);
+        $response = new JsonResponse($this->grid->getExport()->prepare([
+                'filters' => $this->request->getPost('filters'),
+                'sort' => $this->request->getPost('sort'),
+                'file' => $file,
+                'offset' => 0,
+                'stop' => $this->grid->getSum(),
+                'status' => 'export'], $this));
+        return $this->presenter->sendResponse($response);
+    }
+
+
+    public function handleImport() {
+        $path = $this->grid->getImport()->getFile();
         $setting = $this->grid->getImport()->getSetting();
-        $folder = $this->presenter->getContext()->parameters['tempDir'] . '/' . $this->getName() . '/' . str_replace(':', '', $this->getPresenter()->getName() . $this->getPresenter()->getAction());
-        $path = $folder . '/' . $file . '.csv';
-        $this->csv['file'] = $file;
-        $this->csv['divider'] = $divider;
-        $this->status = 'import';
-        $this->stop = filesize($path);
         $header = json_decode($setting->mapper);
+        $divider = $this->getDivider($path);
         $handle = fopen($path, 'r');
         while (false !== ($row = fgets($handle, 10000))) {
             $row = $this->sanitize($row, $divider);
-            if (is_string($this->csv['header'])) {
-                $this->presenter->flashMessage($this->csv['header']);
-                $this->presenter->redirect('this');
-            } elseif (empty($this->csv['header'])) {
+            if (empty($this->header)) {
                 $this->getHeader($row, $header);
-            } elseif (!empty($this->csv['header'])) {
+            } elseif (!empty($this->header)) {
                 break;
             }
         }
-        fclose($handle);
-    }
-
-    private function sanitize($row, $divider) {
-        preg_match_all('/\"(.*?)\"/', $row, $matches);
-        $matches[1] = (isset($matches[1])) ? $matches[1] : [];
-        foreach ($matches[1] as $match) {
-            $row = str_replace('<?php', '', (str_replace($match, str_replace(',', '.', $match), $row)));
-        }
-        return explode($divider, str_replace('"', '', $row));
-    }
-
-    public function handleDone() {
-        $this->grid->log('done');
-        $rows = !is_array($this->presenter->request->getPost('rows')) ? [] : $this->presenter->request->getPost('rows');
-        $row = $this->presenter->request->getPost('row');
-        $service = 'get' . ucfirst($row['status']);
-        $this->grid->$service()->done($rows, $this->presenter);
-        $response = new TextResponse($this->presenter->link('this', ['do' => $this->getName() . '-message', $this->getName() . '-status' => $row['status']]));
+        $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
+                                    'header'=>$this->header,
+                                    'file'=> $this->request->getPost('file'),
+                                    'link'=>$this->link('run'),
+                                    'offset'=> 0,
+                                    'status'=>'import',
+                                    'stop' => filesize($path)], $this));
         return $this->presenter->sendResponse($response);
     }
 
-    public function handleEdit() {
-        $this->row->table($this->grid->getTable());
-        foreach ($this->grid->filter()->getOffset($this->presenter->request->getPost('offset')) as $column => $value) {
-            $this->row->where($column, $value);
-        }
-        $masalaFormFactory = $this->editFormFactory->create()
-                ->setRow($this->row->setSpice($this->presenter->request->getPost('spice')))
-                ->signalled('attached')
-                ->attached($this);
-        $response = new TextResponse($masalaFormFactory->render());
+    /** @return TextResponse */
+    public function handleSave($file) {
+        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->request->getPost('file'));
+        $response = new TextResponse($id);
         return $this->presenter->sendResponse($response);
     }
 
-    public function handleExport() {
-        $this->status = 'export';
-        $this->stop = $this->grid->filter()->getExport()->prepare($this);
-        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'export']);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handleFilter() {
-        $rows = $this->grid->filter()->getOffsets();
-        $response = new JsonResponse(['rows' => $rows,
-            'url' => !empty($this->grid->getSpice()) ? strtolower($this->getName()) . '-spice=' . $this->grid->getSpice() : '']);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handleImport($stop) {
-        $response = new JsonResponse(['run' => 0,
-            'stop' => intval($stop),
-            'status' => 'import',
-            'rows' => $this->grid->filter()->getImport()->prepare($this),
-            'key' => $key = str_replace(':', '', $this->getPresenter()->getName()) . ':' . $this->getPresenter()->getAction() . ':' . $this->getName() . ':handleCsv:' . $this->presenter->getUser()->getId()]);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handleMessage($status) {
-        $service = 'get' . ucfirst($status);
-        $message = $this->grid->$service()->message($this);
-        $this->presenter->flashMessage($this->translatorModel->translate(empty($message) ? 'Lengthy process was completed.' : $message));
-    }
-
-    public function handleMigrate() {
-        $stop = $this->grid->filter()->getMigration()->prepare($this);
-        $response = new JsonResponse(['run' => 0, 'stop' => $stop, 'status' => 'migration', 'rows' => false]);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handlePaginate() {
-        $sum = $this->grid->filter()->getSum();
-        $total = ($sum > $this->grid->getPagination()) ? intval(round($sum / $this->grid->getPagination())) : 1;
-        $response = new TextResponse($total);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handlePostpone() {
-        return $this->status = null;
-    }
-
+    /** @return JsonResponse */
     public function handlePrepare() {
         $this->grid->log('prepare');
-        $this->status = (null == $this->status) ? 'service' : $this->status;
-        $prepared = $this->grid->filter()->getService()->prepare($this);
-        $this->stop = $prepared['stop'];
-        $response = new JsonResponse(['run' => 0, 'stop' => $this->stop, 'status' => 'service', 'rows' => $prepared['rows']]);
+        $data = ['offset' => 0, 'stop' => $this->grid->filter()->getSum(), 'status' => 'service'];
+        $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
         return $this->presenter->sendResponse($response);
     }
 
+    /** @return JsonResponse */
     public function handleRedraw() {
         $offset = $this->presenter->request->getPost('offset');
         $row = $this->grid
                 ->filter()
                 ->redrawOffset($offset)
                 ->flushOffset($offset)
-                ->loadOffset($offset);
-        $response = new TextResponse($row);
+                ->getOffset($offset);
+        $response = new JsonResponse($row);
         return $this->presenter->sendResponse($response);
     }
 
+    /** @return JsonResponse */
     public function handleRun() {
-        $upload = $this->presenter->request->getPost('row');
-        $csv = $this->presenter->request->getPost('csv');
-        $skip = false;
-        if (!empty($csv['header'])) {
-            /** skip header */
-            $skip = (0 == $upload['run']);
-            if (intval(str_replace('M', '', ini_get('post_max_size')) * 1024 * 1024) <
-                    (mb_strlen(serialize($csv['header']), '8bit') + mb_strlen(serialize($upload), '8bit'))
-            ) {
-                throw new InvalidStateException('Uploaded data in post is too large according to post_max_size');
-            }
-            $folder = $this->presenter->getContext()->parameters['tempDir'] . '/' . $this->getName() . '/' . str_replace(':', '', $this->getPresenter()->getName() . $this->getPresenter()->getAction());
-            $path = $folder . '/' . $csv['file'] . '.csv';
+        $response = $this->getResponse();
+        if ('import' == $response['status']) {
+            $path = $this->grid->getImport()->getFile();
             $handle = fopen($path, 'r');
-            fseek($handle, $upload['run']);
+            fseek($handle, $response['offset']);
             $offset = fgets($handle);
-            $upload['run'] = ftell($handle);
-            $row = [];
-            $offset = $this->sanitize($offset, $csv['divider']);
-            foreach ($csv['header'] as $headerId => $header) {
+            $response['offset'] = ftell($handle);
+            $response['row'] = [];
+            $offset = $this->sanitize($offset, $response['divider']);
+            foreach ($response['header'] as $headerId => $header) {
                 if (is_array($header)) {
                     foreach ($header as $valueId => $value) {
-                        $row[$headerId][$valueId] = $offset[$value];
+                        $response['row'][$headerId][$valueId] = $offset[$value];
                     }
                 } else {
-                    $row[$headerId] = $offset[$header];
+                    $response['row'][$headerId] = $offset[$header];
                 }
             }
-            $upload['offset'] = $row;
+            $service = $this->grid->getImport();
+            $response = $service->run($response, $this);
+        /** export */
+        } elseif('export' == $response['status']) {
+            $service = $this->grid->getExport();
+            $path = $service->getFile() . '/' . $response['file'];
+            $response['limit'] = $this->config['exportSpeed'];
+            $response['row'] = $this->grid->filter()->getOffsets();
+            $response = $service->run($response, $this);
+            $handle = fopen('nette.safe://' . $path, 'a');
+            foreach($response['row'] as $row) {
+                fputs($handle, PHP_EOL . implode(';', $row) . ';');
+            }
+            fclose($handle);
+            $response['offset'] = $response['offset'] + $this->config['exportSpeed'];
+        /** process */
         } else {
-            $row = $this->grid->filter()->getOffset($upload['run']);
-            $upload['run'] = $upload['run'] + 1;
-            $upload['offset'] = $row;
+            $service = $this->grid->getService();
+            $response['offset'] = $response['offset'] + 1;
+            if(!empty($response['row'] = $this->grid->filter()->getOffset($response['offset']))) {
+                $response = $service->run($response, $this);
+            }
         }
-        $service = 'get' . ucfirst($this->status = $upload['status']);
-        $setting = $this->grid->$service()->getSetting();
+        $setting = $service->getSetting();
         $callbacks = is_object($setting) ? json_decode($setting->callback) : [];
         foreach ($callbacks as $callbackId => $callback) {
             $sanitize = preg_replace('/print|echo|exec|call|eval|mysql/', '', $callback);
             eval('function call($row) {' . $sanitize . '}');
             $row = call($row);
         }
-        if (!isset($upload['rows']) and false == $skip) {
-            $this->grid->$service()->run($row, [], $this);
-        } elseif (false == $skip) {
-            $upload['rows'] = $this->grid->$service()->run($row, $upload['rows'], $this);
-        }
-        /** $response = new TextResponse($this->presenter->payload->rows = json_encode($result)); */
-        $response = new JsonResponse($upload);
-        return $this->presenter->sendResponse($response);
+        return $this->presenter->sendResponse(new JsonResponse($response));
     }
 
+    /** @return JsonResponse */
     public function handleStorage() {
         $response = [];
         $storage = $this->presenter->request->getPost('storage');
@@ -358,97 +286,44 @@ final class Masala extends Control implements IMasalaFactory {
         return $this->presenter->sendResponse($json);
     }
 
-    public function handleSubmit($signal, $spice) {
-        $values = [];
-        foreach ($this->presenter->request->getPost('form') as $componentId => $component) {
-            $values[$componentId] = $component;
-        }
-        $offset = preg_replace('/(.*)\:/', '', $spice);
-        if (!is_numeric($offset)) {
-            throw new InvalidStateException('Offset extracted with regex from spice is not number.');
-        }
-        $this->row->table($this->grid->getTable());
-        foreach ($this->grid->filter()->getOffset($offset) as $column => $value) {
-            $this->row->where($column, $value);
-        }
-        $masalaFormFactory = $this->editFormFactory->create()
-                ->setRow($this->row->setSpice($spice))
-                ->signalled($signal)
-                ->attached($this)
-                ->setValues($values);
-        foreach ($masalaFormFactory->getComponents() as $name => $component) {
-            if (false == $component->getRules()->validate()) {
-                $errors = $component->getErrors();
-                $response = new JsonResponse(['message' => array_shift($errors)]);
-                return $this->presenter->sendResponse($response);
-            }
-        }
-        $response = new JsonResponse(['message' => $masalaFormFactory->succeeded($masalaFormFactory),
-            'offset' => preg_replace('/(.*)\:/', '', $spice),
-            'row' => json_encode($this->row->getData()->toArray())]);
-        return $this->presenter->sendResponse($response);
-    }
-
-    public function handleUpdate() {
-        $this->grid->filter()->flush($this->grid->getHash());
-        $response = new JsonResponse(['message' => ucfirst($this->translatorModel->translate('Grid data were updated.'))]);
-        return $this->presenter->sendResponse($response);
-    }
-
-    /** render methods */
     public function render() {
-        $this->template->bower = $this->config['bower'] . '/' . strtolower(__NAMESPACE__);
-        $this->template->columns = $this->columns;
-        $this->template->grid = $this->grid;
-        $this->template->port = $this->config['port'];
-        $this->template->settings = json_decode($this->presenter->getUser()->getIdentity()->__get('settings'));
+        $this->template->assets = $this->config['assets'];
+        $this->template->dialogs = ['edit', 'import', 'help',  'process'];
         $this->template->help = $this->helpModel->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
-        $this->template->stop = $this->stop;
-        $this->template->trigger = 'handle' . ucfirst($this->getUrl('do')) . '()';
-        $this->template->csv = $this->csv;
-        $this->template->status = $this->status;
-        $this->template->setTranslator($this->translatorModel);
+        $this->template->grid = $this->grid;
+        $columns = $this->grid->getColumns();
+        $this->template->order = reset($columns);
         $this->template->setFile(__DIR__ . '/templates/@layout.latte');
+        $this->template->setTranslator($this->translatorModel);
+        $this->template->settings = json_decode($this->presenter->getUser()->getIdentity()->__get('settings'));
         $this->template->render();
     }
 
-    public function rendered($type) {
-        $post = $this->request->getPost();
-        if (isset($post[$this->getName() . ':rendered:' . $type])) {
-            return true;
-        } else {
-            $this->request->getUrl()->setQueryParameter($this->getName() . ':rendered:' . $type, true);
-            return false;
+    private function sanitize($row, $divider) {
+        preg_match_all('/\"(.*?)\"/', $row, $matches);
+        $matches[1] = (isset($matches[1])) ? $matches[1] : [];
+        foreach ($matches[1] as $match) {
+            $row = str_replace('<?php', '', (str_replace($match, str_replace(',', '.', $match), $row)));
         }
+        return explode($divider, str_replace('"', '', $row));
     }
 
-    public function renderChart(Array $data) {
-        $items = [];
-        foreach ($data as $x => $y) {
-            $items[] = ['x' => $x, 'y' => $y];
-        }
-        $this->template->options = empty($data) ? ['start' => 0, 'stop' => 0] : ['start' => key($data), 'stop' => key(array_reverse($data))];
-        $this->template->items = $items;
-        $this->template->setFile(__DIR__ . '/templates/chart.latte');
-        $this->template->render();
+    /** @return IGridFactory */
+    protected function createComponentGrid() {
+        return $this->gridFactory->create()
+            ->setGrid($this->grid);
     }
 
     /** @return IImportFormFactory */
     protected function createComponentImportForm() {
         return $this->importFormFactory->create()
-                        ->setService($this->grid->getImport());
+            ->setService($this->grid->getImport());
     }
 
-    /** @return IFilterFormFactory */
-    protected function createComponentFilterForm() {
-        return $this->filterFormFactory->create()
-                    ->setGrid($this->grid);                       
-    }
-    
-    /** @return INetteFilterFormFactory */
-    protected function createComponentNetteFilterForm() {
-        return $this->netteFilterFormFactory->create()
-                    ->setGrid($this->grid);
+    /** @return IProcessFormFactory */
+    protected function createComponentProcessForm() {
+        return $this->processFormFactory->create()
+            ->setService($this->grid->getService());
     }
 
 }
@@ -457,4 +332,5 @@ interface IMasalaFactory {
 
     /** @return Masala */
     function create();
+
 }

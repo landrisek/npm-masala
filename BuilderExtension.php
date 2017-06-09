@@ -8,17 +8,15 @@ use Exception,
 
 class BuilderExtension extends CompilerExtension {
 
-    private $defaults = ['bower' => 'bower_modules',
+    private $defaults = ['assets' => 'assets/masala',
         'exportSpeed' => 20,
         'feeds' => 'feeds',
         'help' => 'help',
         'log' => 'log',
         'pagination' => 20,
-        'root' => '/app',
         'spice' => 'spice',
         'user' => 'settings',
-        'upload' => 10,
-        'views' => 'view'];
+        'upload' => 10];
 
     public function getConfiguration(array $parameters) {
         foreach($this->defaults as $key => $parameter) {
@@ -32,16 +30,17 @@ class BuilderExtension extends CompilerExtension {
     public function loadConfiguration() {
         $builder = $this->getContainerBuilder();
         $parameters = $this->getConfiguration($builder->parameters);
-        $builder->addDefinition($this->prefix('filterForm'))
-                ->setClass('Masala\FilterForm');
-        $builder->addDefinition($this->prefix('importForm'))
-                ->setClass('Masala\ImportForm');
+        $manifest = (array) json_decode(file_get_contents($parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/manifest.json'));
         $builder->addDefinition($this->prefix('editForm'))
-                ->setClass('Masala\EditForm', [$parameters['masala']['upload']]);
-        $builder->addDefinition($this->prefix('netteFilterForm'))
-                ->setClass('Masala\NetteFilterForm');
+            ->setClass('Masala\EditForm', [$manifest['EditForm.js'], $parameters['masala']['upload']]);
         $builder->addDefinition($this->prefix('exportService'))
-                ->setClass('Masala\ExportService', [$builder->parameters['tempDir'], $parameters['masala']['exportSpeed']]);
+            ->setClass('Masala\ExportService', [$builder->parameters['tempDir']]);
+        $builder->addDefinition($this->prefix('grid'))
+                ->setClass('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js']]);
+        $builder->addDefinition($this->prefix('filterForm'))
+                ->setClass('Masala\FilterForm', ['']);
+        $builder->addDefinition($this->prefix('importForm'))
+                ->setClass('Masala\ImportForm', [$manifest['ImportForm.js']]);
         $builder->addDefinition($this->prefix('helpModel'))
                 ->setClass('Masala\HelpModel', [$parameters['masala']['help']]);
         $builder->addDefinition($this->prefix('masala'))
@@ -50,12 +49,12 @@ class BuilderExtension extends CompilerExtension {
                 ->setClass('Masala\MockModel');
         $builder->addDefinition($this->prefix('netteBuilder'))
                 ->setClass('Masala\NetteBuilder', [$parameters['masala']]);
+        $builder->addDefinition($this->prefix('processForm'))
+                ->setClass('Masala\ProcessForm', [$manifest['ProcessForm.js']]);
         $builder->addDefinition($this->prefix('rowBuilder'))
                 ->setClass('Masala\RowBuilder', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('spiceModel'))
                 ->setClass('Masala\SpiceModel', [$parameters['masala']['spice']]);
-        $builder->addDefinition($this->prefix('migrationService'))
-                ->setClass('Masala\MigrationService', [$parameters['masala']['views']]);
         $builder->addDefinition($this->prefix('mockService'))
                 ->setClass('Masala\MockService', []);
         $builder->addDefinition($this->prefix('builderExtension'))
@@ -65,8 +64,6 @@ class BuilderExtension extends CompilerExtension {
     public function beforeCompile() {
         if(!class_exists('Nette\Application\Application')) {
             throw new MissingDependencyException('Please install and enable https://github.com/nette/nette.');
-        } elseif(!class_exists('MultipleFileUpload\MultipleFileUpload')) {
-            throw new MissingDependencyException('Please install and enable https://github.com/jkuchar/MultipleFileUpload.');            
         }
         parent::beforeCompile();
     }

@@ -2,10 +2,12 @@
 
 namespace Masala;
 
-use Nette\Database\Table\ActiveRow,
-    Nette\Application\UI\Presenter;
+use Nette\Database\Table\ActiveRow;
 
 interface IProcessService {
+
+    /** @return void */
+    function attached(IReactFormFactory $form);
 
     /** @return ActiveRow */
     function getSetting();
@@ -13,15 +15,16 @@ interface IProcessService {
     /** @return IProcessService */
     function setSetting(ActiveRow $setting);
 
-    /** @return array */
-    function prepare(IMasalaFactory $masala);
-
-    /** @return Array */
-    function run(Array $row, Array $rows, IMasalaFactory $masala);
-
-    /** @return Bool */
-    function done(Array $step, Presenter $presenter);
-
     /** @return string */
-    function message(IMasalaFactory $masala);
+    function getFile();
+
+    /** @return array */
+    function prepare(array $response, IMasalaFactory $masala);
+
+    /** @return array */
+    function run(array $response, IMasalaFactory $masala);
+
+    /** @return array */
+    function done(array $data, IMasalaFactory $masala);
+
 }

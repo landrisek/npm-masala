@@ -2,30 +2,21 @@
 
 namespace Masala;
 
-use Latte\Engine,
-    Models\TranslatorModel,
-    Nette\Bridges\ApplicationLatte\Template,
-    Nette\Bridges\FormsLatte\FormMacros,
-    Nette\Application\UI\Form,
+use Models\TranslatorModel,
+    Nette\Http\IRequest,
     Nette\Application\UI\Presenter;
 
 /** @author Lubomir Andrisek */
-final class ImportForm extends Form implements IImportFormFactory {
-
-    /** @var Array */
-    private $components;
-
-    /** @var Array */
-    private $dividers = [',', ';', '"'];
+final class ImportForm extends ReactForm implements IImportFormFactory {
 
     /** @var TranslatorModel */
     private $translatorModel;
 
-    /** @var IEditFormService */
+    /** @var IProcessService */
     private $service;
 
-    public function __construct(TranslatorModel $translatorModel) {
-        parent::__construct(null, null);
+    public function __construct($jsDir, IRequest $request, TranslatorModel $translatorModel) {
+        parent::__construct($jsDir, $request, $translatorModel);
         $this->translatorModel = $translatorModel;
     }
 
@@ -34,63 +25,30 @@ final class ImportForm extends Form implements IImportFormFactory {
         return $this;
     }
 
-    public function setService($service) {
+    public function setService(IProcessService $service) {
         $this->service = $service;
         return $this;
     }
 
     public function attached($presenter) {
         parent::attached($presenter);
-        if ($presenter instanceof Presenter) {
-            $this->setMethod('post');
-            ($this->service instanceof IEditFormService) ? $this->service->beforeAttached($this) : null;
-            $this->addUpload('file', ucfirst($this->translatorModel->translate('file')))
-                    ->setRequired($this->translatorModel->translate('Choose file for uploading first.'))
-                    ->setAttribute('class', 'btn btn-warning btn-outline');
-            $this->addSubmit('save', ucfirst($this->translatorModel->translate('upload file')))
-                    ->setAttribute('class', 'btn btn-success');
-            $this->onSubmit[] = [$this, 'succeeded'];
+        if ($presenter instanceof Presenter and false == $this->isSignalled()) {
+            $this->addProgressBar('prepare');
+            $this->service->attached($this);
+            $this->addUpload('file',
+                $this->translatorModel->translate('Drop your file here or double click to select file on disk.'),
+                [], ['required' => $this->translatorModel->translate('There is no file to upload.'),
+                    'type' => 'text/csv',
+                    'text/csv' => $this->translatorModel->translate('Uploaded file is not valid csv type.')]);
+            $this->addSubmit('save', ucfirst($label = $this->translatorModel->translate('upload file')),
+                    ['class' => 'btn btn-success',
+                    'onClick'=>'submit']);
+            $this->addSubmit('prepare', ucfirst($this->translatorModel->translate('start upload')),
+                ['class' => 'btn btn-success',
+                    'onClick' => 'prepare',
+                    'style' => ['display' => 'none']]);
+            $this->addMessage('done', $this->translatorModel->translate('Your file has been uploaded.'));
         }
-    }
-
-    public function succeeded(Form $form) {
-        $values = ($this->service instanceof IEditFormService) ? $this->service->beforeSucceeded($form) : $form->getValues();
-        $parent = $this->getParent()->getName();
-        $folder = $this->getPresenter()->getContext()->parameters['tempDir'] . '/' . $parent . '/' . str_replace(':', '', $this->getPresenter()->getName() . $this->getPresenter()->getAction()) . '/';
-        $file = strtotime('now');
-        !file_exists($folder) ? mkdir($folder, 0755, true) : null;
-        $values->file->move($folder . $file . '.csv');
-        $divider = $this->getDivider($values->file->getTemporaryFile());
-        $this->getPresenter()->redirect('this', ['do' => $parent . '-csv', $parent . '-file' => $file, $parent . '-divider' => $divider]);
-    }
-
-    private function getDivider($file) {
-        $handle = fopen($file, 'r');
-        $dividers = [];
-        foreach ($this->dividers as $divider) {
-            $line = fgetcsv($handle, 10000, $divider);
-            $dividers[count($line)] = $divider;
-        }
-        fclose($handle);
-        ksort($dividers);
-        $divider = array_reverse($dividers);
-        return array_shift($divider);
-    }
-
-    /** render methods */
-    public function render(...$args) {
-        $latte = new Engine();
-        $latte->onCompile[] = function($latte) {
-            FormMacros::install($latte->getCompiler());
-        };
-        $template = new Template($latte);
-        $template->setFile(__DIR__ . '/../templates/import.latte');
-        $template->form = $this;
-        $template->basePath = $this->getPresenter()->template->basePath;
-        $template->setTranslator($this->translatorModel);
-        $template->components = $this->components;
-        $template->feed = $this->service->getSetting()->feed;
-        $template->render();
     }
 
 }

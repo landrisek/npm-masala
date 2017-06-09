@@ -1,29 +1,25 @@
 {block head}
-    <link rel="stylesheet" href="{$basePath}/{$bower}/css/float-slider.css">
-    <link rel="stylesheet" href="{$basePath}/{$bower}/css/loading.css">
-    <link rel="stylesheet" href="{$basePath}/{$bower}/css/paginate.css">
-	<!--progressbar -->
-	<script type="text/javascript" src="{$basePath}/bower/bootstrap-progressbar/bootstrap-progressbar.js"></script>
-    <!-- pagination -->
-    <link rel="stylesheet" href="{$basePath}/bower/jQuery-ui-Slider-Pips/dist/jquery-ui-slider-pips.min.css">
-    <script src="{$basePath}/bower/jQuery-ui-Slider-Pips/dist/jquery-ui-slider-pips.min.js" ></script>
+    <link rel="stylesheet" href="{$basePath}/{$assets}/css/float-slider.css">
+    <link rel="stylesheet" href="{$basePath}/{$assets}/css/loading.css">
+    <link rel="stylesheet" href="{$basePath}/{$assets}/css/paginate.css">
+	<div rel=manifest data="{$basePath}/{$assets}/components/manifest.json">
 	<!-- range -->
     {if true == $grid->isRange()}
-		<link rel="stylesheet" id="themeCSS" href="{$basePath}/{$bower}/jQRangeSlider-5.7.2/css/iThing.css">
-		<link rel="stylesheet" href="{$basePath}/{$bower}/jQRangeSlider-5.7.2/css/style.css">
-		<link rel="stylesheet" href="{$basePath}/{$bower}/jQRangeSlider-5.7.2/css/float-slider.css">
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/lib/jquery.mousewheel.min.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSliderMouseTouch.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSliderDraggable.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSliderHandle.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSliderBar.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSliderLabel.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRangeSlider.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQDateRangeSliderHandle.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQDateRangeSlider.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQEditRangeSliderLabel.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQEditRangeSlider.js"></script>
-		<script src="{$basePath}/{$bower}/jQRangeSlider-5.7.2/jQRuler.js"></script>
+		<link rel="stylesheet" id="themeCSS" href="{$basePath}/{$assets}/jQRangeSlider-5.7.2/css/iThing.css">
+		<link rel="stylesheet" href="{$basePath}/{$assets}/jQRangeSlider-5.7.2/css/style.css">
+		<link rel="stylesheet" href="{$basePath}/{$assets}/jQRangeSlider-5.7.2/css/float-slider.css">
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/lib/jquery.mousewheel.min.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSliderMouseTouch.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSliderDraggable.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSliderHandle.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSliderBar.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSliderLabel.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRangeSlider.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQDateRangeSliderHandle.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQDateRangeSlider.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQEditRangeSliderLabel.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQEditRangeSlider.js"></script>
+		<script src="{$basePath}/{$assets}/jQRangeSlider-5.7.2/jQRuler.js"></script>
     {/if}
     <!-- bootstrap datetimepicker -->
 	<script type="text/javascript" src="{$basePath}/bower/moment/min/moment.min.js"></script>

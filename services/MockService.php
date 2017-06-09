@@ -352,7 +352,6 @@ final class MockService {
                 $arguments[] = $parameter;
             }
         }
-        $debug = call_user_func_array([$overload, $method], $arguments);
         return call_user_func_array([$overload, $method], $arguments);
     }
 

@@ -33,16 +33,13 @@ final class RowBuilder implements IRowBuilder {
     /** @var string */
     private $title = 'edit item';
 
-    /** @var string */
-    private $spice;
-
     /** @var ActiveRow */
     private $data;
 
     /** @var Selection */
     private $resource;
 
-    /** @var IEditFormService */
+    /** @var IEditService */
     private $service;
 
     /** @var Context */
@@ -117,11 +114,6 @@ final class RowBuilder implements IRowBuilder {
         return $this->resource;
     }
 
-    /** @return string */
-    public function getSpice() {
-        return $this->spice;
-    }
-
     /** @return IBuilder */
     public function table($table) {
         $this->table = (string) $table;
@@ -164,7 +156,7 @@ final class RowBuilder implements IRowBuilder {
         return $this;
     }
 
-    public function process(IEditFormService $service) {
+    public function process(IEditService $service) {
         $this->service = $service;
         return $this;
     }
@@ -198,29 +190,25 @@ final class RowBuilder implements IRowBuilder {
         $this->config[$key][$method] = $parameter;
     }
 
-    public function setSpice($spice) {
-        $this->spice = $spice;
-        return $this;
-    }
-
     public function setParameter($key, $parameter) {
         $this->parameters[$key] = (isset($this->parameters[$key])) ? $this->parameters[$key] : $parameter;
     }
 
-    public function formSucceed(EditForm $form) {
+    /** @return array */
+    public function submit(array $response) {
         if (is_object($this->service)) {
-            return $this->service->formSucceed($form);
+            return $this->service->submit($response);
         }
-        return $form->getValues();
+        return $response;
     }
 
-    public function afterAttached(EditForm $form) {
+    public function afterAttached(IReactFormFactory $form) {
         if (is_object($this->service)) {
             $this->service->afterAttached($form);
         }
     }
 
-    public function beforeAttached(EditForm $form) {
+    public function beforeAttached(IReactFormFactory $form) {
         if (null !== $this->resource and false == $this->data = $this->check()) {
             foreach ($this->columns as $row) {
                 if (is_array($row)) {
@@ -234,31 +222,12 @@ final class RowBuilder implements IRowBuilder {
         }
     }
 
-    public function afterSucceeded(EditForm $form) {
-        if (is_object($this->service)) {
-            return $this->service->afterSucceeded($form);
+    /** @return int */
+    public function update(array $primary, array $data) {
+        foreach($primary as $column => $value) {
+            $this->resource->where($column, $value);
         }
-    }
-
-    public function beforeSucceeded(EditForm $form) {
-        if (is_object($this->service)) {
-            return $this->service->beforeSucceeded($form);
-        } else {
-            return $form->getValues();
-        }
-    }
-
-    /** update */
-    public function flush() {
-        $hash = strtolower(__NAMESPACE__) . ':' . $this->spice;
-        $this->cache->clean([Cache::ALL => [$hash]]);
-        return $this;
-    }
-    
-    public function update(Array $data) {
-        return $this->database->table($this->table)
-            ->where($this->resource->getPrimary(), $this->data->getPrimary())
-            ->update($data);
+        return $this->resource->update($data);
     }
 
     /** insert */

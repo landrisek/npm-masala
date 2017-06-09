@@ -2,94 +2,58 @@
 
 namespace Masala;
 
-use Nette\Application\UI\Form,
-    Latte\Engine,
-    Nette\Application\IPresenter,
-    Nette\Bridges,
+use Models\TranslatorModel,
     Nette\Http\IRequest,
-    Nette\Localization\ITranslator;
+    Nette\Application\IPresenter;
 
 /** @author Lubomir Andrisek */
-final class EditForm extends Form implements IEditFormFactory {
-
-    /** @var TranslatorModel */
-    private $translatorModel;
+final class EditForm extends ReactForm implements IEditFormFactory {
 
     /** @var MockService */
     private $mockService;
 
-    /** @var IRowBuilder */
-    protected $row;
-
-    /** @var IRequest */
-    private $request;
-    
     /** @var IPresenter */
     private $presenter;
 
-    /** @var Array */
-    private $components = [];
+    /** @var array */
+    private $primary;
+
+    /** @var IRowBuilder */
+    protected $row;
+
+    /** @var IEditService */
+    private $service;
+
+    /** @var TranslatorModel */
+    private $translatorModel;
 
     /** @var int */
     private $upload;
-    
-    /** @var bool */
-    private $signal;
 
-    public function __construct($upload, ITranslator $translatorModel, MockService $mockService, IRequest $request) {
-        $this->upload = intval($upload);
-        $this->translatorModel = $translatorModel;
+    public function __construct($jsDir, $upload, IRequest $request, MockService $mockService, TranslatorModel $translatorModel) {
+        parent::__construct($jsDir, $request, $translatorModel);
         $this->mockService = $mockService;
-        $this->request = $request;
-    }
-
-    /** @return IRowBuilder */
-    public function getRow() {
-        return $this->row;
+        $this->upload = $upload;
+        $this->translatorModel = $translatorModel;
     }
 
     /** @return IEditFormFactory */
-    public function setRow(IRowBuilder $row) {
-        $this->row = $row;
-        return $this;
-    }
-    
-    /** @return IEditFormFactory */    
-    public function signalled($signal) {
-        $this->signal = (string) $signal;
-        return $this;
-    }
-
-    /** @return IEditFormFactory */
-    public function create() {
-        return $this;
-    }
-
-    /** @return IEditFormFactory */
-    public function attached($masala) {
-        parent::attached($masala);
-        if($masala instanceof Masala) {
-            $this->presenter = $masala->getPresenter();
-        } elseif($masala instanceof IPresenter) {
-            $this->presenter = $masala;
-        }
-        if ($this->presenter instanceof IPresenter) {
-            $this->setMethod('post');
-            $this->row->beforeAttached($this, true);
+    public function attached($presenter) {
+        parent::attached($presenter);
+        if ($presenter instanceof IPresenter) {
+            $this->row->beforeAttached($this);
+            $this->presenter = $presenter;
             foreach ($this->row->getColumns() as $column) {
                 $name = $column['name'];
-                $config = $this->row->getConfig($this->row->getTable() . '.' . $name);
-                $labelComponent = ucfirst($this->translatorModel->translate(preg_replace('([0-9]+)', '', $this->row->getTable() . '.' . $name)));
-                /** default values */
-                $defaults = (isset($config['getDefaults'])) ? $this->mockService->getCall($config['getDefaults']['service'], $config['getDefaults']['method'], $config['getDefaults']['parameters'], $this) : [];
-                /** components */
+                $label = ucfirst($this->translatorModel->translate($this->row->getTable() . '.' . $name));
+                $defaults = $this->getDefaults($name);
+                $attributes = $this->getAttributes($column);
                 if ('SUBMIT' == $column['nativetype']) {
-                    $this->addSubmit($name, $labelComponent);
-                    $this->components[$name] = $column['nativetype'];
+                    $this->addSubmit($name, $label);
                 } elseif ('PRI' == $column['vendor']['Key'] or
-                        0 < substr_count($column['vendor']['Comment'], '@unedit') or
-                        0 < substr_count($column['vendor']['Comment'], '[' . $this->presenter->getName() . ']') or
-                        0 < substr_count($column['vendor']['Comment'], '[' . $this->presenter->getName() . ':' . $this->presenter->getAction() . ']')) {
+                    0 < substr_count($column['vendor']['Comment'], '@unedit') or
+                    0 < substr_count($column['vendor']['Comment'], '[' . $this->presenter->getName() . ']') or
+                    0 < substr_count($column['vendor']['Comment'], '[' . $this->presenter->getName() . ':' . $this->presenter->getAction() . ']')) {
                 } elseif ('ENUM' == $column['nativetype']) {
                     if(is_array($this->row->$name)) {
                         $defaults = $this->row->$name;
@@ -99,205 +63,113 @@ final class EditForm extends Form implements IEditFormFactory {
                             $defaults[$select] = $this->translatorModel->translate($select);
                         }
                     }
-                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
-                    (null == $this->row->$name or '' == $this->row->$name or is_array($this->row->$name) or ! isset($defaults[$this->row->$name])) ? null : $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['data'] = $defaults;
+                    $attributes['style'] = ['height' => '100%'];
+                    $this->addSelect($name, $label . ':', $attributes);
                 } elseif (in_array($column['nativetype'], ['DATETIME', 'TIMESTAMP', 'DATE'])) {
-                    /** https://github.com/radekdostal/Nette-DateTimePicker */
-                    $default = (is_object($this->row->$name)) ? $this->row->$name->__toString() : date('Y-m-d H:i:s', strtotime('now'));
-                    $this->addDateTimePicker($name, $labelComponent . ':', 100)
-                            ->setAttribute('id', 'datetimepicker_' . $name)
-                            ->setReadOnly(false)
-                            ->setDefaultValue($default);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['value'] = (is_object($this->row->$name)) ? $this->row->$name->__toString() : date('Y-m-d H:i:s', strtotime('now'));
+                    $this->addDateTimePicker($name, $label . ':', $attributes);
                 } elseif ($column['nativetype'] == 'TINYINT') {
-                    $this->addCheckbox($name, $labelComponent)->setAttribute('name', $name);
-                    $this[$name]->setDefaultValue($this->row->$name);
-                    1 == $this->row->$name ? $this[$name]->setAttribute('checked', 'checked') : null;
-                    $this->components[$name] = $column['nativetype'];
+                    (1 == $this->row->$name) ? $attributes['checked'] = 'checked' : null;
+                    $this->addCheckbox($name, $label, $attributes);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@textarea')) {
-                    $this->addTextArea($name, $labelComponent . ':');
-                    $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $this->addTextArea($name, $label . ':', $attributes);
                 } elseif (0 < substr_count($column['nativetype'], 'TEXT')) {
-                    $this[$name] = new WysiwygEditor($labelComponent, $this->presenter);
+                    $this->addTextArea($name, $label . ':', $attributes);
+                    /** @todo
+                    $this[$name] = new WysiwygEditor($label, $this->presenter);
                     0 === substr_count($column['vendor']['Comment'], '@cke3') ? $this[$name]->setVersion(4) : $this[$name]->setVersion(3);
                     $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $this->components[$name] = $column['nativetype'];*/
                 } elseif (!empty($defaults) and is_array($defaults) and is_array($this->row->$name) and 'INT' == $column['nativetype']) {
-                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
-                    $this[$name]->setDefaultValue($this->row->$name[key($this->row->$name)]);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['data'] = $defaults;
+                    $attributes['style'] = ['height' => '100%'];
+                    $this->addSelect($name, $label . ':', $attributes);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@addMultiSelect') or ( !empty($defaults) and is_array($defaults) and is_array($this->row->$name))) {
-                    $this->addMultiSelect($name, $labelComponent . ':', $defaults);
-                    $multiDefault = is_array($this->row->$name) ? $this->row->$name : json_decode($this->row->$name);
-                    $this[$name]->setDefaultValue($multiDefault);
-                    $this->components[$name] = 'MULTI';
+                    $attributes['data'] = is_array($this->row->$name) ? $this->row->$name : json_decode($this->row->$name);
+                    $this->addMultiSelect($name, $label . ':', $attributes);
                 } elseif (!empty($defaults) and is_array($defaults)) {
-                    $this->addSelect($name, $labelComponent . ':', $defaults)->setAttribute('style', 'height:100%');
-                    (null == $this->row->$name or '' == $this->row->$name or ! isset($defaults[$this->row->$name])) ? $this[$name]->setPrompt('---') : $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['data'] = $defaults;
+                    $attributes['style'] = ['height' => '100%'];
+                    $this->addSelect($name, $label . ':', $attributes);
                 } elseif ('DECIMAL' == $column['nativetype'] or 'FLOAT' == $column['nativetype']) {
-                    $this->addText($name, $labelComponent . ':')->setRequired(false)
-                            ->addRule(Form::FLOAT, $this->translatorModel->translate('Set only numbers.'));
-                    $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['float'] = $this->translatorModel->translate('Set only numbers.');
+                    $this->addText($name, $label . ':', [], $attributes);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@upload')) {
-                    $this->addUpload($name, $labelComponent, 1000);
-                    $this->components[$name] = '[UPLOAD]';
+                    $this->addUpload($name, $label);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@multiupload')) {
-                    $this->addMultipleFileUpload($name, $labelComponent, $this->upload);
-                    $this->components[$name] = '[UPLOAD]';
+                    $attributes['max'] = $this->upload;
+                    $this->addMultiUpload($name, $label, $attributes);
                 } elseif ('INT' == $column['nativetype']) {
-                    $this->addText($name, $labelComponent . ':')->setType('number');
-                    $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
+                    $attributes['type'] = 'number';
+                    $this->addText($name, $label . ':', $attributes);
                 } else {
-                    $this->addText($name, $labelComponent . ':');
-                    $this[$name]->setDefaultValue($this->row->$name);
-                    $this->components[$name] = $column['nativetype'];
-                }
-                /** components methods */
-                if (isset($this[$name])) {
-                    $this[$name]->setAttribute('class', 'form-control');
-                    if(false == $column['nullable'] and null === $column['default'] and 0 === substr_count($column['vendor']['Comment'], '@multiupload')) {
-                        $this[$name]->setRequired($this->translatorModel->translate($name));
-                    }
-                    0 === substr_count($column['vendor']['Comment'], '@disable') ? null : $this[$name]->controlPrototype->readonly = 'readonly';
-                    0 === substr_count($column['vendor']['Comment'], '@onchange') ? null : $this[$name]->setAttribute('onchange', 'submit()');
-                    foreach ($config as $method => $data) {
-                        if ('getDefaults' != $method) {
-                            $result = $this->mockService->getCall($data['service'], $data['method'], $data['parameters'], $this);
-                            $this[$name]->$method($result);
-                        }
-                    }
+                    $this->addText($name, $label . ':', $attributes);
                 }
             }
-            if(!empty($this->signal) and false == $this->row->getData()) {
-                $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
-                $this->addHandler('new');
-            } else {
-                $this->addSubmit('grid', ucfirst($this->translatorModel->translate('save and on grid')))->setAttribute('class', 'btn btn-success');
-                $this->addSubmit('save', ucfirst($this->translatorModel->translate('save')))->setAttribute('class', 'btn btn-success');
-                $this->addSubmit('delete', ucfirst($this->translatorModel->translate('delete')))
-                        ->setAttribute('class', 'btn btn-danger pull-right')
-                        ->setAttribute('data-confirm', $this->translatorModel->translate('Do you really wish to delete?'));    
-            }
-            if(!empty($this->signal) and false != $this->row->getData()) {
-                $this->getElementPrototype()->setId('frm-' . strtolower(__NAMESPACE__) . 'Form');
-                $this['save']->setAttribute('onclick', 'handleSubmit(' 
-                        . json_encode(['id' => '#' . $this->getElementPrototype()->getId(), 'spice' => $this->row->getSpice(), 'signal' => 'save']) .'); return false;');
-                $this['delete']->setAttribute('onclick', 'return handleSubmit(' 
-                        . json_encode(['id' => '#' . $this->getElementPrototype()->getId(), 'spice' => $this->row->getSpice(), 'signal' => 'delete']) .'); return false;');
-                $this->addButton('close', ucfirst($this->translatorModel->translate('close')))->setAttribute('class', 'btn btn-success')
-                        ->setAttribute('data-dismiss', 'modal')
-                        ->setAttribute('aria-hidden', 'true');
+            if(!empty($this->row->getColumns())) {
+                $this->addHidden('primary', 'primary', ['value' => $this->primary]);
+                $this->addSubmit('save', ucfirst($this->translatorModel->translate('save')), ['class' => 'btn btn-success', 'onClick' => 'submit']);
             }
             $this->row->afterAttached($this);
-            $this->onSuccess[] = [$this, 'succeeded'];
         }
+        return $this;
+
+    }
+
+    /** @return IEditFormFactory */
+    public function create() {
         return $this;
     }
 
-    /** @return Handler */
-    private function addHandler($name) {
-        return $this[$name] = new Handler($name, $this->row->getSpice(), $this->getElementPrototype()->getId(), $this->translatorModel);
-    }
-    
-    /** @return string */
-    public function succeeded($form) {
-        $values = $this->row->beforeSucceeded($form);
-        $columns = [];
-        foreach ($this->row->getColumns() as $column => $row) {
-            $column = $row['name'];
-            if (!isset($this->components[$column]) and isset($values->$column)) {
-                $columns[$column] = $values->$column;
-            } elseif (!isset($this->components[$column]) and isset($this->row->$column)) {
-                $columns[$column] = $this->row->$column;
-            } elseif (isset($this->components[$column]) and ( 'DATE' == $this->components[$column] or 'DATETIME' == $this->components[$column])) {
-                $columns[$column] = $values->$column->__toString();
-            } elseif (!isset($this->components[$column]) and ! isset($values->$column)) {
-            } elseif (isset($this->components[$column]) and ( 'INT' == $this->components[$column] or 'TINYINT' == $this->components[$column])) {
-                $columns[$column] = intval($values->$column);
-            } elseif (isset($this->components[$column]) and 'MULTI' == $this->components[$column]) {
-                $columns[$column] = json_encode($values->$column);
-            } elseif (isset($values->$column)) {
-                $columns[$column] = $values->$column;
-            }
+    /** @return array */
+    private function getAttributes(array $column) {
+        $name = $column['name'];
+        $attributes = ['class' => 'form-control', 'value' => $this->row->$name];
+        if(false == $column['nullable']) {
+            $attributes['required'] = $column['name'] . ' ' . $this->translatorModel->translate('is required.');
         }
-        if ((true == $form->isAnchored() and is_object($form->isSubmitted()) and 'delete' == $form->isSubmitted()->getName()) or 'delete' == $this->signal) {
-            $this->row->delete();
-            $message = ucfirst($this->translatorModel->translate('choosen item with ID')) . ' ' . $this->row->getData()->getPrimary() . ' ' .
-                    $this->translatorModel->translate('has been erased from table') . ' ' .
-                    $this->translatorModel->translate($this->row->getTable()) . '.';
-        } elseif (is_object($this->row->getData()) or 'save' == $this->signal) {
-            $this->row->update($columns);
-            $message = ucfirst($this->translatorModel->translate('choosen item with ID')) . ' ' . $this->row->getData()->getPrimary() . ' ' .
-                    $this->translatorModel->translate('has been edited in table') . ' ' . 
-                    $this->translatorModel->translate($this->row->getTable()) . '.';
-        } elseif (is_object($this->row->getResource())) {
-            $primary = $this->row->add($columns);
-            $message = ucfirst($this->translatorModel->translate('new item with ID')) . ' ' . $primary . ' ' .
-                    $this->translatorModel->translate('has been added to the table') . ' ' . 
-                    $this->translatorModel->translate($this->row->getTable()) . '.';
+        if(substr_count($column['vendor']['Comment'], '@disable') > 0) {
+            $attributes['readonly'] = 'readonly';
         }
-        $this->row->flush();
-        $this->row->afterSucceeded($form);
-        if(null == $this->signal) {
-            $this->redirect($message);
+        if(substr_count($column['vendor']['Comment'], '@onchange') > 0) {
+            $attributes['onChange'] = 'submit';
         }
-        return $message;
+        return $attributes;
     }
 
-    private function redirect($message) {
-        $this->getPresenter()->flashMessage($message);
-        if (!empty($this->row->getParameters())) {
-            $presenter = isset($redirect['presenter']) ? $redirect['presenter'] : $this->getPresenter()->getName();
-            $action = isset($redirect['action']) ? $redirect['action'] : $this->row->getAction();
-            $parameters = isset($redirect['parameters']) ? $redirect['parameters'] : $this->row->getParameters();
-            $this->getPresenter()->redirect(':' . $presenter . ':' . $action, $parameters);
-        } elseif (is_object($referer = $this->request->getReferer())) {
-            foreach ($referer->getQueryParameters() as $key => $parameter) {
-                ($key != 'do') ? $this->row->setParameter($key, $parameter) : null;
+    /** @return array */
+    private function getDefaults($name) {
+        $config = $this->row->getConfig($this->row->getTable() . '.' . $name);
+        if(isset($config['getDefaults'])) {
+            return $this->mockService->getCall($config['getDefaults']['service'], $config['getDefaults']['method'], $config['getDefaults']['parameters'], $this);
+        } elseif(empty($config)) {
+            foreach ($config as $method => $data) {
+                if ('getDefaults' != $method) {
+                    $result = $this->mockService->getCall($data['service'], $data['method'], $data['parameters'], $this);
+                    $this[$name]->$method($result);
+                }
             }
         }
-        if (null == $action = $this->row->getAction() and is_object($this->isSubmitted()) and in_array($this->isSubmitted()->getName(), ['delete', 'grid'])) {
-            $this->getPresenter()->redirect(':' . $this->getPresenter()->getName() . ':' . $action, $this->row->getParameters());
-        } elseif (is_object($this->isSubmitted()) and in_array($this->isSubmitted()->getName(), ['delete', 'grid'])) {
-            $this->getPresenter()->redirect(':' . $this->getPresenter()->getName() . ':' . $this->row->getAction(), $this->row->getParameters());
-        } else {
-            $this->getPresenter()->redirect(':' . $this->getPresenter()->getName() . ':' . $this->getPresenter()->action, $this->row->getParameters());
-        }
+        return [];
     }
 
-    /** @return Template | string */
-    protected function beforeRender() {
-        if(null == $this->signal) {
-            parent::beforeRender();
-        }
+    /** @return IEditFormFactory */
+    public function setRow(IRowBuilder $row) {
+        $this->row = $row;
+        return $this;
     }
-    
-    public function render(...$args) {
-        $latte = new Engine();
-        $latte->onCompile[] = function($latte) {
-            Bridges\FormsLatte\FormMacros::install($latte->getCompiler());
-        };
-        $template = new Bridges\ApplicationLatte\Template($latte);
-        $template->setFile(__DIR__ . '/../templates/edit.latte');
-        $template->setTranslator($this->translatorModel);
-        $template->form = $this;
-        $template->basePath = $this->presenter->template->basePath;
-        $template->row = $this->row;
-        $template->title = $this->row->getTitle();
-        $template->components = $this->components;
-        $template->submits = [];
-        $template->datetimepickers = [];
-        if(!empty($this->signal)) {
-            return $template->__toString();
-        } else {
-            $template->render();
-            return $template;
-        }
+
+    /** @return IEditFormFactory */
+    public function setService(IEditService $service) {
+        $this->service = $service;
+        return $this;
+    }
+
+    /** @return IEditFormFactory */
+    public function setPrimary(array $primary) {
+        $this->primary = $primary;
+        return $this;
     }
 
 }

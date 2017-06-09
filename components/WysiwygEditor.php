@@ -38,7 +38,7 @@ final class WysiwygEditor extends TextArea {
         $uri = $this->parent->getContext()->getByType('Nette\Http\Request')->url->baseUrl;
         $path = $uri;
         $script = Html::el();
-        $ckeditor = $this->version == 3 ? 'assets/masala/ckeditor3/ckeditor.js' : 'bower/ckeditor/ckeditor.js';
+        $ckeditor = $this->version == 3 ? 'assets/masala/ckeditor3/ckeditor.js' : 'node_modules/ckeditor/ckeditor.js';
         $plugins = $this->version == 3 ? 'extraPlugins : "report",' : '';
         //$script->setHtml('<script type="text/javascript" src="' . $path . $ckeditor . '"></script>
         $script->setHtml('<script type="text/javascript">

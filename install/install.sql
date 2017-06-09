@@ -18,8 +18,7 @@ CREATE TABLE `spice` (
   `key` text COLLATE utf8_czech_ci,
   `query` text COLLATE utf8_czech_ci,
   `arguments` text COLLATE utf8_czech_ci,
-  `filters` text COLLATE utf8_czech_ci,
-  `views_id` int(11) DEFAULT NULL,
+  `filters` text COLLATE utf8_czech_ci
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_czech_ci;
 /** help */

@@ -2,12 +2,8 @@
 
 namespace Masala;
 
-use Latte\Engine,
-    Nette\Application\LinkGenerator,
+use Nette\Application\LinkGenerator,
     Nette\Application\UI\Presenter,
-    Nette\Bridges\ApplicationLatte\UIMacros,
-    Nette\Bridges\ApplicationLatte\Template,
-    Nette\Bridges\FormsLatte\FormMacros,
     Nette\Caching\IStorage,
     Nette\Caching\Cache,
     Nette\Database\Context,
@@ -31,7 +27,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var IProcessService */
     private $exportService;
 
-    /** @var IEditFormService */
+    /** @var IEditService */
     private $gridService;
 
     /** @var IProcessService */
@@ -39,9 +35,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @var LinkGenerator */
     private $linkGenerator;
-
-    /** @var IProcessService */
-    private $migration;
 
     /** @var MockService */
     private $mockService;
@@ -51,9 +44,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @var IProcessService */
     private $service;
-
-    /** @var string */
-    private $actions;
 
     /** @var Array */
     private $annotations;
@@ -97,14 +87,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var Array */
     private $leftJoin = [];
 
-    /** @var Array */
-    private $primary;
-
     /** @var string */
-    private $salt = '';
-
-    /** @var string */
-    private $sort = ' DESC ';
+    private $sort;
 
     /** @var Array */
     private $range;
@@ -114,9 +98,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @var Array */
     private $table;
-
-    /** @var string */
-    private $order;
 
     /** callback */
     private $redraw;
@@ -139,19 +120,18 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @var int */
     private $sum;
 
-    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, MigrationService $migrationService, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator) {
+    public function __construct(Array $config, ITranslator $translatorModel, ExportService $exportService, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest, LinkGenerator $linkGenerator) {
         $this->config = $config;
         $this->translatorModel = $translatorModel;
         $this->exportService = $exportService;
-        $this->migrationService = $migrationService;
         $this->mockService = $mockService;
         $this->database = $database;
         $this->cache = new Cache($storage);
         $this->linkGenerator = $linkGenerator;
     }
 
-    /** getters */
-    public function build($row, $column) {
+    /** @return string */
+    private function build($row, $column) {
         $cell = $row[$column];
         if (isset($this->alternate[$column]) and null == $cell) {
             $call = $this->alternate[$column];
@@ -280,7 +260,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function getFilter($key) {
-        if (isset($this->where[preg_replace('/\s(.*)/', '', $key)])) {
+        if (isset($this->where[trim($key)])) {
             return preg_replace('/\%/', '', $this->where[$key]);
         }
         return false;
@@ -299,7 +279,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     }
 
     public function getId($status) {
-        return $this->control . ':' . $this->presenter->getName() . ':' . $this->presenter->getAction()  . ':' . $status . ':' . $this->presenter->getUser()->getId();
+        return md5($this->control . ':' . $this->presenter->getName() . ':' . $this->presenter->getAction()  . ':' . $status . ':' . $this->presenter->getUser()->getId());
     }
 
     public function getImport() {
@@ -308,17 +288,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     private function getKey($method, $parameters) {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
-    }
-
-    public function getLatte($key) {
-        $template = $this->config['root'] .= '/' . preg_replace('/\:/', 'Module/templates/', $this->presenter->getName()) . '/';
-        if (is_file($column = WWW_DIR . $template . $key . '.' .$this->presenter->getAction() . '.latte')) {
-            return $column;
-        } elseif (is_file($column = WWW_DIR . $template . $key . '.latte')) {
-            return $column;
-        } else {
-            return __DIR__ . '/../templates/' . $key . '.latte';
-        }
     }
 
     public function getList($annotation) {
@@ -335,24 +304,8 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return $list;
     }
 
-    public function getMigration() {
-        return $this->migration;
-    }
-
     public function getPagination() {
         return $this->config['pagination'];
-    }
-
-    public function getPrimary($row, $rowId) {
-        if ($row instanceof ActiveRow and is_array($row->getPrimary())) {
-            $this->primary[] = $rowId;
-            $keys = array_keys($this->primary);
-            $key = array_shift($keys);
-        } else {
-            $this->primary[$rowId] = $rowId;
-            $key = $rowId;
-        }
-        return $key;
     }
 
     public function getRange($key) {
@@ -360,6 +313,19 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
             return $this->range[$key];
         }
         return false;
+    }
+
+    /** @return array */
+    public function getPrimary() {
+        $primary = [];
+        if(is_array($keys = $this->database->table($this->table)->getPrimary())) {
+            foreach($keys as $key) {
+                $primary[$this->table . '.'  . $key] = $key;
+            }
+        } else {
+            $primary = [$this->table . '.'  . $keys => $keys];
+        }
+        return $primary;
     }
 
     public function getSpice() {
@@ -379,66 +345,40 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         return ['>' => $from, '<' => $to, 'min' => $from, 'max' => $to];
     }
 
-    public function getRow($offset, $row) {
-        $latte = new Engine();
-        $latte->onCompile[] = function ($latte) {
-            FormMacros::install($latte->getCompiler());
-            UIMacros::install($latte->getCompiler());
-        };
-        $latte->addProvider('uiPresenter', $this->presenter);
-        /* $latte->addProvider('uiControl', $this); */
-        $template = new Template($latte);
-        $template->setFile(__DIR__ . '/../templates/row.latte');
-        $template->columns = $this->columns;
-        $template->actions = $this->actions;
-        /* $template->page = $this->page; */
-        $template->builder = $this;
-        $template->row = $row;
-        $template->offset = $offset;
-        $template->spice = $this->hash . ':' . $offset;
-        $template->control = $this->control;
-        $template->presenter = $this->presenter;
-        $template->setTranslator($this->translatorModel);
-        return $template->__toString();
-    }
-
-    public function getSetting($type) {
+    private function getSetting($type) {
         return $this->database->table($this->config['feeds'])
                         ->where('type', $type)
                         ->where('source', $this->presenter->getName() . ':' . $this->presenter->getAction())
                         ->fetch();
     }
 
-    public function getSort() {
-        return $this->sort;
-    }
-
-    public function getOrder() {
-        return $this->order;
-    }
-
-    public function getQuery() {
-        return $this->query;
-    }
-
+    /** @return string */
     public function getTable() {
         return $this->table;
     }
 
-    public function getOffsetByStatus($offset, $status) {
-        $row = $this->cache->load($this->getId($status) . ':' . $offset);
-        /** before active this, run and write test that no IProcessService save to cache by offset and status
-        $this->flush($this->getId($status) . ':' . $offset); */
-        return $row;
-    }
-
-    /** @return string */
+    /** @return array */
     public function getOffset($offset) {
-        $primary = $this->control . ':array:' . $this->hash . ':' . $offset;
-        if(false == $row = $this->cache->load($primary)) {
-            return $this->loadRow($offset, 'array');
+        if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
+            $row = $this->getResource()
+                ->order($this->sort)
+                ->limit(1, $offset)
+                ->fetch();
+        } else {
+            $limit = count($this->arguments);
+            $arguments = $this->arguments;
+            $arguments[$limit] = 1;
+            $arguments[$limit + 1] = intval($offset);
+            $arguments = array_values($arguments);
+            $row = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetch();
         }
-        return $row;
+        if($row instanceof ActiveRow) {
+            return $row->toArray();
+        } elseif(is_object($row)) {
+            return (array) $row;
+        } else {
+            return [];
+        }
     }
 
     /** @return IBuilder */
@@ -450,114 +390,37 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     /** @return IBuilder */
     public function redrawOffset($offset) {
         if(is_callable($this->redraw)) {
-            call_user_func_array($this->redraw, [$this->loadRow($offset, 'array')]);            
+            call_user_func_array($this->redraw, [$this->getOffset($offset)]);            
         }
         return $this;
     }
 
-    /** @return string */
-    public function loadOffset($offset) {
-        $key = $this->control . ':' . $this->hash . ':' . $offset;
-        if(false == $row = $this->cache->load($key)) {
-            return $this->loadRow($offset, 'string');
-        }
-        return $row;
-    }
-
-    /** @return string */
-    public function loadRow($offset, $type) {
-        $key = $this->control . ':' . $this->hash . ':' . $offset;
-        $primary = $this->control . ':array:' . $this->hash . ':' . $offset;
-        if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
-            $row = $this->getResource()
-                    ->order($this->order . ' ' . strtoupper($this->sort))
-                    ->limit(1, $offset)
-                    ->fetch();
-        } else {
-            $limit = count($this->arguments);
-            $arguments = $this->arguments;
-            $arguments[$limit] = 1;
-            $arguments[$limit + 1] = intval($offset);
-            $arguments = array_values($arguments);
-            $row = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetch();
-        }
-        if(false != $row) {
-            $html = $this->getRow($offset, $row);
-            $loading = ($row instanceof ActiveRow) ? $row->toArray() : (array) $row;
-            $this->cache->save($primary, $loading, [Cache::EXPIRE => '+24 hours']);
-            $this->cache->save($key, $html, [Cache::EXPIRE => '+24 hours']);
-        }
-        if(false == $row and 'array' == $type) {
-            return [];
-        } elseif('array' ==  $type) {
-            return $loading;
-        } elseif(false == $row) {
-            return '';
-        } else {
-            return $html;
-        }
-    }
-
-    /** @return string */
+    /** @return array */
     public function getOffsets() {
-        /* @todo: to test:
-          $this->cache->save($this->hash . ':2', '<tr id="masala-rows-5e5cdadac610bf2fbaafbb6308561685:8">
-          <td class="grid-col-id">8</td><td class="grid-col-name">světle modrá tabulka</td>
-          <td class="grid-col-status">active</td><td class="grid-col-actions"></td></tr>'); */
-        //$this->cache->clean([$this->hash . ':7']);*/
-        $body = [];
-        $missings = [];
-        for ($offset = $this->offset; $offset <= $this->limit + $this->offset; $offset++) {
-            if (null == $row = $this->cache->load($this->control . ':' . $this->hash . ':' . $offset)) {
-                $missings[$offset] = $offset;
+        if(null == $data = $this->cache->load($this->control . ':' . $this->hash . ':' . $this->offset)) {
+            $this->arguments[] = intval($this->limit);
+            $this->arguments[] = intval($this->offset);
+            if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
+                $resource = $this->getResource()
+                    ->limit($this->limit, $this->offset)
+                    ->order($this->sort)
+                    ->fetchAll();
+                $data = [];
+                foreach($resource as $row) {
+                    $data[] = $row->toArray();
+                }
             } else {
-                $body[$offset] = $row;
-            }
-        }
-        $offsets = $missings;
-        foreach ($missings as $break) {
-            if (!isset($missings[$break - 1]) and ! isset($missings[$break + 1]) and $break == $this->limit) {
-                $offsets[$break - 1] = $break - 1;
-            } elseif (!isset($missings[$break - 1]) and ! isset($missings[$break + 1])) {
-                $offsets[$break + 1] = $break + 1;
-            } elseif (isset($missings[$break - 1]) and isset($missings[$break + 1]) or ( !isset($missings[$break - 1]) and ! isset($missings[$break + 1]))) {
-                unset($offsets[$break]);
-            }
-        }
-        ksort($offsets);
-        if (false == (count($offsets) % 2 == 0)) {
-            throw new InvalidStateException('Offset values are odd.');
-        }
-        $offsets = array_values($offsets);
-        $limit = (empty($offsets)) ? 0 : count($this->arguments);
-        foreach ($offsets as $limitId => $offset) {
-            if ($limitId++ % 2 == 0) {
-                $this->arguments[$limit] = $offsets[$limitId] - $offset;
-                $this->arguments[$limit + 1] = $offset;
-                if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
-                    $data = $this->getResource()
-                                ->limit($this->arguments[$limit], $this->arguments[$limit + 1])
-                                ->order($this->order . ' ' . strtoupper($this->sort))
-                                ->fetchAll();
-                } else {
-                    $arguments = array_values($this->arguments);
-                    try {
-                        $data = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
-                    } catch (\Exception $e) {
-                        throw new InvalidStateException("Invalid query " . $this->query);
-                    }
-                }
-                $data = array_values($data);
-                foreach ($data as $primary => $row) {
-                    $body[$primary + $offset] = $html = $this->getRow($primary + $offset, $row);
-                    $loading = ($row instanceof ActiveRow) ? $row->toArray() : (array) $row;
-                    $this->cache->save($this->control . ':' . $this->hash . ':' . ($primary + $offset), $html, [Cache::EXPIRE => '+24 hours']);
-                    /** $this->cache->save($this->control . ':array:' . $this->hash . ':' . ($primary + $offset), $loading, [Cache::EXPIRE => '+24 hours']); */
+                $arguments = array_values($this->arguments);
+                $resource = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
+                $data = [];
+                foreach($resource as $row) {
+                    $data[] = (array) $row;
                 }
             }
+            //$this->cache->save($this->control . ':' . $this->hash . ':' . $this->offset, $data, [Cache::EXPIRE => '+1 hour']);
         }
         $this->logQuery($this->hash);
-        return '<tbody>' . implode('', $body) . '</tbody>';
+        return $data;
     }
 
     public function getResource() {
@@ -609,13 +472,13 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
 
     /** @return IBuilder */
     public function cloned() {
-        return new NetteBuilder($this->config, $this->translatorModel, $this->exportService, $this->migrationService, $this->mockService, $this->database, $this->storage, $this->httpRequest, $this->linkGenerator);
+        return new NetteBuilder($this->config, $this->translatorModel, $this->exportService, $this->mockService, $this->database, $this->storage, $this->httpRequest, $this->linkGenerator);
     }
     
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
             
-        } elseif (true == $this->getAnnotation($column, 'addSelect') and ! preg_match('/\(/', $this->columns[$column])) {
+        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect']) and ! preg_match('/\(/', $this->columns[$column])) {
             $this->defaults[$column] = $this->getList($this->columns[$column]);
         } elseif (false != $range = $this->getRange($this->table . '.' . $column) or false != $range = $this->getRange($column)) {
             $this->annotations[$column]['range'] = true;
@@ -729,11 +592,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         }
     }
 
-    public function migrate($migration) {
-        $this->migration = ($migration instanceof IProcessService) ? $migration : $this->migrationService;
-        return $this;
-    }
-
     public function range($key, Array $value) {
         if (isset($this->range[$key])) {
             throw new InvalidStateException('Range key ' . $key . ' already assigned in ' . __CLASS__ . '.');
@@ -817,7 +675,6 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
     public function attached(Masala $masala) {
         $this->presenter = $masala->getPresenter();
         $this->control = $masala->getName();
-        $this->actions = $this->getLatte('column');
         /** import */
         if ($this->import instanceof IProcessService and ( $setting = $this->getSetting('import')) instanceof ActiveRow) {
             $this->import->setSetting($setting);
@@ -860,8 +717,15 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         /** query */
         $select = 'SELECT ';
         $this->sumQuery = 'SELECT COUNT(';
+        $primary = $this->getPrimary();
         foreach ($this->columns as $alias => $column) {
             $column = (preg_match('/\.|\s| |\(|\)/', trim($column))) ? $column : $this->table . '.' . $column;
+            if(isset($primary[$column])) {
+                unset($primary[$column]);
+            }
+            $select .= ' ' . $column . ' AS `' . $alias . '`, ';
+        }
+        foreach($primary as $column => $alias) {
             $select .= ' ' . $column . ' AS `' . $alias . '`, ';
         }
         $this->query = rtrim($select, ', ');
@@ -882,18 +746,25 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         $this->sumQuery .= $from;
     }
 
-    public function filter(Array $view = []) {
-        if(!empty($view)) {
-            $filters = $view['filters'];
-            $order = $view['order'];
-            $sort = $view['sort'];
-            $offset = $view['offset'];
-        }   else {
-            $filters = (null == $this->presenter->request->getPost('filters')) ? [] : $this->presenter->request->getPost('filters');
-            $order = $this->presenter->request->getPost('order');
-            $sort = $this->presenter->request->getPost('sort');
-            $offset = $this->presenter->request->getPost('offset');
+    public function filter() {
+        if(null == $filters = $this->presenter->request->getPost('filters')) {
+            $filters = [];
         }
+        if(null == $sort = $this->presenter->request->getPost('sort')) {
+            foreach($this->columns as $name => $column) {
+                if(false == $this->getAnnotation($name, 'unrender')) {
+                    $sort = [$name => 'DESC'];
+                    break;
+                }
+            }
+
+        }
+        $this->sort = '';
+        foreach($sort as $order => $sorted) {
+            $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
+        }
+        $this->sort = rtrim($this->sort, ', ');
+        $offset = $this->presenter->request->getPost('offset');
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
@@ -905,6 +776,10 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                 foreach ($subfilters as $filter) {
                     $this->where[$filter . ' LIKE'] = '%' . $value . '%';
                 }
+            } elseif (preg_match('/\s\>\=/', $column)) {
+                $this->where[$this->columns[$key] . ' >='] = $value;
+            } elseif (preg_match('/\s\<\=/', $column)) {
+                $this->where[$this->columns[$key] . ' <='] = $value;
             } elseif (preg_match('/\s\>/', $column)) {
                 $this->where[$this->columns[$key] . ' >'] = $value;
             } elseif (preg_match('/\s\</', $column)) {
@@ -921,6 +796,7 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
         }
         /** where and having */
         $where = (!empty($this->where)) ? ' WHERE ' : '';
+        $salt = '';
         foreach ($this->where as $column => $value) {
             $column = (preg_match('/\./', $column) or is_numeric($column)) ? $column : '`' . $column . '`';
             if (is_numeric($column)) {
@@ -938,25 +814,27 @@ final class NetteBuilder extends BaseBuilder implements IBuilder {
                 $where .= ' ' . $column . ' = ? AND ';
                 $this->arguments[] = $value;
             }
-            $this->salt .= is_array($value) ? implode(',', $value) : $value;
+            $salt .= is_array($value) ? implode(',', $value) : $value;
         }
         $this->query .= rtrim($where, 'AND ');
         $this->sumQuery .= rtrim($where, 'AND ');
         /** group, having */
         $this->query .= (null == $this->group) ? '' : ' GROUP BY ' . $this->group . ' ';
-        $this->salt .= '|' . $this->group;
+        $salt .= '|' . $this->group;
         $this->query .= ('' == $this->having) ? '' : ' HAVING ' . $this->having . ' ';
-        $this->salt .= '|' . $this->having;
+        $salt .= '|' . $this->having;
         $this->sumQuery .= (null == $this->having) ? '' : ' HAVING ' . $this->having . ' ';
         /** sort */
-        $this->order = (string) $order;
-        $this->sort = (string) $sort;
-        $this->query .= ' ORDER BY ' . preg_replace('/\s(.*)/', '', trim($this->columns[$this->order])) . ' ' . strtoupper($this->sort) . ' ';
-        $this->salt .= '|' . $this->order . $this->sort;
-        $this->offset = (in_array($offset, ['0', '1', null])) ? 0 : ($offset - 1) * $this->config['pagination'];
-        /** limit */
-        $this->limit = $this->config['pagination'];
-        $this->hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . '|' . $this->salt))));
+        $this->query .= ' ORDER BY ' . $this->sort . ' ';
+        $salt .= '|' . $this->sort;
+        if('export' == $this->presenter->request->getPost('status')) {
+            $this->offset = $offset;
+            $this->limit = $this->config['exportSpeed'];
+        } else {
+            $this->offset = (in_array($offset, ['0', '1', null])) ? 0 : ($offset - 1) * $this->config['pagination'];
+            $this->limit = $this->config['pagination'];
+        }
+        $this->hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . '|' . $salt))));
         $this->spice = json_encode($filters);
         /** fetch */
         return $this;

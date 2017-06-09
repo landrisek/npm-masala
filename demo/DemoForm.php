@@ -27,9 +27,7 @@ final class DemoForm extends ReactForm implements IDemoFormFactory {
     public function attached($presenter) {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter) {
-            $this->addMessage('message', ['value' => $this->translatorModel->translate('Thank you, your message has been sended.'),
-                                        'style' => ['display' => 'none']])
-                    ->addTitle('title', ['value' => $this->translatorModel->translate('If you have a minute, let us know why are you subscribing.'),
+            $this->addTitle('title', ['value' => $this->translatorModel->translate('If you have a minute, let us know why are you subscribing.'),
                                       'class' => 'unsubscribe'])
                     ->addRadioList('answer', ['data' => ['test'], 'onClick' => 'click()'])
                     ->addText('content', ['data' => ['delay' => 0],

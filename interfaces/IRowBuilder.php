@@ -5,18 +5,18 @@ namespace Masala;
 interface IRowBuilder {
 
     /** @return int */
-    function add(Array $data);
+    function add(array $data);
 
     /** @return int */
     function delete();
     
-    /** @return string */
-    function getSpice();
-    
     /** @return int */
-    function update(Array $data);
+    function update(array $primary, array $data);
     
     /** @return array */
     function getColumns();
+
+    /** @return array */
+    function getConfig($key);
 
 }
