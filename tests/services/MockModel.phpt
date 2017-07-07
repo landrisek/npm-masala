@@ -28,12 +28,10 @@ final class MockModelTest extends TestCase {
     }
 
     protected function setUp() {
-        /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
         $cacheStorage = new FileStorage(__DIR__ . '/../../../temp');
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure, null, $cacheStorage);
-        /** models */
         $this->class = new MockModel($context, $cacheStorage);
     }
 
@@ -41,11 +39,9 @@ final class MockModelTest extends TestCase {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    /** spread on all models */
     public function testGetters() {
-        $path = APP_DIR . '/Masala/services/MockModel.php';
+        $path = $this->container->parameters['appDir'] . '/Masala/services/MockModel.php';
         Assert::true(is_file($path), 'File ' . $path . ' for parsing was not found.');
-        /** pares methods */
         $methods = [];
         $method = '';
         $file = fopen($path, 'r+');

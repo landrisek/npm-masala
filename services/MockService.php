@@ -16,7 +16,6 @@ use Latte\Engine,
     Nette\Database\Structure,
     Nette\Security\User,
     Mockery,
-    Sunra\PhpSimple\HtmlDomParser,
     Tester\Assert;
 
 final class MockService {
@@ -82,7 +81,7 @@ final class MockService {
         $this->getUser();
         /** database */
         $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $temp = WWW_DIR . $this->config['mockService']['temp'];
+        $temp = $this->config['tempDir'];
         $journal = new SQLiteJournal($temp);
         $this->cacheStorage = new FileStorage($temp, $journal);
         $structure = new Structure($connection, $this->cacheStorage);
@@ -120,7 +119,7 @@ final class MockService {
             $this->httpResponse = new Http\Response;
             $this->session = new Http\Session($this->httpRequest, $this->httpResponse);
             $userStorage = new Http\UserStorage($this->session);
-            $this->user = new User($userStorage);
+            $this->user = new User($userStorage, $this->container->getByType('Nette\Security\IAuthenticator'), $this->container->getByType('Nette\Security\IAuthorizator'));
         }
         return $this->user;
     }
@@ -167,11 +166,10 @@ final class MockService {
                 /** initialization */
                 (1 == preg_match_all('/class(.*)extends/', $line[0])) ? $declarations++ : null;
             }
-            Assert::true(0 === substr_count($content, 'this->template->userSetting') or 'App\BasePresenter' == $class, 'Latte variable userSetting is reserved for call in App/BasePresenter:[beforeRender] but it has been called in ' . $file);
             $contents[$class] = $content;
             fclose($handle);
             /** injection */
-            if (1 == preg_match_all('/.*' . $component . '(.*?)\;/', $content, $injections)) {
+            if (1 == preg_match_all('/.*' . $component . '@inject(.*?)\;/', $content, $injections)) {
                 $factories[$class] = preg_replace('/(.*)\$/', '', preg_replace('/(.*)\*\//', '', $injections[1][0]));
                 $controls = explode(strrev('functioncreateComponent'), strrev($content));
                 foreach ($controls as $control) {
@@ -181,7 +179,6 @@ final class MockService {
                         break;
                     }
                 }
-                /** $injected[$class] = (empty($components[0])) ? false : preg_replace('/\(\)(.*)/', '', preg_replace('/(.*)createComponent/', '', $components[0][0])); */
                 isset($presenters[$class]) ? null : $presenters[$class] = [0 => $class];
             }
             Assert::true(2 > $declarations, 'You are using more classes in file ' . $file . '. Use one file for each class.');
@@ -196,10 +193,7 @@ final class MockService {
                 $presenters[$parent][] = $class;
             }
             $templates[$class] = $file;
-            /* Assert::true(is_object($presenter = new $namespace));
-              Assert::true(is_object($presenter = Mockery::mock($namespace . '[redirect]'))); */
         }
-        /** mocking */
         $mocks = [];
         foreach ($factories as $factoryId => $factory) {
             foreach ($presenters[$factoryId] as $presenter) {
@@ -227,7 +221,8 @@ final class MockService {
             }
         }
         $random = array_rand($mocks);
-        return [$random => $this->getPresenter($random, $mocks[$random], [], true)];
+        Assert::true(is_array($this->config['mockService']['testParameters']), 'Mock service has no test parameters in config section.');
+        return [$random => $this->getPresenter($random, $mocks[$random], $this->config['mockService']['testParameters'], true)];
     }
 
     public function getPresenter($class, $latteFile, $parameters = [], $injected = false) {
@@ -243,7 +238,7 @@ final class MockService {
         $presenter = Mockery::mock($class . '[redirect,getName]', ['__get']);
         $action = preg_replace('/(.*)\/|\.latte/', '', $latteFile);
         if (property_exists($presenter, 'row')) {
-            $presenter->row = new RowBuilder($this->container->parameters, $this->context, $this->cacheStorage);
+            $presenter->row = new Row($this->container->parameters, $this->context, $this->cacheStorage);
         }
         if (property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
@@ -263,7 +258,7 @@ final class MockService {
                     }
                 }
                 $presenter->$serviceId = $service;
-            } elseif (class_exists($method)) {
+            } elseif (class_exists($method) && property_exists($class, $serviceId)) {
                 $presenter->$serviceId = $this->container->getByType($method);
             } elseif (property_exists($class, $serviceId)) {
                 $presenter->$serviceId = $this->container->$method();
@@ -298,8 +293,15 @@ final class MockService {
         return $presenter;
     }
 
+    /** @return mixed */
+    public function getPrivateProperty($class, $order) {
+        Assert::false(empty($serialization = (array) $class), 'Serialization failed.');
+        Assert::false(empty($slice = array_slice($serialization, $order, 1)), 'There is no variable in given order.');
+        return reset($slice);
+    }
+    
     public function getFiles($suffix, $regex = null) {
-        $scan = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(WWW_DIR . '/app'));
+        $scan = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->config['appDir']));
         $files = [];
         foreach ($scan as $file) {
             if (!$file->isDir() and in_array(preg_replace('/(.*)\./', '', $file->getPathname()), $suffix)) {
@@ -361,8 +363,8 @@ final class MockService {
         $module = preg_replace('/\:(.*)/', '', $source);
         $presenter = strtolower(preg_replace('/(.*)\:/', '', $source));
         $connection = new Connection($this->config['database']['dsn'], $this->config['database']['user'], $this->config['database']['password']);
-        $journal = new SQLiteJournal(WWW_DIR . $this->config['mockService']['temp']);
-        $cacheStorage = new FileStorage(WWW_DIR . $this->config['mockService']['temp'], $journal);
+        $journal = new SQLiteJournal($this->config['tempDir']);
+        $cacheStorage = new FileStorage($this->config['tempDir'], $journal);
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure);
         $translatorModel = new TranslatorModel($this->config['localization'], $this->config['tables']['translator'], $context, $cacheStorage);
@@ -373,11 +375,10 @@ final class MockService {
         $urlScript->setPath($root . $presenter . '/');
         $this->httpRequest = new Http\Request($urlScript);
         $exportService = $this->container->getByType('Masala\ExportService');
-        $migrationService = $this->container->getByType('Masala\MigrationService');
         $router = new Application\Routers\RouteList($module);
         $router[] = new Application\Routers\Route('<presenter>/<action>', $presenter . ':' . $action);
         $linkGenerator = new Application\LinkGenerator($router, $this->httpRequest->getUrl());
-        $builder = new NetteBuilder($config['masala'], $translatorModel, $exportService, $migrationService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
+        $builder = new Builder($config['masala'], $exportService, $this, $context, $cacheStorage, $this->httpRequest, $linkGenerator);
         return $builder;
     }
 

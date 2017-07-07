@@ -8,7 +8,7 @@ use Nette\Caching\Cache,
     Nette\Caching\IStorage;
 
 /** @author Lubomir Andrisek */
-final class HelpModel implements IHelpModel {
+final class HelpModel implements IHelp {
 
     /** @var Cache */
     public $cache;

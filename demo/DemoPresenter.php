@@ -6,8 +6,8 @@ use Masala\HelpModel,
     Masala\IBuilder,
     Masala\IEditFormFactory,
     Masala\IMasalaFactory,
-    Masala\IProcessService,
-    Masala\IRowBuilder,
+    Masala\IProcess,
+    Masala\IRow,
     Nette\Application\UI\Presenter;
 
 class DemoPresenter extends Presenter {
@@ -15,13 +15,13 @@ class DemoPresenter extends Presenter {
     /** @var HelpModel @inject */
     public $helpModel;
 
-    /** @var IProcessService */
+    /** @var IProcess */
     public $import;
 
-    /** @var IProcessService */
+    /** @var IProcess */
     public $export;
 
-    /** @var IProcessService */
+    /** @var IProcess */
     public $service;
 
     /** @var IMasalaFactory @inject */
@@ -33,7 +33,7 @@ class DemoPresenter extends Presenter {
     /** @var IBuilder @inject */
     public $grid;
 
-    /** @var IRowBuilder @inject */
+    /** @var IRow @inject */
     public $row;
 
     public function actionDefault() {

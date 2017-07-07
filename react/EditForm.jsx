@@ -16,7 +16,7 @@ export default class EditForm extends Form {
             var closure = this[this.state[key].Method]
             if('function' == typeof(closure)) {
                 if('addHidden' == this.state[key].Method) {
-                } else if('addSubmit' == this.state[key].Method || 'addCheckbox' == this.state[key].Method) {
+                } else if('addSubmit' == this.state[key].Method || 'addCheckbox' == this.state[key].Method || 'addMessage' == this.state[key].Method) {
                     body.push(<div className='row' key={key}>
                             <div className='form-group col-md-6'>
                                 <div className='form-group input-group'>
@@ -40,6 +40,24 @@ export default class EditForm extends Form {
         }
         return body;
     }
+    onChange(event) {
+        var element = this.state[event.target.id]
+        if('checkbox' == event.target.type && 1 == event.target.value) {
+            element.Attributes.value = 0
+            element.Attributes.checked = null
+        } else if('checkbox' == event.target.type) {
+            element.Attributes.value = 1
+            element.Attributes.checked = 'checked'
+        } else {
+            element.Attributes.value = event.target.value
+        }
+        var state = []
+        state[event.target.id]
+        var edit = this.state['edit']
+        edit.Attributes.style = {display:'none'}
+        state['edit'] = edit
+        this.setState(state)
+    }
     done(payload) {
         super.done(payload)
         var element = this.state['done']
@@ -52,7 +70,13 @@ export default class EditForm extends Form {
             for(var key in this.state) {
                 data[key] = this.state[key].Attributes.value
             }
-            $.ajax({type:'post', url:LINKS['submit'],data:data,async:false})
+            var element = this.state['edit'];
+            element.Attributes.style = {display:'block'}
+            var response = $.ajax({type:'post', url:LINKS['submit'],data:data,async:false}).responseJSON
+            if(undefined != response.message) {
+                element.Label = response.message
+            }
+            this.setState({ 'edit': element })
         }
     }
     render() {

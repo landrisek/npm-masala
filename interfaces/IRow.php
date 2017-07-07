@@ -2,7 +2,7 @@
 
 namespace Masala;
 
-interface IRowBuilder {
+interface IRow {
 
     /** @return int */
     function add(array $data);
@@ -16,13 +16,13 @@ interface IRowBuilder {
     /** @return array */
     function getConfig($key);
     
-    /** @return IRowBuilder */
+    /** @return IRow */
     function table($table);
     
     /** @return int */
     function update(array $data);
 
-    /** @return IRowBuilder */
+    /** @return IRow */
     function where($column, $value, $condition = null);
 
 }

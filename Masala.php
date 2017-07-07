@@ -7,7 +7,8 @@ use Nette\Application\Responses\JsonResponse,
     Nette\Application\UI\Control,
     Nette\Application\IPresenter,
     Nette\Localization\ITranslator,
-    Nette\Http\IRequest;
+    Nette\Http\IRequest,
+    PHPExcel;
 
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
@@ -15,10 +16,7 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var array */
     private $config;
 
-    /** @var ITranslator */
-    private $translatorModel;
-
-    /** @var IHelpModel */
+    /** @var IHelp */
     private $helpModel;
 
     /** @var IBuilder */
@@ -39,7 +37,10 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var IRequest */
     private $request;
 
-    public function __construct(Array $config, IGridFactory $gridFactory, IHelpModel $helpModel, IImportFormFactory $importFormFactory,  IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
+    /** @var ITranslator */
+    private $translatorModel;
+
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpModel, IImportFormFactory $importFormFactory,  IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
@@ -50,7 +51,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->translatorModel = $translatorModel;
     }
 
-    /** @return Masala */
+    /** @return IMasalaFactory */
     public function setGrid(IBuilder $grid) {
         $this->grid = $grid;
         return $this;
@@ -146,18 +147,53 @@ final class Masala extends Control implements IMasalaFactory {
         $folder = $this->grid->getExport()->getFile();
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $header = '';
-        foreach(array_keys($this->grid->filter()->getOffset(1)) as $column) {
+        foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
             $header .= $this->translatorModel->translate($column) . ';';
         }
         $file = $this->grid->getId('export') . '.csv';
         file_put_contents($folder . '/' . $file, $header);
         $response = new JsonResponse($this->grid->getExport()->prepare([
-                'filters' => $this->request->getPost('filters'),
-                'sort' => $this->request->getPost('sort'),
                 'file' => $file,
+                'filters' => $this->request->getPost('filters'),
                 'offset' => 0,
-                'stop' => $this->grid->getSum(),
-                'status' => 'export'], $this));
+                'sort' => $this->request->getPost('sort'),
+                'status' => 'export',
+                'stop' => $this->grid->getSum()], $this));
+        return $this->presenter->sendResponse($response);
+    }
+
+    public function handleExcel() {
+        $excel = new PHPExcel();
+        $folder = $this->grid->getExport()->getFile();
+        $title = $this->request->getPost('title');
+        $properties = $excel->getProperties();
+        $properties->setTitle($title);
+        $properties->setSubject($title);
+        $properties->setDescription($title);
+        $excel->setActiveSheetIndex(0);
+        $sheet = $excel->getActiveSheet();
+        $sheet->setTitle(substr($title, 0, 31));
+        $this->header = [];
+        $id = 'a';
+        $this->header = [];
+        foreach($this->request->getPost('row') as $column => $value) {
+            $this->header[$id] = [ucfirst($this->translatorModel->translate($column)), \PHPExcel_Style_Alignment::HORIZONTAL_LEFT];
+            ++$id;
+        }
+        foreach ($this->header as $letter => $header) {
+            $sheet->setCellValue($letter . '1', $header[0]);
+            $sheet->getColumnDimension($letter)->setAutoSize(true);
+            $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+        }
+        $file = $this->grid->getId('export') . '.xls';
+        file_put_contents($folder . '/' . $file, $header);
+        $response = new JsonResponse($this->grid->getExport()->prepare([
+            'file' => $file,
+            'filters' => $this->request->getPost('filters'),
+            'offset' => 0,
+            'sort' => $this->request->getPost('sort'),
+            'status' => 'export',
+            'stop' => $this->grid->getSum()], $this));
         return $this->presenter->sendResponse($response);
     }
 
@@ -196,20 +232,8 @@ final class Masala extends Control implements IMasalaFactory {
     /** @return JsonResponse */
     public function handlePrepare() {
         $this->grid->log('prepare');
-        $data = ['offset' => 0, 'stop' => $this->grid->filter()->getSum(), 'status' => 'service'];
+        $data = ['offset' => 0, 'stop' => $this->grid->prepare()->getSum(), 'status' => 'service'];
         $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
-        return $this->presenter->sendResponse($response);
-    }
-
-    /** @return JsonResponse */
-    public function handleRedraw() {
-        $offset = $this->presenter->request->getPost('offset');
-        $row = $this->grid
-                ->filter()
-                ->redrawOffset($offset)
-                ->flushOffset($offset)
-                ->getOffset($offset);
-        $response = new JsonResponse($row);
         return $this->presenter->sendResponse($response);
     }
 
@@ -240,7 +264,7 @@ final class Masala extends Control implements IMasalaFactory {
             $service = $this->grid->getExport();
             $path = $service->getFile() . '/' . $response['file'];
             $response['limit'] = $this->config['exportSpeed'];
-            $response['row'] = $this->grid->filter()->getOffsets();
+            $response['row'] = $this->grid->prepare()->getOffsets();
             $response = $service->run($response, $this);
             $handle = fopen('nette.safe://' . $path, 'a');
             foreach($response['row'] as $row) {
@@ -252,7 +276,7 @@ final class Masala extends Control implements IMasalaFactory {
         } else {
             $service = $this->grid->getService();
             $response['offset'] = $response['offset'] + 1;
-            if(!empty($response['row'] = $this->grid->filter()->getOffset($response['offset']))) {
+            if(!empty($response['row'] = $this->grid->prepare()->getOffset($response['offset']))) {
                 $response = $service->run($response, $this);
             }
         }
@@ -266,29 +290,11 @@ final class Masala extends Control implements IMasalaFactory {
         return $this->presenter->sendResponse(new JsonResponse($response));
     }
 
-    /** @return JsonResponse */
-    public function handleStorage() {
-        $response = [];
-        $storage = $this->presenter->request->getPost('storage');
-        foreach ($storage as $id => $value) {
-            $response[$this->getName() . ':' . $id] = true;
-            $primary = preg_replace('/(.*)\_/', '', $id);
-            $column = preg_replace('/\_' . $primary . '/', '', $id);
-            $this->grid->setRow($primary, [$column => $value]);
-        }
-        $cache = $this->presenter->request->getPost('cache');
-        foreach ($cache as $key => $row) {
-            $response[$key] = true;
-            $this->grid->flush($key);
-            $this->grid->update($key, $row);
-        }
-        $json = new JsonResponse($response);
-        return $this->presenter->sendResponse($json);
-    }
-
     public function render() {
         $this->template->assets = $this->config['assets'];
-        $this->template->dialogs = ['edit', 'import', 'help',  'process'];
+        $this->template->npm = $this->config['npm'];
+        $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
+        $this->template->dialogs = ['edit', 'help', 'import', 'process'];
         $this->template->help = $this->helpModel->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $this->template->grid = $this->grid;
         $columns = $this->grid->getColumns();

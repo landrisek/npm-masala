@@ -5,7 +5,7 @@ namespace Masala;
 use Nette\Database\Table\ActiveRow,
     Nette\Http\IRequest;
 
-final class ExportService implements IProcessService {
+final class ExportService implements IProcess {
 
     /** @var string */
     private $link;
@@ -40,7 +40,7 @@ final class ExportService implements IProcessService {
         return $this->setting;
     }
 
-    /** @return IProcessService */
+    /** @return IProcess */
     public function setSetting(ActiveRow $setting) {
         $this->setting = $setting;
         return $this;

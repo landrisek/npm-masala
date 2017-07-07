@@ -5,8 +5,7 @@ namespace Test;
 use Masala\EditForm,
     Masala\MockModel,
     Masala\MockService,
-    Masala\RowBuilder,
-    Nette\Utils\ArrayHash,
+    Masala\IRow,
     Nette\Database\Row,
     Nette\Database\Table\ActiveRow,
     Nette\DI\Container,
@@ -21,7 +20,7 @@ final class EditFormTest extends TestCase {
     /** @var Container */
     private $container;
 
-    /** @var Array */
+    /** @var array */
     private $tables;
 
     /** @var EditForm */
@@ -33,7 +32,7 @@ final class EditFormTest extends TestCase {
     /** @var MockService */
     private $mockService;
 
-    /** @var RowBuilder */
+    /** @var IRow */
     private $row;
 
     function __construct(Container $container) {
@@ -43,10 +42,8 @@ final class EditFormTest extends TestCase {
     protected function setUp() {
         $this->mockModel = $this->container->getByType('Masala\MockModel');
         $this->mockService = $this->container->getByType('Masala\MockService');
-        $httpRequest = $this->container->getByType('Nette\Http\IRequest');
-        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $this->class = new EditForm(10, $translatorModel, $this->mockService, $httpRequest);
-        $this->row = $this->container->getByType('Masala\IRowBuilder');
+        $this->class = $this->container->getByType('Masala\EditForm');
+        $this->row = $this->container->getByType('Masala\IRow');
         $this->tables = $this->mockModel->getTestTables();
     }
 
@@ -54,58 +51,81 @@ final class EditFormTest extends TestCase {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    public function testSetRow() {
+    private function getRandomTable() {
         $this->setUp();
-        $key = 'categories';
-        Assert::false(empty($source = reset($this->container->parameters['tables'])), 'Test source is not set.');
-        Assert::true(is_object($this->row->table($source)->check()), 'RowBuilder:check failed.');
+        Assert::false(empty($tables = $this->container->parameters['tables']), 'Test tables are not set.');
+        Assert::false(empty($excluded = $this->container->parameters['mockService']['excluded']), 'No tables to excluded. Do you wish to modify test?');
+        foreach($excluded as $table => $exclude) {
+            unset($tables[$table]);
+        }
+        Assert::false(empty($key = array_rand($tables)), 'Test source is not set.');
+        Assert::false(empty($source = $this->container->parameters['tables'][$key]), 'Test table is not set.');
+        echo $source;
+        return $source;
+    }
+    
+    public function testSetRow() {
+        Assert::false(empty($source = $this->getRandomTable()), 'Test table is not set.');
+        if(is_object($this->mockModel->getTestRow($source))) {
+            Assert::true(is_object($this->row->table($source)->check()), 'IRow:check failed on source ' . $source);            
+        }
         Assert::notSame(false, $this->row, 'There is no VO for testing EditForm.');
-        Assert::true($this->row instanceof RowBuilder, 'There is no VO for testing EditForm.');
+        Assert::true($this->row instanceof IRow, 'There is no VO for testing EditForm.');
         Assert::same($this->class, $this->class->setRow($this->row), 'Setter does not return class.');
     }
 
-    public function testSucceeded() {
-        $this->testSetRow();
-        Assert::false(empty($source = reset($this->container->parameters['tables'])), 'There is no table for test source.');
+    public function testIsSignalled() {
+        Assert::false(empty($source = $this->getRandomTable()), 'Test table is not set.');
         Assert::false(empty($setting = $this->mockModel->getTestRow($source)), 'There is no test row for source ' . $source);
-        $presenter = $this->mockService->getPresenter('App\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $setting->id]);
+        $presenter = $this->mockService->getPresenter('App\DemoPresenter', $this->container->parameters['appDir'] . '/Masala/demo/default.latte', ['id' => $setting->id]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
-        Assert::same($this->class, $this->class->signalled('attached'), 'Signalled method should return class EditForm.');
-        Assert::same(true, is_object($this->class->getValues()));
-        Assert::true($this->class->getValues() instanceof ArrayHash);
+        Assert::true(is_bool($this->class->isSignalled()), 'Signalled method should return boolean value.');
     }
 
     public function testAttached() {
         $this->testSetRow();
-        /** todo: $presenters = $this->mockService->getPresenters('IEditFormFactory'); */
-        $presenter = $this->mockService->getPresenter('App\DemoPresenter', WWW_DIR . '/app/Masala/demo/default.latte', ['id' => $this->row->id]);
+        Assert::true(is_object($grid = $this->container->getByType('Masala\IBuilder')));
+        Assert::false(empty($primary = $this->mockModel->getPrimary($this->row->getTable())), 'Primary is not set');
+        if(is_array($primary)) {
+            Assert::false(empty($keys = array_keys($primary)), 'Primary keys are not set');
+            Assert::false(empty($key = reset($keys)), 'Primary key is not set');            
+        } else {
+            Assert::false(empty($key = $primary), 'Primary key for ' . $this->row->getTable() . ' is not set.');
+        }
+        Assert::true(isset($this->row->$key), 'Primary key missing for source '. $this->row->getTable());            
+        $presenter = $this->mockService->getPresenter('App\DemoPresenter', $this->container->parameters['appDir'] . '/Masala/demo/default.latte', [$key => $this->row->$key]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
         $presenter->addComponent($this->class, 'EditForm');
-        Assert::false(empty($columns = $this->class->getRow()->getColumns()), 'Columns for EditForm are not set.');
-        Assert::false(empty($source = array_rand($this->container->parameters['tables'])), 'Test Source is not set.');
-        $columns = $this->row->getColumns($source);
+        Assert::true(is_array($serialize = (array) $this->class), 'Serialization of ' . $this->class->getName() . ' failed.');
+        Assert::true(is_array($variables = array_slice($serialize, 3, 1)), 'Extract IRow for testing failed');
+        Assert::true(is_object($row = reset($variables)), 'IRow is not set as third position variable.');
+        Assert::true($row instanceof IRow, 'IRow is not set.');
+        Assert::false(empty($attached = $row->getColumns()), 'Columns for EditForm are not set.');
+        Assert::false(empty($columns = $this->row->getColumns()), 'Injected IRow has no data.');
+        Assert::same($columns, $attached, 'DI attached different data.');
         $required = false;
+        $primary = '';
         foreach ($columns as $column) {
             if(false == $column['nullable'] and 
                'PRI' != $column['vendor']['Key'] and 
                0 === substr_count($column['vendor']['Comment'], '@unedit') and
                null === $column['default']) {
                 $required = $column['name'];
+            } else if('PRI' == $column['vendor']['Key']) {
+                $primary .= $column['name'] . ', ';
             }
             $notEdit = (0 < substr_count($column['vendor']['Comment'], '@unedit')) ? $column['name'] : 'THISNAMECOMPONENTSHOULDNEVERBEUSED';
         }
+        Assert::false(empty($data = $this->class->getData()), 'No data was attached.');
         Assert::false(isset($this->class[$notEdit]), 'Component ' . $notEdit . 'has been render even if it has annotation @unedit');
-        Assert::false(is_bool($required), 'Table ' . $source . ' has all columns with default null. Are you sure it is not dangerous?');
-        Assert::notSame(true, isset($this->class[$notEdit]));
+        Assert::false(is_bool($required) && empty($primary), 'Table ' . $this->row->getTable() . ' has all columns with default null. Are you sure it is not dangerous?');
+        Assert::notSame(true, isset($data[$notEdit]));
         if (is_string($required)) {
-            Assert::same(true, $this->class[$required]->isRequired(), 'Component ' . $required . ' from table ' . $source . ' should be required as it is not nullable column.');
+            if(!isset($data[$required]['Attributes']['required'])) {
+                dump($data[$required]['Attributes']);
+            }
+            Assert::true(isset($data[$required]['Attributes']['required']), 'Component ' . $required . ' from table ' . $this->row->getTable() . ' should be required as it is not nullable column.');
         }
-        Assert::same('Masala\EditForm', get_class($this->class), 'Namespace of EditForm must be exactly Masala as it is used as query parameter for hidden field spice.');
-    }
-
-    /** @todo: IEditFormService:attached must return service */
-    public function testSetPresenter() {
-        
     }
 
     public function testColumnComments() {
@@ -128,33 +148,34 @@ final class EditFormTest extends TestCase {
             Assert::true(is_string($name), 'Table name is not defined.');
             Assert::true(is_array($columns = $this->row->getColumns($name)), 'Table columns are not defined.');
         }
-        $compulsories = (isset($this->container->parameters['mockService']['compulsories'])) ? $this->container->parameters['mockService']['compulsories'] : [];
-        foreach ($compulsories as $name => $compulsory) {
-            $setting = $this->mockModel->getTestRow($name);
-            $this->row->table($name);
-            Assert::true($setting instanceof ActiveRow or in_array($name, $excluded), 'There is no row in ' . $name . '. Are you sure it is not useless?');
-            if ($setting instanceof ActiveRow) {
-                Assert::true(is_array($columns = $this->row->getColumns($name)), 'Table columns are not defined.');
-                $this->class->setRow($this->row);
-                $presenter = $this->mockService->getPresenter($compulsory['class'], WWW_DIR . '/app/' . $compulsory['latte'], ['id' => $setting->id]);
-                Assert::true(is_object($presenter), 'Presenter was not set.');
-                $presenter->addComponent($this->class, 'EditForm');
-                Assert::true(is_array($formComponents = array_keys((array) $this->class->getComponents())), 'Form components are not set.');
-                foreach ($columns as $column) {
-                    if (0 === substr_count($column['vendor']['Comment'], '@unedit') and 'PRI' !== $column['vendor']['Key']) {
-                        Assert::true(isset($this->class[$column['name']]), 'Column ' . $column['name'] . ' in table ' . $name . ' was not draw as component in Masala\EditForm.');
-                    } else {
-                        Assert::false(isset($this->class[$column['name']]), 'Column ' . $column['name'] . ' in table ' . $name . ' was draw as component in Masala\EditForm even it should not.');
+        foreach ($this->container->parameters['masala'] as $key => $compulsory) {
+            if(preg_match('/[A-Za-z]+\.[A-Za-z]+/', $key)) {
+                foreach($this->container->parameters['masala'][$key] as $call) {
+                    $parameters = (isset($call['parameters'])) ? $call['parameters'] : null; 
+                    $defaults = $this->mockService->getCall($call['service'], $call['method'], $parameters, $this->class);
+                    Assert::true(is_array($defaults), 'Call ' . $key . ' from masala config failed.');
+                    $name = preg_replace('/\.(.*)/', '', $key);
+                    $setting = $this->mockModel->getTestRow($name);
+                    $this->row->table($name);
+                    Assert::true($setting instanceof ActiveRow or in_array($name, $excluded), 'There is no row in ' . $name . '. Are you sure it is not useless?');
+                    if ($setting instanceof ActiveRow) {
+                        Assert::true(is_array($columns = $this->row->getColumns($name)), 'Table columns are not defined.');
+                        $this->class->setRow($this->row);
+                        $data = $this->class->getData();
+                        foreach ($columns as $column) {
+                            if (0 === substr_count($column['vendor']['Comment'], '@unedit') and 'PRI' !== $column['vendor']['Key']) {
+                                Assert::true(isset($data[$column['name']]), 'Column ' . $column['name'] . ' in table ' . $name . ' was not draw as component in Masala\EditForm.');
+                            } else {
+                                Assert::false(isset($data[$column['name']]), 'Column ' . $column['name'] . ' in table ' . $name . ' was draw as component in Masala\EditForm even it should not.');
+                            }
+                        }
+                        $this->setUp();
                     }
                 }
-                $this->setUp();
             }
         }
     }
 
-    public function testAddDateTimePicker() {
-        Assert::same(0, substr_count(preg_replace('/\s/', '', file_get_contents(WWW_DIR . '/app/Masala/templates/edit.latte')), '{input$componentclass'), 'Components of Masala\EditForm must not have class in latte as it will overide datetimepicker class.');
-    }
 
 }
 

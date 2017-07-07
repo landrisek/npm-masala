@@ -1,70 +1,15 @@
 <div id="{$component}" data="{$data}"></div>
 <script src="{$js}"></script>
 <script type="text/javascript">
+    /*$(document).ready(function () {
+        console.log('loading widget...');
+        $('.masala-widget').hover(function () {
+            $(this).stop().animate({ right: '220'}, 'slow');
+        }, function () {
+            $(this).stop().animate({ right: '-420'}, 'medium');
+        }, 500);
+    });*/
     $('input.datetimepicker').each(function() {
-        $(this).datetimepicker({ dateFormat: 'yy-mm-dd', timeFormat : '' })
+        $(this).datetimepicker({ format: $(this).attr('data'), locale: {$locale} })
     });
-    function getMethods(obj) {
-        var res = [];
-        for(var m in obj) {
-            if(typeof obj[m] === "function") {
-                res.push(m);
-            }
-        }
-        return res;
-    }
-    function setStorage(input) {
-        console.log('loading storage...');
-        var keys = localStorage.getItem(MASALA + ':keys');
-        var hash = localStorage.getItem(MASALA + ':hash');
-        var parent = input.parentsUntil('tbody').last();
-        parent.find(input).attr('value', input.val());
-        localStorage.setItem(MASALA + ':' + input.attr('name'), input.val());
-        localStorage.setItem(parent.attr('id'), parent.html());
-        if(null === keys) {
-            keys = new Object();
-            hash = new Object();
-        } else {
-            keys = JSON.parse(keys);
-            hash = JSON.parse(hash);
-        }
-        keys[input.attr('name')] = true;
-        hash[parent.attr('id')] = true;
-        localStorage.setItem(MASALA + ':keys', JSON.stringify(keys));
-        localStorage.setItem(MASALA + ':hash', JSON.stringify(hash));
-    }
-    function getStorage() {
-        console.log('loading caching');
-        setInterval(function () {
-            var data = new Object();
-            var storage = new Object();
-            var keys = JSON.parse(localStorage.getItem(MASALA +':keys'));
-            for (var id in keys) {
-                storage[id] = localStorage.getItem(MASALA +':' + id);
-            }
-            ;
-            data.storage = storage;
-            var cache = new Object();
-            var hash = JSON.parse(localStorage.getItem(MASALA +':hash'));
-            for (var id in hash) {
-                cache[id] = localStorage.getItem(id);
-            };
-            data.cache = cache;
-            var link = 'masala-storage'
-            if (false == jQuery.isEmptyObject(storage)) {
-                $.nette.ajax({
-                    type: 'post',
-                    url: link,
-                    data: data,
-                    success: function (payload) {
-                        for (var id in payload) {
-                            localStorage.removeItem(id);
-                        }
-                        localStorage.removeItem(MASALA +':keys');
-                        localStorage.removeItem(MASALA +':hash');
-                    }
-                });
-            }
-        }, 7000);
-    }
 </script>

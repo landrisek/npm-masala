@@ -8,8 +8,8 @@ export default class Form extends Component {
     constructor(props){
         super(props);
         var name = this.constructor.name;
-        this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'));
-        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'));
+        this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'))
+        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'))
     }
     attached() {
         var body = [];
@@ -131,7 +131,7 @@ export default class Form extends Component {
             onClick={this.bind(this.state[key].Attributes.onClick)} 
             onChange={this.onChange.bind(this)}
             style={this.state[key].Attributes.style}
-            type='text'
+            type={this.state[key].Attributes.type}
             value={this.state[key].Attributes.value} />
             <div>{this.addValidator(key)}</div></div>
     }
@@ -139,7 +139,7 @@ export default class Form extends Component {
         return <div key={key} className='input-group'>
             <textarea
                 id={key}
-                className='form-control'
+                className={this.state[key].Attributes.class}
                 data={this.state[key].Attributes.data}
                 onBlur={this.bind(this.state[key].Attributes.onBlur)}
                 onClick={this.bind(this.state[key].Attributes.onClick)}
@@ -186,9 +186,6 @@ export default class Form extends Component {
     }
     isRequired(value) {
         return (undefined !== value && '' !== value);
-    }
-    isFloat(value) {
-        console.log('todo');
     }
     onDrop(key, files) {
         var element = this.state[key]
