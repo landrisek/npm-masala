@@ -144,20 +144,6 @@ final class Builder implements IBuilder {
             $this->service->setSetting($setting);
         }
         /** select */
-        dump($this->columns); exit;
-        if(isset($this->config['settings']) and
-            $this->presenter->getUser()->isLoggedIn() and
-            is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['settings']]))) {
-            foreach($setting as $source => $annotations) {
-                if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
-                    foreach($annotations as $annotationId => $annotation) {
-                        if(!preg_match('/' . $annotation . '/', $this->columns[$annotationId])) {
-                            $this->columns[$annotationId] = $this->columns[$annotationId] . $annotation;
-                        }
-                    }
-                }
-            }
-        }
         foreach ($this->columns as $column => $annotation) {
             if (preg_match('/\sAS\s/', $annotation)) {
                 throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
@@ -170,6 +156,19 @@ final class Builder implements IBuilder {
             if (!isset($this->columns[$column['name']])) {
                 $this->inject($column['vendor']['Comment'] . '@' . $column['vendor']['Type'], $column['name']);
                 isset($this->defaults[$column['name']]) ? $this->columns[$column['name']] = $this->table . '.' . $column['name'] : null;
+            }
+        }
+        if(isset($this->config['settings']) and
+            $this->presenter->getUser()->isLoggedIn() and
+            is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['settings']]))) {
+            foreach($setting as $source => $annotations) {
+                if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
+                    foreach($annotations as $annotationId => $annotation) {
+                        if(!preg_match('/' . $annotation . '/', $this->columns[$annotationId])) {
+                            $this->inject($this->columns[$annotationId] . $annotation, $annotationId);
+                        }
+                    }
+                }
             }
         }
         /** query */
