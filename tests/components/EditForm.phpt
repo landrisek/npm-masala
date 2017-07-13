@@ -55,8 +55,8 @@ final class EditFormTest extends TestCase {
         $this->setUp();
         Assert::false(empty($tables = $this->container->parameters['tables']), 'Test tables are not set.');
         Assert::false(empty($excluded = $this->container->parameters['mockService']['excluded']), 'No tables to excluded. Do you wish to modify test?');
-        foreach($excluded as $table => $exclude) {
-            unset($tables[$table]);
+        foreach($excluded as $exclude) {
+            unset($tables[$exclude]);
         }
         Assert::false(empty($key = array_rand($tables)), 'Test source is not set.');
         Assert::false(empty($source = $this->container->parameters['tables'][$key]), 'Test table is not set.');
@@ -91,17 +91,20 @@ final class EditFormTest extends TestCase {
             Assert::false(empty($key = reset($keys)), 'Primary key is not set');            
         } else {
             Assert::false(empty($key = $primary), 'Primary key for ' . $this->row->getTable() . ' is not set.');
+            echo $key;
         }
-        Assert::true(isset($this->row->$key), 'Primary key missing for source '. $this->row->getTable());            
+        Assert::true(isset($this->row->$key), 'Primary key ' . $key . ' missing for source '. $this->row->getTable());
         $presenter = $this->mockService->getPresenter('App\DemoPresenter', $this->container->parameters['appDir'] . '/Masala/demo/default.latte', [$key => $this->row->$key]);
         Assert::true(is_object($presenter), 'Presenter was not set.');
         $presenter->addComponent($this->class, 'EditForm');
+        Assert::true(is_object($this->class->setRow($this->row)), 'Setter does not return class.');
         Assert::true(is_array($serialize = (array) $this->class), 'Serialization of ' . $this->class->getName() . ' failed.');
         Assert::true(is_array($variables = array_slice($serialize, 3, 1)), 'Extract IRow for testing failed');
         Assert::true(is_object($row = reset($variables)), 'IRow is not set as third position variable.');
         Assert::true($row instanceof IRow, 'IRow is not set.');
         Assert::false(empty($attached = $row->getColumns()), 'Columns for EditForm are not set.');
         Assert::false(empty($columns = $this->row->getColumns()), 'Injected IRow has no data.');
+        Assert::false(empty($source = $this->row->getTable()), 'Source tables is empty.');
         Assert::same($columns, $attached, 'DI attached different data.');
         $required = false;
         $primary = '';
@@ -117,15 +120,16 @@ final class EditFormTest extends TestCase {
             $notEdit = (0 < substr_count($column['vendor']['Comment'], '@unedit')) ? $column['name'] : 'THISNAMECOMPONENTSHOULDNEVERBEUSED';
         }
         Assert::false(empty($data = $this->class->getData()), 'No data was attached.');
+        if (is_string($required)) {
+            if(!isset($data[$required]['Attributes']['required'])) {
+                echo json_encode($data[$required]);
+            }
+            Assert::true(isset($data[$required]['Attributes']['required']), 'Component ' . $required . ' from table ' . $source . ' should be required as it is not nullable column.');
+        }
         Assert::false(isset($this->class[$notEdit]), 'Component ' . $notEdit . 'has been render even if it has annotation @unedit');
         Assert::false(is_bool($required) && empty($primary), 'Table ' . $this->row->getTable() . ' has all columns with default null. Are you sure it is not dangerous?');
         Assert::notSame(true, isset($data[$notEdit]));
-        if (is_string($required)) {
-            if(!isset($data[$required]['Attributes']['required'])) {
-                dump($data[$required]['Attributes']);
-            }
-            Assert::true(isset($data[$required]['Attributes']['required']), 'Component ' . $required . ' from table ' . $this->row->getTable() . ' should be required as it is not nullable column.');
-        }
+
     }
 
     public function testColumnComments() {

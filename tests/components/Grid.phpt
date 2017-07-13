@@ -4,6 +4,7 @@ namespace Test;
 
 use Masala\Grid,
     Masala\IRow,
+    Masala\MockService,
     Nette\DI\Container,
     Tester\Assert,
     Tester\TestCase;
@@ -25,6 +26,9 @@ final class GridTest extends TestCase {
     /** @var IRow */
     private $row;
 
+    /** @var MockService */
+    private $mockService;
+
     function __construct(Container $container) {
         $this->container = $container;
     }
@@ -33,6 +37,7 @@ final class GridTest extends TestCase {
         $this->editForm = $this->container->getByType('Masala\EditForm');
         $this->class = $this->container->getByType('Masala\Grid');
         $this->row = $this->container->getByType('Masala\IRow');
+        $this->mockService = $this->container->getByType('Masala\MockService');
     }
 
     public function __destruct() {
@@ -57,7 +62,6 @@ final class GridTest extends TestCase {
     public function testAttached() {
         Assert::same('Masala\Grid', get_class($this->class), 'Namespace of ' . get_class($this->class) . ' must be exactly Masala as it is used as query parameter in /react/Grid.jsx:getSpice().');
     }
-
 
 }
 

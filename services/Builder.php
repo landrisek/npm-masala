@@ -9,7 +9,8 @@ use Nette\Application\UI\Presenter,
     Nette\Database\Table\ActiveRow,
     Nette\Database\Table\Selection,
     Nette\InvalidStateException,
-    Nette\Http\IRequest;
+    Nette\Http\IRequest,
+    Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
 final class Builder implements IBuilder {
@@ -56,14 +57,14 @@ final class Builder implements IBuilder {
     /** @var IFilter */
     private $filter;
 
-    /** @var string */
+    /** @var int */
     private $group;
 
-    /** @var string */
-    private $hash;
+    /** @var array */
+    private $groups = [];
 
     /** @var string */
-    private $having = '';
+    private $having;
 
     /** @var IProcess */
     private $import;
@@ -79,9 +80,6 @@ final class Builder implements IBuilder {
 
     /** @var int */
     private $limit;
-
-    /** @var MockService */
-    private $mockService;
 
     /** @var int */
     private $offset;
@@ -102,12 +100,6 @@ final class Builder implements IBuilder {
     private $select;
 
     /** @var string */
-    private $spice;
-
-    /** @var string */
-    private $sumQuery;
-
-    /** @var int */
     private $sum;
 
     /** @var array */
@@ -119,15 +111,18 @@ final class Builder implements IBuilder {
     /** @var IUpdate */
     private $update;
 
+    /** @var ITranslator */
+    private $translatorModel;
+
     /** @var string */
     private $query;
 
-    public function __construct(array $config, ExportService $exportService, MockService $mockService, Context $database, IStorage $storage, IRequest $httpRequest) {
+    public function __construct(array $config, ExportService $exportService, Context $database, IStorage $storage, IRequest $httpRequest, ITranslator $translatorModel) {
         $this->config = $config;
         $this->exportService = $exportService;
-        $this->mockService = $mockService;
         $this->database = $database;
         $this->cache = new Cache($storage);
+        $this->translatorModel = $translatorModel;
     }
 
     public function attached(Masala $masala) {
@@ -149,13 +144,16 @@ final class Builder implements IBuilder {
             $this->service->setSetting($setting);
         }
         /** select */
+        dump($this->columns); exit;
         if(isset($this->config['settings']) and
             $this->presenter->getUser()->isLoggedIn() and
             is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['settings']]))) {
             foreach($setting as $source => $annotations) {
                 if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
                     foreach($annotations as $annotationId => $annotation) {
-                        $this->columns[$annotationId] = $annotation;
+                        if(!preg_match('/' . $annotation . '/', $this->columns[$annotationId])) {
+                            $this->columns[$annotationId] = $this->columns[$annotationId] . $annotation;
+                        }
                     }
                 }
             }
@@ -163,8 +161,8 @@ final class Builder implements IBuilder {
         foreach ($this->columns as $column => $annotation) {
             if (preg_match('/\sAS\s/', $annotation)) {
                 throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
-            } elseif ($column == 'style') {
-                throw new InvalidStateException('Style keyword is reserved for callbacks. See https://github.com/landrisek/Masala/wiki/Methods. Use different alias.');
+            } elseif (in_array($column, ['style', 'groups'])) {
+                throw new InvalidStateException('Style and groups keywords are reserved for callbacks. See https://github.com/landrisek/Masala/wiki/Methods. Use different alias.');
             }
             $this->inject($annotation, $column);
         }
@@ -176,7 +174,6 @@ final class Builder implements IBuilder {
         }
         /** query */
         $select = 'SELECT ';
-        $this->sumQuery = 'SELECT COUNT(';
         $primary = $this->getPrimary();
         foreach ($this->columns as $alias => $column) {
             $column = (preg_match('/\.|\s| |\(|\)/', trim($column))) ? $column : $this->table . '.' . $column;
@@ -192,10 +189,8 @@ final class Builder implements IBuilder {
             $select .= ' ' . $column . ' AS `' . $alias . '`, ';
         }
         $this->query = rtrim($select, ', ');
+        $this->sum = rtrim($select, ', COUNT(*) AS sum ');
         $this->select = rtrim(ltrim($select, 'SELECT '), ', ');
-        $this->sumQuery .= (null == $this->group) ? '*' : 'DISTINCT ' . $this->group;
-        /** if modify this, check getSum */
-        $this->sumQuery .= ') AS sum ';
         $from = ' FROM ' . $this->table . ' ';
         foreach ($this->join as $join) {
             $from .= ' JOIN ' . $join . ' ';
@@ -207,7 +202,7 @@ final class Builder implements IBuilder {
             $from .= ' INNER JOIN ' . $join . ' ';
         }
         $this->query .= $from;
-        $this->sumQuery .= $from;
+        $this->sum = 'SELECT COUNT(*) AS sum ' . $from;
     }
 
     /** @return IBuilder */
@@ -218,7 +213,7 @@ final class Builder implements IBuilder {
 
     /** @return IBuilder */
     public function copy() {
-        return new Builder($this->config, $this->exportService, $this->mockService, $this->database, $this->storage, $this->httpRequest);
+        return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->httpRequest);
     }
     
     private function column($column) {
@@ -259,6 +254,7 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    /** @return bool */
     public function getAnnotation($column, $annotation) {
         if (is_array($annotation)) {
             foreach ($annotation as $annotationId) {
@@ -276,13 +272,9 @@ final class Builder implements IBuilder {
         }
     }
 
+    /** @return array */
     public function getArguments() {
         return $this->arguments;
-    }
-
-    /** @return array */
-    public function getColumns() {
-        return $this->columns;
     }
 
     /** @return string | Bool */
@@ -291,6 +283,11 @@ final class Builder implements IBuilder {
             return $this->columns[$key];
         }
         return false;
+    }
+
+    /** @return array */
+    public function getColumns() {
+        return $this->columns;
     }
 
     /** @return array */
@@ -324,6 +321,11 @@ final class Builder implements IBuilder {
     }
 
     /** @return void | IProcess */
+    public function getExcel() {
+        return $this->export;
+    }
+
+    /** @return void | IProcess */
     public function getExport() {
         return $this->export;
     }
@@ -354,18 +356,22 @@ final class Builder implements IBuilder {
 
     }
 
-    public function getHash() {
-        return $this->hash;
+    /** @return array */
+    public function getGroup() {
+        return $this->groups;
     }
 
+    /** @return string */
     public function getId($status) {
         return md5($this->control . ':' . $this->presenter->getName() . ':' . $this->presenter->getAction()  . ':' . $status . ':' . $this->presenter->getUser()->getId());
     }
 
+    /** @return IProcess | bool */
     public function getImport() {
         return $this->import;
     }
 
+    /** @return string */
     private function getKey($method, $parameters) {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
     }
@@ -412,7 +418,7 @@ final class Builder implements IBuilder {
 
     /** @return array */
     public function getOffsets() {
-        if(null == $data = $this->cache->load($this->control . ':' . $this->hash . ':' . $this->offset)) {
+        if(null == $data = $this->cache->load($hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . $this->offset)))))) {
             $this->arguments[] = intval($this->limit);
             $this->arguments[] = intval($this->offset);
             $build = $this->build instanceof IBuild;
@@ -437,10 +443,10 @@ final class Builder implements IBuilder {
                 $data = $fetch($this, $data);
             }
             /** if(!empty($data)) {
-             * $this->cache->save($this->control . ':' . $this->hash . ':' . $this->offset, $data, [Cache::EXPIRE => '+1 hour']);
-             * } */
+                $this->cache->save($this->control . ':' . $hash . ':' . $this->offset, $data, [Cache::EXPIRE => '+1 hour']);
+             }*/
         }
-        $this->logQuery($this->hash);
+        $this->logQuery($hash);
         return $data;
     }
 
@@ -469,11 +475,11 @@ final class Builder implements IBuilder {
         foreach ($this->where as $column => $value) {
             is_numeric($column) ? $dataSource->where($value) : $dataSource->where($column, $value);
         }
-        if(!empty($this->group)) {
-            foreach(explode(',', $this->group) as $group) {
+        if(isset($this->groups[$this->group])) {
+            foreach(explode(',', $this->groups[$this->group]) as $group) {
                 $dataSource->where(trim($group) . ' IS NOT NULL');
             }
-            $dataSource->group($this->group);
+            $dataSource->group($this->groups[$this->group]);
         }
         empty($this->having) ? null : $dataSource->having($this->having);
         return $dataSource;
@@ -486,31 +492,29 @@ final class Builder implements IBuilder {
 
     /** @return int */
     public function getSum() {
-        if(is_int($this->sum)) {
-            return $this->sum;
-        } elseif(empty($this->where)) {
-            return $this->sum = $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
-        /*} elseif (empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin) && !empty($this->having)) {
-                dump('todo'); exit;
-                $load = $this->getResource(); */
+        if(empty($this->where)) {
+            return $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
         } elseif (empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin)) {
-            $load = $this->getResource();
-            return $this->sum = $load->count();
-        } elseif (!empty($this->having)) {
-            $this->sumQuery = preg_replace('/\sAS\ssum\sFROM/', ' AS sum, * FROM', $this->sumQuery);
+            return $this->getResource()->count();
         } else {
             $arguments = [];
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
             }
-            $load = $this->database->query($this->sumQuery, ...$arguments)->fetch();
-            return $this->sum = $load->sum;
+            return $this->database->query($this->sum, ...$arguments)->fetch()->sum;
         }
     }
 
-    /** @return string */
-    public function getSpice() {
-        return $this->spice;
+    /** @return int */
+    public function getSummary() {
+        if(!preg_match('/SUM\(/', $summary = $this->columns[$this->presenter->request->getPost('summary')])) {
+            $summary = 'SUM(' . $summary . ')';
+        }
+        $query = preg_replace('/SELECT(.*)FROM/', 'SELECT ' . $summary . ' AS sum FROM', $this->sum);
+        if(null == $sum = $this->database->query($query, ...$this->arguments)->fetch()->sum) {
+            return 0;
+        }
+        return $sum;
     }
 
     /** @return ActiveRow */
@@ -532,8 +536,8 @@ final class Builder implements IBuilder {
     }
 
     /** @return IBuilder */
-    public function group($group) {
-        $this->group = (string) $group;
+    public function group(array $groups) {
+        $this->groups = $groups;
         return $this;
     }
 
@@ -701,6 +705,12 @@ final class Builder implements IBuilder {
         if(null == $filters = $this->presenter->request->getPost('filters')) {
             $filters = [];
         }
+        if(isset($filters['groups'])) {
+            $this->group = preg_replace('/_/', '', $filters['groups']);
+            unset($filters['groups']);
+        } else if(!empty($this->groups)) {
+            $this->group = 0;
+        }
         if(null == $sort = $this->presenter->request->getPost('sort') and null == $this->order) {
             foreach($this->columns as $name => $column) {
                 if(false == $this->getAnnotation($name, 'unrender')) {
@@ -763,7 +773,6 @@ final class Builder implements IBuilder {
         }
         /** where and having */
         $where = (!empty($this->where)) ? ' WHERE ' : '';
-        $salt = '';
         foreach ($this->where as $column => $value) {
             $column = (preg_match('/\./', $column) or is_numeric($column)) ? $column : '`' . $column . '`';
             if (is_numeric($column)) {
@@ -781,32 +790,39 @@ final class Builder implements IBuilder {
                 $where .= ' ' . $column . ' = ? AND ';
                 $this->arguments[] = $value;
             }
-            $salt .= is_array($value) ? implode(',', $value) : $value;
         }
-
+        /** group, having */
         $this->having = rtrim($this->having, 'AND ');
         $this->query .= rtrim($where, 'AND ');
-        $this->sumQuery .= rtrim($where, 'AND ');
-        /** group, having */
-        $this->query .= (null == $this->group) ? '' : ' GROUP BY ' . $this->group . ' ';
-        $salt .= '|' . $this->group;
-        $this->query .= ('' == $this->having) ? '' : ' HAVING ' . $this->having . ' ';
-        $salt .= '|' . $this->having;
-        $this->sumQuery .= (null == $this->having) ? '' : ' HAVING ' . $this->having . ' ';
+        $this->sum .= rtrim($where, 'AND ');
+        if(isset($this->groups[$this->group])) {
+            $this->query .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
+            $this->sum = str_replace('COUNT(*) AS sum', $this->groups[$this->group] . ', COUNT(DISTINCT ' . $this->groups[$this->group] . ') AS sum', $this->sum);
+        }
+        if(!empty($this->having)) {
+            $this->query .= ' HAVING ' . $this->having . ' ';
+            $this->sum .= ' HAVING ' . $this->having . ' ';
+        }
         /** sort */
         $this->query .= ' ORDER BY ' . $this->sort . ' ';
-        $salt .= '|' . $this->sort;
-        if('export' == $this->presenter->request->getPost('status')) {
+        /** offset */
+        if(in_array($this->presenter->request->getPost('status'), ['excel', 'export'])) {
             $this->offset = $offset;
             $this->limit = $this->config['exportSpeed'];
         } else {
-            $this->offset = (in_array($offset, ['0', '1', null])) ? 0 : ($offset - 1) * $this->config['pagination'];
+            $this->offset = ($offset - 1) * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
         }
-        $this->hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . '|' . $salt))));
-        $this->spice = json_encode($filters);
-        /** fetch */
         return $this;
     }
 
+    /** @return string */
+    public function translate($name, $annotation) {
+        if ($this->presenter->getName() . ':' . $this->presenter->getAction() . ':' . $name != $label = $this->translatorModel->translate($this->presenter->getName() . ':' . $this->presenter->getAction() . ':' . $name)) {
+        } elseif ($this->presenter->getName() . ':' . $name != $label = $this->translatorModel->translate($this->presenter->getName() . ':' . $name)) {
+        } elseif ($annotation != $label = $this->translatorModel->translate($annotation)) {
+        } elseif ($label = $this->translatorModel->translate($name)) {
+        }
+        return $label;
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace Test;
 
+use Masala\IGridFactory;
 use Masala\Masala,
     Masala\MockService,
     Nette\DI\Container,
@@ -53,10 +54,16 @@ final class MasalaTest extends TestCase {
                 }
             }
         }
+        Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')));
+        Assert::false(empty($config = $extension->getConfiguration($this->container->parameters)));
+        Assert::false(empty($settings = (array) json_decode($this->mockService->getUser()->getIdentity()->getData()[$config['masala']['settings']])), 'Test user does not have settings.');
+        Assert::false(empty($setting = (array) reset($settings)), 'User setting is not set');
+        $_POST = [$column => 'true'];
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
         foreach ($presenters as $class => $presenter) {
+            Assert::false(empty($_POST), 'Post cannot be empty for testing xhr handlers.');
             if(isset($this->container->parameters['mockService']['presenters'][$class])) {
-                $testParameters = $this->container->parameters['mockService']['presenters'];
+                $testParameters = $this->container->parameters['mockService']['presenters'][$class];
             } else if(isset($this->container->parameters['mockService']['testParameters'])) {
                 $testParameters = $this->container->parameters['mockService']['testParameters'];
             } else {
@@ -68,6 +75,7 @@ final class MasalaTest extends TestCase {
             Assert::notSame(6, strlen($method = 'action' . ucfirst(array_shift($parameters))), 'Action method of ' . $class . ' is not set.');
             Assert::true(is_object($reflection = new Method($class, $method)));
             $arguments = [];
+            dump($testParameters);
             foreach ($reflection->getParameters() as $parameter) {
                 Assert::true(isset($testParameters[$parameter->getName()]), 'There is no test parameters for ' . $parameter->getName() . ' in ' . $class . '.');
                 $arguments[$parameter->getName()] = $testParameters[$parameter->getName()];
@@ -91,13 +99,26 @@ final class MasalaTest extends TestCase {
             Assert::true(is_array($columns = $presenter->grid->getDrivers($source)), 'Table columns are not defined.');
             Assert::true(is_object($grid = $this->mockService->getPrivateProperty($this->class, 2)), 'Masala builder is not set.');
             Assert::true(is_array($renderColumns = $grid->getColumns()), 'No columns was rendered.');
+            foreach($renderColumns as $column => $annotation) {
+                $_POST[$column] = 'true';
+                break;
+            }
+            Assert::false(empty($_POST), 'No column to annotate is set.');
+            Assert::true(is_object($gridFactory = $this->mockService->getPrivateProperty($this->class, 3)), 'IGridFactory is not set.');
+            Assert::true($gridFactory instanceof IGridFactory, 'GridFactory has wrong instation.');
+            Assert::same($gridFactory, $gridFactory->setGrid($grid), 'GridFactory::setGrid does not return class itself.');
+            Assert::same($presenter, $presenter->addComponent($gridFactory, 'gridFactory'), 'IPresenter::addComponent does not return class itself.');
+            Assert::true(isset($_POST[$column]), 'Test $_POST data were unexpected overwrited.');
+            Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
+            Assert::false(empty($_POST[$column] = 'false'));
+            Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $notShow = [];
             foreach ($columns as $column) {
                 if (0 < substr_count($column['vendor']['Comment'], '@hidden')) {
                     $notShow[$column['name']] = $column['name'];
                 }
             }
-            Assert::false(empty($this->class->getGrid()->getColumns()), 'Columns are not set.');
+            Assert::false(empty($this->class->getGrid()->getColumns()),'Columns are not set.');
             foreach ($renderColumns as $key => $renderColumn) {
                 if (isset($notShow[$key])) {
                     Assert::true(is_object($reflector = new \ReflectionClass($class)), 'Reflection is not set.');

@@ -35,6 +35,10 @@ final class BuilderExtension extends CompilerExtension {
         $builder = $this->getContainerBuilder();
         $parameters = $this->getConfiguration($builder->parameters);
         $manifest = (array) json_decode(file_get_contents($parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/js/manifest.json'));
+        $builder->addDefinition($this->prefix('Builder'))
+                ->setClass('Masala\Builder', [$parameters['masala']]);
+        $builder->addDefinition($this->prefix('builderExtension'))
+                ->setClass('Masala\BuilderExtension', []);
         $builder->addDefinition($this->prefix('contentForm'))
                 ->setClass('Masala\ContentForm', [$manifest['ContentForm.js']]);
         $builder->addDefinition($this->prefix('editForm'))
@@ -42,7 +46,7 @@ final class BuilderExtension extends CompilerExtension {
         $builder->addDefinition($this->prefix('exportService'))
                 ->setClass('Masala\ExportService', [$builder->parameters['tempDir']]);
         $builder->addDefinition($this->prefix('grid'))
-                ->setClass('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js'], $parameters['masala']['format']]);
+                ->setClass('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js'], $parameters['masala']]);
         $builder->addDefinition($this->prefix('filterForm'))
                 ->setClass('Masala\FilterForm', ['']);
         $builder->addDefinition($this->prefix('importForm'))
@@ -53,18 +57,14 @@ final class BuilderExtension extends CompilerExtension {
                 ->setClass('Masala\Masala', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('mockModel'))
                 ->setClass('Masala\MockModel');
-        $builder->addDefinition($this->prefix('Builder'))
-                ->setClass('Masala\Builder', [$parameters['masala']]);
+        $builder->addDefinition($this->prefix('mockService'))
+                ->setClass('Masala\MockService');
         $builder->addDefinition($this->prefix('processForm'))
                 ->setClass('Masala\ProcessForm', [$manifest['ProcessForm.js']]);
         $builder->addDefinition($this->prefix('row'))
                 ->setClass('Masala\Row', [$parameters['masala']]);
-        $builder->addDefinition($this->prefix('mockService'))
-                ->setClass('Masala\MockService');
         $builder->addDefinition($this->prefix('writeModel'))
-            ->setClass('Masala\WriteModel', [$parameters['masala']['write']]);
-        $builder->addDefinition($this->prefix('builderExtension'))
-                ->setClass('Masala\BuilderExtension', []);
+                ->setClass('Masala\WriteModel', [$parameters['masala']['write']]);
     }
 
     public function beforeCompile() {

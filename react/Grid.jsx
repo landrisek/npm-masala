@@ -67,17 +67,12 @@ export default class Grid extends Form {
         var body = []
         var rows = this.state[ROWS]
         var i = 0;
+        body.push(this.addSummary())
         for(var key in rows) {
             var id = 'row-' + i++;
             body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
         }
         return body
-    }
-    addCancel() {
-        return <a key='cancel'
-                    className='btn btn-warning'
-                    style={{marginRight:'10px'}}
-                    onClick={this.submit.bind(this, 'cancel')}>{this.state[BUTTONS]['cancel']}</a>
     }
     addColumns() {
         var body = [];
@@ -89,6 +84,21 @@ export default class Grid extends Form {
             }
         }
         return body;
+    }
+    addSettings() {
+        var settings = []
+        var columns = this.state[COLUMNS]
+        for (var key in columns) {
+            if(null == /\s/.exec(key)) {
+                var id = key + '-setting'
+                var checked = 'checked'
+                if(true == columns[key].Attributes.unrender) { checked = null }
+                settings.push(<div key={id} style={{float:'left'}}>
+                    <input checked={checked} id={key} onClick={this.setting.bind(this)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
+                </div>)
+            }
+        }
+        return <div style={{display:this.state[BUTTONS].setting.display}}>{settings}</div>
     }
     addEmpty(key) {
         var th = 'grid-col-' + key
@@ -105,6 +115,7 @@ export default class Grid extends Form {
         }
         return body;
     }
+    addHidden(key) {}
     addMultiSelect(key) {
         var th = 'grid-col-' + key
         var columns = this.state[COLUMNS]
@@ -200,6 +211,19 @@ export default class Grid extends Form {
                         >{this.getOptions(key)}>
                 </select></th>
     }
+    addSummary() {
+        var container = []
+        var columns = this.state[COLUMNS]
+        for (var key in columns) {
+            var id = 'summary-' + key
+            if(true != columns[key].Attributes.unrender && false === isNaN(parseInt(columns[key].Attributes.summary))) {
+                container.push(<td key={id}>{columns[key].Attributes.summary}</td>)
+            } else if(true != columns[key].Attributes.unrender) {
+                container.push(<td key={id}></td>)
+            }
+        }
+        return <tr key='summary'>{container}</tr>
+    }
     addText(key) {
         var th = 'grid-col-' + key
         var columns = this.state[COLUMNS]
@@ -284,8 +308,10 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         var options = columns[key].Attributes.data
         var option = key + '-'
-        var id = options['']
-        container.push(<option key={option} value=''>{id}</option>)
+        if(undefined != options['']) {
+            var id = options['']
+            container.push(<option key={option} value=''>{id}</option>)
+        }
         for (var value in options) {
             if('' != value) {
                 var id = options[value]
@@ -342,6 +368,7 @@ export default class Grid extends Form {
         state[BUTTONS] = this.state[BUTTONS]
         state[BUTTONS]['pages'] = response
         this.setState(state)
+        return data
     }
     prepare(event) {
         var data = this.getSpice()
@@ -356,11 +383,18 @@ export default class Grid extends Form {
         }})
     }
     render() {
+        var setting = ''
+        if (true == this.state[BUTTONS].setting.enabled) {
+            var setting = this.addAction('setting')
+        }
         return <div><ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
-                <tr><td style={{paddingTop:'10px'}}>{this.addAction('export')}{this.addAction('reset')}{this.addAction('send')}{this.addAction('done')}</td></tr>
+                <tr><td style={{paddingTop:'10px'}}>
+                    {setting}{this.addAction('excel')}{this.addAction('export')}{this.addAction('reset')}{this.addAction('send')}{this.addAction('done')}
+                </td></tr>
             </tbody></table>
+            {this.addSettings()}
             <table className="table table-striped table-hover">
             <thead>
             <tr className='grid-labels'>{this.addLabels()}</tr>
@@ -434,6 +468,30 @@ export default class Grid extends Form {
             this.submit()
         }
     }
+    setting(event) {
+        var state = []
+        var buttons = this.state[BUTTONS]
+        if('checkbox' === event.target.type) {
+            var columns = this.state[COLUMNS]
+            if(true == columns[event.target.id].Attributes.unrender) {
+                columns[event.target.id].Attributes.unrender = false
+            } else {
+                columns[event.target.id].Attributes.unrender = true
+            }
+            var data = new Object()
+            data[event.target.id] = columns[event.target.id].Attributes.unrender
+            state[COLUMNS] = columns
+            $.ajax({ type:'post',url:this.state[BUTTONS].setting.link,data:data,async:false})
+        } else {
+            if('block' == buttons.setting.display) {
+                buttons.setting.display = 'none'
+            } else {
+                buttons.setting.display ='block'
+            }
+            state[BUTTONS] = buttons
+        }
+        this.setState(state)
+    }
     submit(key, event) {
         var state = []
         if('object' == typeof(event) && 'Enter' == event.key) {
@@ -448,7 +506,19 @@ export default class Grid extends Form {
         state[BUTTONS] = this.state[BUTTONS]
         state[BUTTONS]['page'] = 1
         this.setState(state)
-        this.paginate()
+        this.summary(this.paginate())
+    }
+    summary(data) {
+        var columns = this.state[COLUMNS]
+        for (var key in columns) {
+            if(true != columns[key].Attributes.unrender && true === columns[key].Attributes.summary) {
+                data['summary'] = key
+                columns[key].Attributes.summary = $.ajax({ type:'post',url:this.state[BUTTONS]['summary'],data:data,async:false}).responseText
+            }
+        }
+        var state = []
+        state[COLUMNS] = columns
+        this.setState(state)
     }
     sort(key) {
         var columns = this.state[COLUMNS]

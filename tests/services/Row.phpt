@@ -39,13 +39,15 @@ final class RowTest extends TestCase {
         Assert::true(is_object($grid = $this->container->getByType('Masala\IBuilder')), 'IBuilder is not set.');
         Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set');
         Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users in config is not set.');
-        Assert::false(empty($primary = $this->container->parameters['mockService']['testUser']), 'Table of users in config is not set.');        
+        Assert::false(empty($credentials = $this->container->parameters['mockService']['testUser']), 'Table of users in config is not set.');
+        unset($credentials['password']);
+        unset($credentials['username']);
         Assert::same($this->class, $this->class->table($table), 'Table setter failed.');
-        foreach($primary as $column => $value) {
+        foreach($credentials as $column => $value) {
             Assert::true(is_object($this->class->where($column, $value)), 'IRow:where does not return class itself.');
         }
         Assert::false(empty($this->primary = $grid->table($table)->getPrimary()), 'Primary is not set.');
-        Assert::true(is_object($this->row = $this->class->check()), 'Test row is not set.');
+        Assert::true(is_object($this->row = $this->class->check()), 'Test row is not set for source ' . $table . '.');
     }
 
     public function __destruct() {

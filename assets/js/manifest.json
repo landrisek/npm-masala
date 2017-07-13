@@ -1,7 +1,7 @@
 {
-  "ContentForm.js": "assets/masala/js/ContentForm.840a6251448fcca3c014.js",
-  "EditForm.js": "assets/masala/js/EditForm.f1784ee668445b085ada.js",
-  "Grid.js": "assets/masala/js/Grid.acbb6d8f615c4d44e578.js",
-  "ImportForm.js": "assets/masala/js/ImportForm.de86cef114fbf82d40c2.js",
-  "ProcessForm.js": "assets/masala/js/ProcessForm.a2392e6320da80912ab8.js"
+  "ContentForm.js": "assets/masala/js/ContentForm.js",
+  "EditForm.js": "assets/masala/js/EditForm.js",
+  "Grid.js": "assets/masala/js/Grid.js",
+  "ImportForm.js": "assets/masala/js/ImportForm.js",
+  "ProcessForm.js": "assets/masala/js/ProcessForm.js"
 }

@@ -184,25 +184,43 @@ export default class Form extends Component {
         }
         return container
     }
+    isImage(value) {
+        if(value instanceof File) {
+            return ['bmp','gif','jpg','jpeg'].indexOf(value.type) > -1            
+        }
+        for(var file in value) {
+            if(-1 == ['.bmp','.gif','.jpg','jpeg'].indexOf(value[file].substr(-4, 5))) {
+                return false
+            }
+        }
+
+    }
     isRequired(value) {
         return (undefined !== value && '' !== value);
+    }
+    isText(value) {
+        if(value instanceof File) {
+            return ['application/csv','application/vnd.ms-excel','application/x-csv','text/csv','text/comma-separated-values','text/x-csv',
+                    'text/x-comma-separated-values','text/plain','text/tab-separated-values'].indexOf(value.type) > -1
+        }
+        for(var file in value) {
+            if(-1 == ['.csv','.txt','.xls','.xlsx'].indexOf(value[file].substr(-4, 5))) {
+                return false
+            }
+        }
     }
     onDrop(key, files) {
         var element = this.state[key]
         var names = []
         for(var file in files) {
-            var type = files[file].type
-            if(this.state[key].Validators['type'].value != type) {
-                element.Validators[this.state[key].Validators['type'].value].style = { display : 'block' }
-            } else if('text/csv' == type) {
-                element.Validators[this.state[key].Validators['type'].value].style = { display : 'none' }
-                names[this.save(files[file])] = files[file].name
-            } else if ('jpeg' == type || 'gif' == type || 'bmp' == type) {
-                element.Validators[this.state[key].Validators['type'].value].style = { display : 'none' }
-                names[this.save(files[file])] = files[file].name
-            }
-            if(undefined != element.Validators['required'] && 'none' == element.Validators[this.state[key].Validators['type'].value].style.display) {
-                element.Validators['required'].style = { display : 'none' }
+            for(var validator in this.state[key].Validators) {
+                var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
+                if('function' == typeof(closure) && false == closure(files[file])) {
+                        element.Validators[validator].style = { display : 'block' }
+                } else {
+                    element.Validators[validator].style = { display : 'none' }
+                    names[this.save(files[file])] = files[file].name
+                }
             }
         }
         element.Attributes.value = names

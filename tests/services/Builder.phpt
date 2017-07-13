@@ -102,7 +102,7 @@ final class BuilderTest extends TestCase {
 
     public function testGetQuery() {
         Assert::same($this->class, $this->class->table($this->container->parameters['tables']['help']), 'Builder:table does not return class itself.');
-        Assert::same($this->class, $this->class->group('id ASC'), 'Builder:group does not return class itself.');
+        Assert::same($this->class, $this->class->group(['id ASC']), 'Builder:group does not return class itself.');
         Assert::same($this->class, $this->class->limit(10), 'Builder:limit does not return class itself.');
         Assert::same($this->container->parameters['tables']['help'], $this->class->getTable(), 'Assign table for help failed.');
     }

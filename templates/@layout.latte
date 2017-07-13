@@ -1,19 +1,17 @@
 {block import}
     {import 'assets.latte'}
     {import 'dialog.latte'}
-    {import 'widget.latte'}
 {/block}
 {include assets}
 {if is_object($grid->getImport())}
-    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-import" data-toggle="modal">{_'import'|firstUpper}</a>
+    <a class='btn btn-success' type='button' data-target='#{$control->getName()}-import' data-toggle='modal'>{_'import'|firstUpper}</a>
 {/if}
 {if !empty($help)}
-    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-help" data-toggle="modal">{_'help'|firstUpper}</a>
+    <a class='btn btn-success' type='button' data-target='#{$control->getName()}-help' data-toggle='modal'>{_'help'|firstUpper}</a>
 {/if}
 {if is_object($grid->getService())}
-    <a class="btn btn-success" type="button" data-target="#{$control->getName()}-process" data-toggle="modal">{_'process'|firstUpper}</a>
+    <a class='btn btn-success' type='button' data-target='#{$control->getName()}-process' data-toggle='modal'>{_'process'|firstUpper}</a>
 {/if}
-{*include widget*}
 {control grid}
 <div class='modal'><!-- loading --></div>
 {include dialog}

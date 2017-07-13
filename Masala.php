@@ -6,9 +6,13 @@ use Nette\Application\Responses\JsonResponse,
     Nette\Application\Responses\TextResponse,
     Nette\Application\UI\Control,
     Nette\Application\IPresenter,
-    Nette\Localization\ITranslator,
     Nette\Http\IRequest,
-    PHPExcel;
+    Nette\Utils\DateTime,
+    Nette\Localization\ITranslator,
+    PHPExcel,
+    PHPExcel_Writer_Excel2007,
+    PHPExcel_IOFactory;
+
 
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
@@ -40,7 +44,7 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var ITranslator */
     private $translatorModel;
 
-    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpModel, IImportFormFactory $importFormFactory,  IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpModel, IImportFormFactory $importFormFactory, IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
@@ -148,7 +152,7 @@ final class Masala extends Control implements IMasalaFactory {
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $header = '';
         foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
-            $header .= $this->translatorModel->translate($column) . ';';
+            $header .= $this->grid->translate($column, $this->grid->getTable() . '.' .  $column) . ';';
         }
         $file = $this->grid->getId('export') . '.csv';
         file_put_contents($folder . '/' . $file, $header);
@@ -162,10 +166,12 @@ final class Masala extends Control implements IMasalaFactory {
         return $this->presenter->sendResponse($response);
     }
 
+    /** @return JsonResponse */
     public function handleExcel() {
         $excel = new PHPExcel();
         $folder = $this->grid->getExport()->getFile();
-        $title = $this->request->getPost('title');
+        !file_exists($folder) ? mkdir($folder, 0755, true) : null;
+        $title = 'export';
         $properties = $excel->getProperties();
         $properties->setTitle($title);
         $properties->setSubject($title);
@@ -173,31 +179,27 @@ final class Masala extends Control implements IMasalaFactory {
         $excel->setActiveSheetIndex(0);
         $sheet = $excel->getActiveSheet();
         $sheet->setTitle(substr($title, 0, 31));
-        $this->header = [];
-        $id = 'a';
-        $this->header = [];
-        foreach($this->request->getPost('row') as $column => $value) {
-            $this->header[$id] = [ucfirst($this->translatorModel->translate($column)), \PHPExcel_Style_Alignment::HORIZONTAL_LEFT];
-            ++$id;
-        }
-        foreach ($this->header as $letter => $header) {
-            $sheet->setCellValue($letter . '1', $header[0]);
+        $letter = 'a';
+        foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
+            $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
             $sheet->getColumnDimension($letter)->setAutoSize(true);
             $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+            $letter++;
         }
-        $file = $this->grid->getId('export') . '.xls';
-        file_put_contents($folder . '/' . $file, $header);
+        $file = $this->grid->getId('excel') . '.xls';
+        $objWriter = new PHPExcel_Writer_Excel2007($excel);
+        $objWriter->save($folder . '/' .$file);
         $response = new JsonResponse($this->grid->getExport()->prepare([
             'file' => $file,
             'filters' => $this->request->getPost('filters'),
             'offset' => 0,
             'sort' => $this->request->getPost('sort'),
-            'status' => 'export',
+            'status' => 'excel',
             'stop' => $this->grid->getSum()], $this));
         return $this->presenter->sendResponse($response);
     }
 
-
+    /** @return JsonResponse */
     public function handleImport() {
         $path = $this->grid->getImport()->getFile();
         $setting = $this->grid->getImport()->getSetting();
@@ -260,17 +262,45 @@ final class Masala extends Control implements IMasalaFactory {
             $service = $this->grid->getImport();
             $response = $service->run($response, $this);
         /** export */
-        } elseif('export' == $response['status']) {
+        } elseif(in_array($response['status'], ['export', 'excel'])) {
             $service = $this->grid->getExport();
             $path = $service->getFile() . '/' . $response['file'];
             $response['limit'] = $this->config['exportSpeed'];
             $response['row'] = $this->grid->prepare()->getOffsets();
             $response = $service->run($response, $this);
-            $handle = fopen('nette.safe://' . $path, 'a');
-            foreach($response['row'] as $row) {
-                fputs($handle, PHP_EOL . implode(';', $row) . ';');
+            if('export' == $response['status']) {
+                $handle = fopen('nette.safe://' . $path, 'a');
+            } else {
+                $excel = PHPExcel_IOFactory::load($path);
+                $excel->setActiveSheetIndex(0);
+                $last = $excel->getActiveSheet()->getHighestRow();
             }
-            fclose($handle);
+            foreach($response['row'] as $rowId => $cells) {
+                foreach($cells as $cellId => $cell) {
+                    if($cell instanceof DateTime) {
+                        $response['row'][$rowId][$cellId] = $cell->__toString();
+                    } else if(isset($cell['Attributes'])) {
+                        $response['row'][$rowId][$cellId] = $cell['Attributes']['value'];
+                    } else {
+                        $response['row'][$rowId][$cellId] = $cell;
+                    }
+                }
+                if('export' == $response['status']) {
+                    fputs($handle, PHP_EOL . implode(';', $response['row'][$rowId]));
+                } else {
+                    $last++;
+                    $letter = 'a';
+                    foreach ($response['row'][$rowId] as $cell) {
+                        $excel->getActiveSheet()->SetCellValue($letter++ . $last, $cell);
+                    }
+                }
+            }
+            if('export' == $response['status']) {
+                fclose($handle);
+            } else {
+                $writer = new PHPExcel_Writer_Excel2007($excel);
+                $writer->save($path);
+            }
             $response['offset'] = $response['offset'] + $this->config['exportSpeed'];
         /** process */
         } else {
@@ -284,8 +314,8 @@ final class Masala extends Control implements IMasalaFactory {
         $callbacks = is_object($setting) ? json_decode($setting->callback) : [];
         foreach ($callbacks as $callbackId => $callback) {
             $sanitize = preg_replace('/print|echo|exec|call|eval|mysql/', '', $callback);
-            eval('function call($row) {' . $sanitize . '}');
-            $row = call($row);
+            eval('function call($response["row"]) {' . $sanitize . '}');
+            $response['row'] = call($response['row']);
         }
         return $this->presenter->sendResponse(new JsonResponse($response));
     }
