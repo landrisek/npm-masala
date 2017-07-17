@@ -2,24 +2,8 @@
 
 namespace Masala;
 
-use Nette\Caching\Cache,
-    Nette\Caching\IStorage,
-    Nette\Database\Context,
-    Nette\Object;
-
 /** @author Lubomir Andrisek */
-final class MockModel extends Object {
-
-    /** @var Cache */
-    public $cache;
-
-    /** @var Context */
-    public $database;
-
-    public function __construct(Context $database, IStorage $storage) {
-        $this->database = $database;
-        $this->cache = new Cache($storage);
-    }
+final class MockRepository extends BaseRepository implements IMock {
 
     public function explainColumn($table, $column) {
         return $this->database->query('EXPLAIN SELECT `' . $column . '` FROM `' . $table . '`')->fetch();
@@ -35,8 +19,9 @@ final class MockModel extends Object {
         return $this->database->table($table)
                     ->getPrimary();
     }
-    
-    public function getTestRow($table, Array $clauses = []) {
+
+    /** @return IRow */
+    public function getTestRow($table, array $clauses = []) {
         $resource = $this->database->table($table);
         foreach ($clauses as $column => $value) {
             is_bool($value) ? $resource->where($column) : $resource->where($column, $value);
@@ -45,7 +30,8 @@ final class MockModel extends Object {
                         ->fetch();
     }
 
-    public function getTestRows($table, Array $clauses = [], $limit) {
+    /** @return array */
+    public function getTestRows($table, array $clauses = [], $limit) {
         $resource = $this->database->table($table);
         foreach ($clauses as $column => $value) {
             is_bool($value) ? $resource->where($column) : $resource->where($column, $value);

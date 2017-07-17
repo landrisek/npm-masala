@@ -21,7 +21,7 @@ final class Masala extends Control implements IMasalaFactory {
     private $config;
 
     /** @var IHelp */
-    private $helpModel;
+    private $helpRepository;
 
     /** @var IBuilder */
     private $grid;
@@ -44,11 +44,11 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var ITranslator */
     private $translatorModel;
 
-    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpModel, IImportFormFactory $importFormFactory, IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
-        $this->helpModel = $helpModel;
+        $this->helpRepository = $helpRepository;
         $this->importFormFactory = $importFormFactory;
         $this->processFormFactory = $processFormFactory;
         $this->request = $request;
@@ -325,7 +325,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->npm = $this->config['npm'];
         $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
         $this->template->dialogs = ['edit', 'help', 'import', 'process'];
-        $this->template->help = $this->helpModel->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
+        $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $this->template->grid = $this->grid;
         $columns = $this->grid->getColumns();
         $this->template->order = reset($columns);

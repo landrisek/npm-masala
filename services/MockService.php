@@ -3,7 +3,6 @@
 namespace Masala;
 
 use Latte\Engine,
-    Models\TranslatorModel,
     Nette\DI\Container,
     Nette\Http,
     Nette\Application,
@@ -15,6 +14,7 @@ use Latte\Engine,
     Nette\Database\Connection,
     Nette\Database\Context,
     Nette\Database\Structure,
+    Nette\Localization\ITranslator,
     Nette\Security\User,
     Mockery,
     Tester\Assert;
@@ -54,17 +54,21 @@ final class MockService {
     /** @var array */
     private $services;
 
-    /** @var TranslatorModel */
+    /** @var ITranslator */
     public $translatorModel;
 
     /** @var User */
     private $user;
 
-    public function __construct(Container $container, TranslatorModel $translatorModel, BuilderExtension $extension) {
+    /** @var IUser */
+    private $usersModel;
+
+    public function __construct(BuilderExtension $extension, Container $container, ITranslator $translatorModel, IUser $usersModel)  {
         $this->container = $container;
         $this->config = $container->getParameters();
         $this->extension = $extension;
         $this->translatorModel = $translatorModel;
+        $this->usersModel = $usersModel;
     }
 
     /** @return IBuilder */
@@ -77,15 +81,12 @@ final class MockService {
         $cacheStorage = new FileStorage($this->config['tempDir'], $journal);
         $structure = new Structure($connection, $cacheStorage);
         $context = new Context($connection, $structure);
-        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $localization = array_keys($this->container->parameters['localization']);
-        $translatorModel->setLocale(reset($localization));
         $urlScript = new Http\UrlScript();
         $urlScript->setScriptPath($root);
         $urlScript->setPath($root . $presenter . '/' . $action);
         $this->httpRequest = new Http\Request($urlScript);
         $exportService = $this->container->getByType('Masala\ExportService');
-        $builder = new Builder($config['masala'], $exportService, $context, $cacheStorage, $this->httpRequest, $translatorModel);
+        $builder = new Builder($config['masala'], $exportService, $context, $cacheStorage, $this->httpRequest, $this->translatorModel);
         return $builder;
     }
 
@@ -177,7 +178,7 @@ final class MockService {
         $this->httpResponse =  $this->container->getByType('Nette\Http\IResponse');
         $presenterFactory = $this->container->getByType('Nette\Application\IPresenterFactory');
         Assert::true(is_file($latteFile) or isset($parameters['action']), 'Latte file ' . $latteFile . ' is not set.');
-        $presenter->injectPrimary($this->container, $presenterFactory, $this->router, $this->httpRequest, $this->httpResponse, $this->session, $this->getUser(), $this->templateFactory);
+        $presenter->injectPrimary($this->container, $presenterFactory, $this->router, $this->httpRequest, $this->httpResponse, $this->session, $this->getUser(true), $this->templateFactory);
         $presenter->template->setFile($latteFile);
         $presenter->autoCanonicalize = FALSE;
         Assert::same('App\\', substr($class, 0, 4), 'Presenter is not in App namespace.');
@@ -295,7 +296,10 @@ final class MockService {
             Assert::true(isset($this->config['mockService']['testUser']['password']), 'Password for login of test user is not set.');
             Assert::false(empty($username = $this->config['mockService']['testUser']['username']), 'Assign credentials failed.');
             Assert::false(empty($password = $this->config['mockService']['testUser']['password']), 'Assign credentials failed.');
-            Assert::same(null,  $this->user->login($username, $password), 'Mock login method succeed but it does return something. Do you wish to modify test?');
+            Assert::false(empty($id = $this->config['mockService']['testUser']['id']), 'Assign credentials failed.');
+            Assert::true(is_object($user = $this->usersModel->getUser($id)), 'Test user was not found.');
+            echo $user->$username;
+            Assert::same(null,  $this->user->login($user->$username, $password), 'Mock login method succeed but it does return something. Do you wish to modify test?');
             Assert::true($this->user->isLoggedIn(), 'Test user is not loggged');
         }
         return $this->user;

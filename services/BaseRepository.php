@@ -3,12 +3,11 @@
 namespace Masala;
 
 use Nette\Caching\Cache,
-    Nette\Caching\IStorage,
     Nette\Database\Context,
-    Nette\Object;
+    Nette\Caching\IStorage;
 
 /** @author Lubomir Andrisek */
-final class WriteModel extends Object {
+class BaseRepository {
 
     /** @var Cache */
     public $cache;
@@ -17,23 +16,17 @@ final class WriteModel extends Object {
     public $database;
 
     /** @var string */
-    private $source;
+    public $source;
 
-    public function __construct($source, Context $database, IStorage $storage) {
+    public function __construct($source = null, Context $database, IStorage $storage) {
         $this->source = $source;
         $this->database = $database;
         $this->cache = new Cache($storage);
     }
-    
+
+    /** @return array */
     public function getSource() {
         return $this->source;
-    }
-
-    /** @return int */
-    public function updateWrite($id, array $data) {
-        return $this->database->table($this->source)
-                        ->where('id', $id)
-                        ->update($data);
     }
 
 }

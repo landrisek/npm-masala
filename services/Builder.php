@@ -158,8 +158,8 @@ final class Builder implements IBuilder {
                 isset($this->defaults[$column['name']]) ? $this->columns[$column['name']] = $this->table . '.' . $column['name'] : null;
             }
         }
-        if(isset($this->config['settings']) and
-            $this->presenter->getUser()->isLoggedIn() and
+        if(isset($this->config['settings']) &&
+            $this->presenter->getUser()->isLoggedIn() &&
             is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['settings']]))) {
             foreach($setting as $source => $annotations) {
                 if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {

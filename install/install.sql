@@ -30,7 +30,19 @@ CREATE TABLE `help` (
   KEY `id` (`id`),
   KEY `source` (`source`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_czech_ci;
-INSERT INTO `fc_help` VALUES ('1', '{\"help1\":\"your text\", \r\n\"help2\":\"your text\",}', 'Module:Presenter:action:parameter');
+INSERT INTO `help` VALUES ('1', '{\"help1\":\"your text\", \r\n\"help2\":\"your text\",}', 'Module:Presenter:action:parameter');
+/** keywords */
+CREATE TABLE `keywords` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `content` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_czech_ci;
+INSERT INTO `keywords` (`id`, `name`, `content`) VALUES
+  (1,	'dámský',	'[\"dámskou\",\"dámským\",\"dámské\",\"dámská\",\"dámský\"]'),
+  (3,	'pánský',	'[\"pánskou\",\"pánským\",\"pánské\",\"pánská\",\"pánský\"]'),
+  (5,	'dětský',	'[\"dětskou\",\"dětským\",\"dětské\",\"dětská\",\"dětský\"]'),
 /** log */
 CREATE TABLE `log` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -42,3 +54,14 @@ CREATE TABLE `log` (
   KEY `users_id` (`users_id`) USING BTREE,
   CONSTRAINT `log_users_id` FOREIGN KEY (`users_id`) REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=627 DEFAULT CHARSET=utf8 COLLATE=utf8_czech_ci;
+/** write */
+CREATE TABLE IF NOT EXISTS `write` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_czech_ci NOT NULL,
+  `content` text CHARACTER SET utf8 COLLATE utf8_czech_ci COMMENT '@hidden@cke3',
+  `language` enum('en_GB','sk_SK','cs_CZ') CHARACTER SET utf8 COLLATE utf8_czech_ci NOT NULL DEFAULT 'cs_CZ' COMMENT '@hidden',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=6 ;
+INSERT INTO `write` (`id`, `name`, `content`, `language`) VALUES
+(1, 'keyword', '{"0":{"0":"option1","1":"option2","2":"option3","type":"select"},"2":"test text","plain":"","select":""}\n', 'cs_CZ'),
+COMMIT;

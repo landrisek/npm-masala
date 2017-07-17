@@ -2,8 +2,7 @@
 
 namespace App;
 
-use Masala\HelpModel,
-    Masala\IBuilder,
+use Masala\IBuilder,
     Masala\IEditFormFactory,
     Masala\IMasalaFactory,
     Masala\IProcess,
@@ -11,18 +10,6 @@ use Masala\HelpModel,
     Nette\Application\UI\Presenter;
 
 class DemoPresenter extends Presenter {
-
-    /** @var HelpModel @inject */
-    public $helpModel;
-
-    /** @var IProcess */
-    public $import;
-
-    /** @var IProcess */
-    public $export;
-
-    /** @var IProcess */
-    public $service;
 
     /** @var IMasalaFactory @inject */
     public $masalaFactory;
@@ -36,10 +23,20 @@ class DemoPresenter extends Presenter {
     /** @var IRow @inject */
     public $row;
 
+    /** @var string */
+    private $table;
+
+    public function startup() {
+        parent::startup();
+        $this->table = reset($this->context->parameters['tables']);
+    }
+
     public function actionDefault() {
-        $testTable = reset($this->context->parameters['tables']);
-        $this->grid->table($testTable);
-        $this->row->table($testTable)
+        $this->grid->table($this->table);
+    }
+
+    public function actionEdit() {
+        $this->row->table($this->test)
                 ->check();
     }
 
