@@ -72,10 +72,11 @@ final class Grid extends Control implements IGridFactory {
                                 preg_replace('/d/', 'DD',
                                 preg_replace('/\.Y/', '.YYYY', $this->config['format']['date']['text'])));
         foreach($operators as $operator => $sign) {
-            if(!empty($value = $this->builder->getFilter($this->builder->getColumn($name) . ' ' . $operator)) and null == $spice = $this->getSpice($name . ' ' . $operator)) {
+            if(!empty($value = preg_replace('/\s(.*)/', '', $this->builder->getFilter($this->builder->getColumn($name) . ' ' . $operator)))
+                && null == $spice = $this->getSpice($name . ' ' . $operator)) {
                 $attributes['value'] = date($this->config['format']['date']['text'], strtotime($value));
                 $this->filterForm->addText($name . ' ' . $operator, $label . ' ' . $this->translatorModel->translate($sign), $attributes);
-            } else if (!empty($value = $this->builder->getFilter($this->builder->getColumn($name) . ' ' . $operator))) {
+            } else if (!empty($value)) {
                 $attributes['value'] = date($this->config['format']['date']['text'], strtotime($spice));
                 $this->filterForm->addText($name . ' ' . $operator, $label . ' ' . $this->translatorModel->translate($sign), $attributes);
             }
@@ -86,7 +87,7 @@ final class Grid extends Control implements IGridFactory {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter) {
             $data = $this->builder->getDefaults();
-            $this->spice = json_decode(urldecode($this->request->getUrl()->getQueryParameter(strtolower($this->getParent()->getName()) . '-spice')));
+            $this->spice = $this->builder->getSpice();
             $ordered = json_decode(urldecode($this->request->getUrl()->getQueryParameter(strtolower($this->getParent()->getName()) . '-sort')));
             foreach ($this->builder->getColumns() as $name => $annotation) {
                 $order = (isset($ordered->$name)) ? $ordered->$name : null;
@@ -134,6 +135,7 @@ final class Grid extends Control implements IGridFactory {
                 }
                 $attributes['value'] = '_0';
                 $attributes['filter'] = true;
+                $attributes['unrender'] = true;
                 $this->filterForm->addSelect('groups', $this->translatorModel->translate('grouping'), $attributes);
             }
         }
@@ -179,8 +181,8 @@ final class Grid extends Control implements IGridFactory {
 
     /** @return array | string */
     private function getSpice($column) {
-        if(isset($this->spice->$column)) {
-            return $this->spice->$column;
+        if(isset($this->spice[$column])) {
+            return $this->spice[$column];
         }
     }
 
@@ -325,6 +327,7 @@ final class Grid extends Control implements IGridFactory {
                                                     'link' => $link,
                                                     'page' => $page,
                                                     'pages' => 2,
+                                                    'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
                                                     'paginate' => $this->link('paginate'),
                                                     'remove' => $this->link('remove'),
                                                     'reset' => ['label' =>$this->translatorModel->translate('reset form'),

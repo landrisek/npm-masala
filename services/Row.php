@@ -12,6 +12,9 @@ use Nette\Caching\Cache,
 /** @author Lubomir Andrisek */
 final class Row implements IRow {
 
+    /** @var string */
+    private $columns;
+
     /** @var Cache */
     private $rowCache;
 
@@ -70,7 +73,11 @@ final class Row implements IRow {
     /** @return ActiveRow */
     public function check() {
         if (null == $this->rowData) {
-            $this->rowData = $this->rowResource->fetch();
+            if(!empty($this->columns)) {
+                $this->rowData = $this->rowResource->select($this->columns)->fetch();
+            } else {
+                $this->rowData = $this->rowResource->fetch();
+            }
             /** select */
             foreach ($this->getDrivers() as $column) {
                 if(isset($this->rowColumns[$column['name']]) and is_string($this->rowColumns[$column['name']]) and preg_match('/\sAS\s/', $this->rowColumns[$column['name']])) {
@@ -149,13 +156,14 @@ final class Row implements IRow {
         return $this->rowResource;
     }
 
-    /** @return IBuilder */
+    /** @return IRow */
     public function table($table) {
         $this->rowTable = (string) $table;
         $this->rowResource = $this->rowDatabase->table($table);
         return $this;
     }
 
+    /** @return IRow */
     public function title($title) {
         $this->check();
         if (isset($this->$title)) {
@@ -164,9 +172,9 @@ final class Row implements IRow {
         return $this;
     }
 
+    /** @return IRow */
     public function where($key, $column, $condition = null) {
-        if (is_bool($condition) and true == $condition) {
-            $this->rowResource->where($key, $column);
+        if(is_bool($condition) and false == $condition) {
         } elseif (null == $column and false != $column) {
             $this->rowResource->where($key);
         } elseif (is_bool($column) and true == $column) {
@@ -180,8 +188,15 @@ final class Row implements IRow {
         return $this;
     }
 
+    /** @return IRow */
     public function process(IEdit $service) {
         $this->rowService = $service;
+        return $this;
+    }
+
+    /** @return IRow */
+    public function select($columns) {
+        $this->columns = $columns;
         return $this;
     }
 

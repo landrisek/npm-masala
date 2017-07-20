@@ -51,7 +51,7 @@ final class Builder implements IBuilder {
     /** @var IProcess */
     private $exportService;
 
-    /** @var callable */
+    /** @var IFetch */
     private $fetch;
 
     /** @var IFilter */
@@ -242,7 +242,7 @@ final class Builder implements IBuilder {
     }
 
     /** @return IBuilder */
-    public function fetch(callable $fetch) {
+    public function fetch(IFetch $fetch) {
         $this->fetch = $fetch;
         return $this;
     }
@@ -329,6 +329,7 @@ final class Builder implements IBuilder {
         return $this->export;
     }
 
+    /** @return string */
     public function getFilter($key) {
         if (isset($this->where[trim($key)])) {
             return preg_replace('/\%/', '', $this->where[$key]);
@@ -380,7 +381,11 @@ final class Builder implements IBuilder {
         $table = preg_match('/\./', $annotation) ? trim(preg_replace('/\.(.*)/', '', $annotation)) : $this->table;
         $column = preg_match('/\./', $annotation) ? trim(preg_replace('/(.*)\./', '', $annotation)) : trim($annotation);
         $key = $this->getKey('getList', $annotation);
-        if (null == $list = $this->cache->load($key)) {
+        if(isset($this->where[$table . '.' . $column]) && is_array($this->where[$table . '.' . $column])) {
+            return array_combine($this->where[$table . '.' . $column], $this->where[$table . '.' . $column]);
+        } else if(isset($this->where[$column]) && is_array($this->where[$column])) {
+            return array_combine($this->where[$column], $this->where[$column]);
+        } else if (null == $list = $this->cache->load($key)) {
             $list = $this->database->table($table)
                 ->select($this->getFormat($table, $column))
                 ->where($column . ' IS NOT NULL')
@@ -417,7 +422,9 @@ final class Builder implements IBuilder {
 
     /** @return array */
     public function getOffsets() {
-        if(null == $data = $this->cache->load($hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . $this->offset)))))) {
+        if($this->fetch instanceof IFetch) {
+            $data = $this->fetch->fetch($this);
+        } else if(null == $data = $this->cache->load($hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . $this->offset)))))) {
             $this->arguments[] = intval($this->limit);
             $this->arguments[] = intval($this->offset);
             $build = $this->build instanceof IBuild;
@@ -438,14 +445,11 @@ final class Builder implements IBuilder {
                     $data[] = $build ? $this->build->build((array) $row) : $row;
                 }
             }
-            if(is_callable($fetch = $this->fetch)) {
-                $data = $fetch($this, $data);
-            }
             /** if(!empty($data)) {
                 $this->cache->save($this->control . ':' . $hash . ':' . $this->offset, $data, [Cache::EXPIRE => '+1 hour']);
              }*/
+            $this->logQuery($hash);
         }
-        $this->logQuery($hash);
         return $data;
     }
 
@@ -487,6 +491,22 @@ final class Builder implements IBuilder {
     /** @return IProcess */
     public function getService() {
         return $this->service;
+    }
+
+    /** @return array */
+    public function getSpice() {
+        $spices = (array) json_decode($this->presenter->request->getParameter(strtolower($this->control) . '-spice'));
+        foreach($spices as $key => $spice) {
+            if(is_array($spice)) {
+                $allowed = $this->getList($this->columns[$key]);
+                foreach($spice as $id => $core) {
+                    if(!isset($allowed[$core])) {
+                        unset($spices[$key][$id]);
+                    }
+                }
+            }
+        }
+        return $spices;
     }
 
     /** @return int */
@@ -649,12 +669,8 @@ final class Builder implements IBuilder {
         if(is_bool($condition) and false == $condition) {
         } elseif ('?' == $column and isset($this->where[$key])) {
             $this->arguments[$key] = $this->where[$key];
-        } elseif (preg_match('/\>/', $key) and is_string($condition)) {
-            $this->where[$key] = $column;
-            $this->annotations[preg_replace('/ (.*)|(.*)\./', '', $key)]['unrender'] = true;
-        } elseif (preg_match('/\</', $key) and is_string($condition)) {
-            $this->where[$key] = $column;
-            $this->annotations[preg_replace('/ (.*)|(.*)\./', '', $key)]['unrender'] = true;
+        } elseif (is_string($condition)) {
+            $this->where[preg_replace('/(\s+\?.*|\?.*)/', '', $key)] = $column . $condition;
         } elseif (is_bool($condition) and true == $condition and is_array($column)) {
             $this->where[$key] = $column;
             $this->annotations[preg_replace('/(.*)\./', '', $key)]['enum'] = array_combine($column, $column);
@@ -726,9 +742,6 @@ final class Builder implements IBuilder {
         }
         $this->sort = rtrim($this->sort, ', ');
         $offset = $this->presenter->request->getPost('offset');
-        if($this->filter instanceof IFilter) {
-            $filters = $this->filter->filter($filters);
-        }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
@@ -769,6 +782,9 @@ final class Builder implements IBuilder {
             } else {
                 $this->where[$this->columns[$column] . ' LIKE'] = '%' . $value . '%';
             }
+        }
+        if($this->filter instanceof IFilter) {
+            $this->where = $this->filter->filter($this->where);
         }
         /** where and having */
         $where = (!empty($this->where)) ? ' WHERE ' : '';
