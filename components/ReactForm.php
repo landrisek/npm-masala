@@ -5,8 +5,7 @@ namespace Masala;
 use Nette\Application\UI\ISignalReceiver,
     Nette\Application\IPresenter,
     Nette\Application\UI\Control,
-    Nette\Http\IRequest,
-    Nette\InvalidStateException;
+    Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 class ReactForm extends Control implements IReactFormFactory {
@@ -188,7 +187,7 @@ class ReactForm extends Control implements IReactFormFactory {
         $this->template->component = $this->getName();
         $this->template->data = json_encode($this->data);
         $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
-        $this->template->links = json_encode($this->addHandlers(['delete', 'done', 'export', 'import', 'prepare', 'run', 'save', 'submit']));
+        $this->template->links = json_encode($this->addHandlers(['delete', 'done', 'export', 'import', 'prepare', 'run', 'save', 'submit', 'unique']));
         $this->template->setFile(__DIR__ . '/../templates/react.latte');
         $this->template->render();
     }

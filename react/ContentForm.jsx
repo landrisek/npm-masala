@@ -194,18 +194,22 @@ export default class ContentForm extends Component {
                     {this.addStatistics()}
                 </div>
     }
-    submit(event) {
-        event.preventDefault()
+    reset() {
         var i=0;
         var data = new Object()
-        data[CONTENT] = new Object()
         for(var key in this.state[CONTENT]) {
             if(false == isNaN(key)) {
-                data[CONTENT][i++] = this.state[CONTENT][key]
+                data[i++] = this.state[CONTENT][key]
             } else {
-                data[CONTENT][key] = this.state[CONTENT][key]
+                data[key] = this.state[CONTENT][key]
             }
         }
+        return data
+    }
+    submit(event) {
+        event.preventDefault()
+        var data = new Object
+        data.content = JSON.stringify(this.reset())
         $.ajax({type: 'post', data: data, url: LINKS['submit'], async: false})
     }
     update(event) {
@@ -219,7 +223,7 @@ export default class ContentForm extends Component {
         this.setState(state)
     }
     write(event) {
-        var contents = this.state[CONTENT]
+        var contents = this.reset()
         var data = new Object()
         data.keywords = this.state[SOURCE][event.target.value]
         data.wildcards = $.ajax({type: 'post', data: data, url: LINKS['keyword'], async: false}).responseJSON

@@ -12,9 +12,6 @@ use Nette\Caching\Cache,
 /** @author Lubomir Andrisek */
 final class Row implements IRow {
 
-    /** @var string */
-    private $columns;
-
     /** @var Cache */
     private $rowCache;
 
@@ -34,6 +31,9 @@ final class Row implements IRow {
     private $rowDefaults = [];
 
     /** @var string */
+    private $rowSelect = '*';
+
+    /** @var string */
     private $rowTitle = 'edit item';
 
     /** @var Selection */
@@ -51,6 +51,11 @@ final class Row implements IRow {
         $this->rowCache = new Cache($storage);
     }
 
+    /** @return ActiveRow */
+    public function add(array $data) {
+        return $this->rowResource->insert($data);
+    }
+
     /** @return void */
     public function after(IReactFormFactory $form) {
         if($this->rowService instanceof IEdit) {
@@ -60,7 +65,7 @@ final class Row implements IRow {
 
     /** @return void */
     public function before(IReactFormFactory $form) {
-        if (null !== $this->rowResource and false == $this->rowData = $this->check()) {
+        if ($this->rowResource instanceof Selection  and !is_object($this->rowData = $this->check())) {
             foreach ($this->rowColumns as $row) {
                 if (is_array($row)) {
                     $rowName = $row['name'];
@@ -73,12 +78,11 @@ final class Row implements IRow {
     /** @return ActiveRow */
     public function check() {
         if (null == $this->rowData) {
-            if(!empty($this->columns)) {
-                $this->rowData = $this->rowResource->select($this->columns)->fetch();
-            } else {
-                $this->rowData = $this->rowResource->fetch();
+            if(!empty($this->rowColumns) && !empty($this->rowResource->getSqlBuilder()->getConditions())) {
+                $this->rowData = $this->rowResource->select($this->rowSelect)->fetch();
+            } else if(!empty($this->rowResource->getSqlBuilder()->getConditions())) {
+                $this->rowData = $this->rowResource->select($this->rowSelect)->fetch();
             }
-            /** select */
             foreach ($this->getDrivers() as $column) {
                 if(isset($this->rowColumns[$column['name']]) and is_string($this->rowColumns[$column['name']]) and preg_match('/\sAS\s/', $this->rowColumns[$column['name']])) {
                     throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
@@ -87,7 +91,7 @@ final class Row implements IRow {
                 }
                 $this->rowColumns[$column['name']] = $column;
             }
-            if (false != $this->rowData) {
+            if (is_object($this->rowData)) {
                 foreach ($this->rowData as $key => $row) {
                     if (property_exists($this, $key)) {
                         throw new InvalidStateException('Table ' . $this->rowTable . ' has key "' . $key . '" already assigned as private property in ' . __CLASS__ . '.');
@@ -173,8 +177,10 @@ final class Row implements IRow {
     }
 
     /** @return IRow */
-    public function where($key, $column, $condition = null) {
-        if(is_bool($condition) and false == $condition) {
+    public function where($key, $column = null, $condition = null) {
+        if(null == $column) {
+            $this->rowResource->where($key);
+        } elseif(is_bool($condition) and false == $condition) {
         } elseif (null == $column and false != $column) {
             $this->rowResource->where($key);
         } elseif (is_bool($column) and true == $column) {
@@ -195,15 +201,26 @@ final class Row implements IRow {
     }
 
     /** @return IRow */
-    public function select($columns) {
-        $this->columns = $columns;
+    public function select($select) {
+        $this->rowSelect = $select;
         return $this;
+    }
+
+    /** @return bool */
+    public function unique(array $data) {
+        foreach($data as $column => $value) {
+            $this->rowResource->where($column, $value);
+        }
+        return !is_object($this->rowResource->fetch());
     }
 
     /** @return int */
     public function update(array $data) {
         if($this->rowService instanceof IEdit) {
             $data = $this->rowService->submit($data);
+        }
+        if(!isset($data['primary'])) {
+             return $this->rowResource->insert($data);
         }
         $primary = $data['primary'];
         unset($data['primary']);
@@ -218,14 +235,10 @@ final class Row implements IRow {
         return $this->rowResource->update($data);
     }
 
-    /** @return ActiveRow */
-    public function add(array $data) {
-        return $this->rowResource->insert($data);
-    }
-
     /** @return int */
-    public function delete() {
-        return $this->rowResource->where($this->rowResource->getPrimary(), $this->rowData->getPrimary())
+    public function remove() {
+        return $this->rowResource
+                        ->where($this->rowResource->getPrimary(), $this->rowData->getPrimary())
                         ->delete();
     }
 

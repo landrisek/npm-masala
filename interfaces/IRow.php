@@ -7,15 +7,15 @@ interface IRow {
     /** @return int */
     function add(array $data);
 
-    /** @return int */
-    function delete();
-
     /** @return array */
     function getColumns();
 
     /** @return array */
     function getConfig($key);
-    
+
+    /** @return int */
+    function remove();
+
     /** @return IRow */
     function table($table);
     

@@ -151,15 +151,14 @@ export default class Form extends Component {
     addTitle(key) {
         return <h1 key={key} className={this.state[key].Attributes.class}>{this.state[key].Attributes.value}</h1>
     }
-    bind(method) {
+    bind(method, data) {
         if(undefined === method) {
-            return;
+            return
         }
         var closure = method.replace(/\(/, '').replace(/\)/, '')
         if('function' == typeof(this[closure])) {
-            return this[closure].bind(this)
+            return this[closure].bind(this, data)
         }
-        return;
     }
     done(payload) {
         var response = $.ajax({ type:'post',url:LINKS['done'],data:payload,async:false}).responseJSON
@@ -183,6 +182,9 @@ export default class Form extends Component {
             }
         }
         return container
+    }
+    isEmail(value) {
+        return /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(value);
     }
     isImage(value) {
         if(value instanceof File) {
@@ -216,7 +218,7 @@ export default class Form extends Component {
             for(var validator in this.state[key].Validators) {
                 var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
                 if('function' == typeof(closure) && false == closure(files[file])) {
-                        element.Validators[validator].style = { display : 'block' }
+                    element.Validators[validator].style = { display : 'block' }
                 } else {
                     element.Validators[validator].style = { display : 'none' }
                     names[this.save(files[file])] = files[file].name
@@ -254,6 +256,7 @@ export default class Form extends Component {
     }
     submit() {
         var data = new Object()
+        console.log('submit')
         for(var key in this.state) {
             data[key] = this.state[key].Attributes.value
         }
@@ -282,7 +285,7 @@ export default class Form extends Component {
                 } else {
                     var validate = this.state[key].Attributes.value
                 }
-                if('function' == typeof(closure) && false == closure(validate)) {
+                if('function' == typeof(closure) && false == closure(validate, key)) {
                     var state = [];
                     var element = this.state[key];
                     element.Validators[validator].style = { display : 'block' }

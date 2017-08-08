@@ -191,6 +191,7 @@ final class MockService {
             /** $request = Mockery::mock('Nette\Application\Request[getPost]', [$presenterRequest, 'GET', array_merge(['action' => $presenterAction], $parameters)]);
             $request->shouldReceive('getPost')->andReturn($_POST); */
         }
+        echo 'testing name ' . $name , "\n";
         $presenter->run($request);
         return $presenter;
     }

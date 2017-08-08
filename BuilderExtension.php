@@ -80,8 +80,6 @@ final class BuilderExtension extends CompilerExtension {
     }
 
     public function afterCompile(ClassType $class) {
-        $initialize = $class->methods['initialize'];
-        $initialize->addBody('Nette\Forms\Container::extensionMethod("\Nette\Forms\Container::addRange", function (\Nette\Forms\Container $_this, $name, $label = null, $defaults) { return $_this[$name] = new Masala\Range($label, $defaults, $this->getByType(?)); });', ['Nette\Localization\ITranslator']);
     }
 
 }

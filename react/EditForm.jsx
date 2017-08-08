@@ -40,6 +40,14 @@ export default class EditForm extends Form {
         }
         return body;
     }
+    isUnique(value, key) {
+        if(undefined == value || '' == value  ) {
+            return false
+        }
+        var data = new Object()
+        data[key] = value
+        return $.ajax({type:'post', url:LINKS['unique'],data:data,async:false}).responseJSON
+    }
     onChange(event) {
         var element = this.state[event.target.id]
         if('checkbox' == event.target.type && 1 == event.target.value) {

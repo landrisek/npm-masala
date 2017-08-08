@@ -50,8 +50,8 @@ final class Grid extends Control implements IGridFactory {
     private $usersModel;
 
     public function __construct($appDir, $jsDir, array $config, FilterForm $filterForm, IEditFormFactory $editForm, IRequest $request, IRow $row, ITranslator $translatorModel, IUser $usersModel, User $user) {
-        $this->appDir = $appDir;
-        $this->jsDir = $jsDir;
+        $this->appDir = (string) $appDir;
+        $this->jsDir = (string) $jsDir;
         $this->config = $config;
         $this->editForm = $editForm;
         $this->filterForm = $filterForm;
@@ -176,6 +176,14 @@ final class Grid extends Control implements IGridFactory {
             $actions[$rowId]['parameters'] = isset($row->parameters) ? $row->parameters : [];
             $actions[$rowId]['url'] = isset($row->url) ? $row->url : '';
         }
+        if($this->builder->getRemove() instanceof IRemove) {
+            $size = sizeof($actions);
+            $actions[$size]['onClick'] = 'signal';
+            $actions[$size]['label'] = ucfirst($this->translatorModel->translate('remove'));
+            $actions[$size]['class'] = 'fa-hover fa fa-remove';
+            $actions[$size]['url'] = '';
+            $actions[$size]['href'] = $this->link('remove');
+        }
         return $actions;
     }
 
@@ -186,8 +194,12 @@ final class Grid extends Control implements IGridFactory {
         }
     }
 
-    public function handleRemove() {
-
+    /** @return TextResponse */
+    public function handleAdd() {
+        $this->row->table($this->builder->getTable());
+        $this->editForm->create()->setRow($this->row);
+        $this->addComponent($this->editForm, 'editForm');
+        return $this->presenter->sendResponse(new TextResponse($this->editForm->attached($this->presenter)->render()));
     }
 
     /** @return TextResponse */
@@ -211,6 +223,14 @@ final class Grid extends Control implements IGridFactory {
         $total = ($sum > $this->builder->getPagination()) ? intval(ceil($sum / $this->builder->getPagination())) : 1;
         $response = new TextResponse($total);
         return $this->presenter->sendResponse($response);
+    }
+
+    /** @return JsonResponse */
+    public function handleRemove() {
+        $this->setRow();
+        $this->row->check();
+        $this->row->remove($this->request->getPost());
+        $this->presenter->sendResponse(new JsonResponse(['remove'=>true]));
     }
 
     /** @return TextResponse */
@@ -247,6 +267,13 @@ final class Grid extends Control implements IGridFactory {
     /** @return TextResponse */
     public function handleSummary() {
         $response = new TextResponse($this->builder->prepare()->getSummary());
+        return $this->presenter->sendResponse($response);
+    }
+
+    /** @return JsonResponse */
+    public function handleUnique() {
+        $this->setRow();
+        $response = new JsonResponse($this->row->unique($this->request->getPost()));
         return $this->presenter->sendResponse($response);
     }
 
@@ -313,14 +340,24 @@ final class Grid extends Control implements IGridFactory {
                 'width' => 0,
                 'onClick' => 'prepare'];
         }
+        $dialogs = [];
+        if(is_object($this->builder->getEdit())) {
+            $dialogs['edit'] = ['label'=>$this->translatorModel->translate('add item'),'class'=>'btn btn-warning','link' =>$this->link('edit'),'onClick'=>'edit'];
+        }
+        foreach($this->builder->getDialogs() as $key) {
+            $dialogs[$key] = ['label'=>$this->translatorModel->translate('dialog:' . $key),'class'=>'btn btn-warning','link' =>$this->link($key),'onClick'=>$key];
+        }
+        $actions = is_object($this->builder->getEdit()) ? ['edit' => $this->link('edit')] : [];
+        foreach($this->builder->getActions() as $key) {
+            $actions[$key] = $this->link($key);
+        }
         $this->template->data = json_encode(['actions' => $this->getActions(),
-                                                'columns' => $data,
                                                 'buttons' => [
                                                     'done' => ['class' => 'alert alert-success',
                                                                 'label' => $this->translatorModel->translate('Click here to download your file.'),
                                                                 'link' => $this->getParent()->link('done'),
                                                                 'style' => ['display'=>'none', 'marginRight' => '10px']],
-                                                    'edit' => $this->link('edit'),
+                                                    'dialogs' => $actions,
                                                     'export' => $export,
                                                     'excel' => $excel,
                                                     'filter' => $this->link('filter'),
@@ -337,14 +374,15 @@ final class Grid extends Control implements IGridFactory {
                                                     'send' => ['label' => $this->translatorModel->translate('filter data'),
                                                         'class' => 'btn btn-success',
                                                         'onClick' => 'submit'],
-                                                    'setting' => ['class' => 'btn btn-success',
+                                                    'setting' => isset($this->user->getIdentity()->getData()[$this->config['settings']]) ? ['class' => 'btn btn-success',
                                                         'display' => ['none'],
-                                                        'enabled' => isset($this->user->getIdentity()->getData()[$this->config['settings']]),
                                                         'label'=> $this->translatorModel->translate('setting'),
                                                         'link' =>$this->link('setting'),
-                                                        'onClick' => 'setting'],
+                                                        'onClick' => 'setting'] : false,
                                                     'summary' => $this->link('summary'),
                                                     'update' => $this->link('update')],
+                                                'columns' => $data,
+                                                'dialogs' => $dialogs,
                                                 'rows' => []]);
         $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
         $this->template->render();

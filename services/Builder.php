@@ -16,6 +16,9 @@ use Nette\Application\UI\Presenter,
 final class Builder implements IBuilder {
 
     /** @var array */
+    private $actions = [];
+
+    /** @var array */
     private $annotations;
 
     /** @var array */
@@ -38,6 +41,12 @@ final class Builder implements IBuilder {
 
     /** @var Context */
     private $database;
+
+    /** @var IRemove */
+    private $remove;
+
+    /** @var array */
+    private $dialogs = [];
 
     /** @var array */
     private $defaults;
@@ -125,6 +134,13 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
+    /** @return IBuilder */
+    public function actions(array $actions) {
+        $this->actions = $actions;
+        return $this;
+    }
+
+    /** @return void */
     public function attached(Masala $masala) {
         $this->presenter = $masala->getPresenter();
         $this->control = $masala->getName();
@@ -171,7 +187,6 @@ final class Builder implements IBuilder {
                 }
             }
         }
-        /** query */
         $select = 'SELECT ';
         $primary = $this->getPrimary();
         foreach ($this->columns as $alias => $column) {
@@ -179,7 +194,9 @@ final class Builder implements IBuilder {
             if(isset($primary[$column])) {
                 unset($primary[$column]);
             }
-            $select .= ' ' . $column . ' AS `' . $alias . '`, ';
+            if($this->validate($column)) {
+                $select .= ' ' . $column . ' AS `' . $alias . '`, ';
+            }
         }
         foreach($primary as $column => $alias) {
             if(isset($this->columns[$alias]) and !preg_match('/\./', $this->columns[$alias])) {
@@ -188,7 +205,7 @@ final class Builder implements IBuilder {
             $select .= ' ' . $column . ' AS `' . $alias . '`, ';
         }
         $this->query = rtrim($select, ', ');
-        $this->sum = rtrim($select, ', COUNT(*) AS sum ');
+        $this->sum = 'SELECT COUNT(*) AS sum ';
         $this->select = rtrim(ltrim($select, 'SELECT '), ', ');
         $from = ' FROM ' . $this->table . ' ';
         foreach ($this->join as $join) {
@@ -201,7 +218,7 @@ final class Builder implements IBuilder {
             $from .= ' INNER JOIN ' . $join . ' ';
         }
         $this->query .= $from;
-        $this->sum = 'SELECT COUNT(*) AS sum ' . $from;
+        $this->sum .= $from;
     }
 
     /** @return IBuilder */
@@ -230,6 +247,13 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    /** @return IBuilder */
+    public function dialogs(array $dialogs) {
+        $this->dialogs = $dialogs;
+        return $this;
+    }
+
+    /** @return IBuilder */
     public function export($export) {
         $this->export = ($export instanceof IProcess) ? $export : $this->exportService;
         return $this;
@@ -272,6 +296,11 @@ final class Builder implements IBuilder {
     }
 
     /** @return array */
+    public function getActions() {
+        return $this->actions;
+    }
+
+    /** @return array */
     public function getArguments() {
         return $this->arguments;
     }
@@ -300,6 +329,11 @@ final class Builder implements IBuilder {
     /** @return array */
     public function getDefaults() {
         return $this->defaults;
+    }
+
+    /** @retun array */
+    public function getDialogs() {
+        return $this->dialogs;
     }
 
     /** @return array */
@@ -386,12 +420,20 @@ final class Builder implements IBuilder {
         } else if(isset($this->where[$column]) && is_array($this->where[$column])) {
             return array_combine($this->where[$column], $this->where[$column]);
         } else if (null == $list = $this->cache->load($key)) {
+            if(true == $this->validate($annotation) || is_array($primary = $this->database->table($table)->getPrimary())) {
+                $select = $this->getFormat($table, $column);
+                $primary = $column;
+            } else {
+                $select = $this->getFormat($table, $column) . ', CONCAT("_", ' . $primary . ') AS ' . $primary;
+            }
             $list = $this->database->table($table)
-                ->select($this->getFormat($table, $column))
+                ->select($select)
                 ->where($column . ' IS NOT NULL')
                 ->where($column . ' !=', '')
-                ->fetchPairs($column, $column);
-            $this->cache->save($key, $list);
+                ->group($column)
+                ->order($column)
+                ->fetchPairs($primary, $column);
+            //$this->cache->save($key, $list);
         }
         return $list;
     }
@@ -471,6 +513,11 @@ final class Builder implements IBuilder {
         return $primary;
     }
 
+    /** @return IRemove */
+    public function getRemove() {
+        return $this->remove;
+    }
+
     /** @return Selection */
     public function getResource() {
         $dataSource = $this->database->table($this->table);
@@ -520,7 +567,7 @@ final class Builder implements IBuilder {
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
             }
-            return $this->database->query($this->sum, ...$arguments)->fetch()->sum;
+            return $this->database->query($this->sum, ...$arguments)->getRowCount();
         }
     }
 
@@ -629,6 +676,7 @@ final class Builder implements IBuilder {
         }
     }
 
+    /** @return void */
     public function log($handle) {
         if (isset($this->config['log'])) {
             return $this->database->table($this->config['log'])->insert(['users_id' => $this->presenter->getUser()->getIdentity()->getId(),
@@ -637,6 +685,13 @@ final class Builder implements IBuilder {
                         'date' => date('Y-m-d H:i:s', strtotime('now'))]);
         }
     }
+
+    /** @return IBuilder */
+    public function remove(IRemove $remove) {
+        $this->remove = $remove;
+        return $this;
+    }
+
 
     /** @return IBuilder */
     public function select(array $columns) {
@@ -666,6 +721,7 @@ final class Builder implements IBuilder {
 
     /** @return IBuilder */
     public function where($key, $column = null, $condition = null) {
+        /*if((is_bool($condition) and false == $condition) || (is_array($column) && empty($column))) { */
         if(is_bool($condition) and false == $condition) {
         } elseif ('?' == $column and isset($this->where[$key])) {
             $this->arguments[$key] = $this->where[$key];
@@ -798,6 +854,8 @@ final class Builder implements IBuilder {
             } elseif (!is_array($value) and preg_match('/(>|<|=|\sLIKE|\sIN|\sIS|\sNOT|\sNULL|\sNULL)/', strtoupper($column))) {
                 $where .= ' ' . str_replace('`', '', $column) . ' ? AND ';
                 $this->arguments[] = $value;
+            } elseif (is_array($value) && empty($value)) {
+                $where .= ' ' . $column . ' IS NULL AND ';
             } elseif (is_array($value)) {
                 $where .= ' ' . $column . ' IN (?) AND ';
                 $this->arguments[] = $value;
@@ -812,7 +870,7 @@ final class Builder implements IBuilder {
         $this->sum .= rtrim($where, 'AND ');
         if(isset($this->groups[$this->group])) {
             $this->query .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
-            $this->sum = str_replace('COUNT(*) AS sum', $this->groups[$this->group] . ', COUNT(DISTINCT ' . $this->groups[$this->group] . ') AS sum', $this->sum);
+            $this->sum .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
         }
         if(!empty($this->having)) {
             $this->query .= ' HAVING ' . $this->having . ' ';
@@ -839,5 +897,15 @@ final class Builder implements IBuilder {
         } elseif ($label = $this->translatorModel->translate($name)) {
         }
         return $label;
+    }
+
+    /** @return bool */
+    private function validate($column) {
+        return 1  == sizeof($joined = explode('.', (string) $column)) ||
+            preg_match('/\(|\)/', $column) ||
+            empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin) ||
+            (substr_count(implode('', $this->join), $joined[0]) +
+                substr_count(implode('', $this->leftJoin), $joined[0]) +
+                substr_count(implode('', $this->innerJoin), $joined[0]) > 0);
     }
 }

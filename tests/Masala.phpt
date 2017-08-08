@@ -58,10 +58,11 @@ final class MasalaTest extends TestCase {
         Assert::false(empty($config = $extension->getConfiguration($this->container->parameters)));
         Assert::false(empty($settings = (array) json_decode($this->mockService->getUser()->getIdentity()->getData()[$config['masala']['settings']])), 'Test user does not have settings.');
         Assert::false(empty($setting = (array) reset($settings)), 'User setting is not set');
-        $_POST = [$column => 'true'];
+        $_POST['test'] = true;
+        Assert::false(empty($_POST), 'Post data cannot be empty so IPresenter:sendResponse would be not mocked.');
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
+        $_POST = [];
         foreach ($presenters as $class => $presenter) {
-            Assert::false(empty($_POST), 'Post cannot be empty for testing xhr handlers.');
             if(isset($this->container->parameters['mockService']['presenters'][$class])) {
                 $testParameters = $this->container->parameters['mockService']['presenters'][$class];
             } else if(isset($this->container->parameters['mockService']['testParameters'])) {
@@ -75,7 +76,6 @@ final class MasalaTest extends TestCase {
             Assert::notSame(6, strlen($method = 'action' . ucfirst(array_shift($parameters))), 'Action method of ' . $class . ' is not set.');
             Assert::true(is_object($reflection = new Method($class, $method)));
             $arguments = [];
-            dump($testParameters);
             foreach ($reflection->getParameters() as $parameter) {
                 Assert::true(isset($testParameters[$parameter->getName()]), 'There is no test parameters for ' . $parameter->getName() . ' in ' . $class . '.');
                 $arguments[$parameter->getName()] = $testParameters[$parameter->getName()];
@@ -97,20 +97,22 @@ final class MasalaTest extends TestCase {
             /* Assert::same(null, $this->class->getGrid()->build([], $this->class->getName()), 'VO:build does retunn something. Do you wish to modify test?'); */
             Assert::same($presenter->grid, $presenter->grid->table($source), 'Set table of VO does not return class itself.');
             Assert::true(is_array($columns = $presenter->grid->getDrivers($source)), 'Table columns are not defined.');
-            Assert::true(is_object($grid = $this->mockService->getPrivateProperty($this->class, 2)), 'Masala builder is not set.');
-            Assert::true(is_array($renderColumns = $grid->getColumns()), 'No columns was rendered.');
-            foreach($renderColumns as $column => $annotation) {
-                $_POST[$column] = 'true';
-                break;
-            }
+            Assert::true(is_object($grid = $this->mockService->getPrivateProperty($this->class, 1)), 'Masala builder is not set.');
+            Assert::true(is_array($renderColumns = $presenter->grid->getColumns()), 'No columns was rendered.');
+            foreach($renderColumns as $column => $annotation) { break; }
+            Assert::true(empty($_POST), 'Post data have to be empty so IGridFactory:handleSetting would not mismatched settings.');
+            $_POST[$column] = 'true';
+            Assert::same(sizeof($_POST), 1, 'More test columns than expected.');
             Assert::false(empty($_POST), 'No column to annotate is set.');
-            Assert::true(is_object($gridFactory = $this->mockService->getPrivateProperty($this->class, 3)), 'IGridFactory is not set.');
+            Assert::true(is_object($gridFactory = $this->mockService->getPrivateProperty($this->class, 2)), 'IGridFactory is not set.');
             Assert::true($gridFactory instanceof IGridFactory, 'GridFactory has wrong instation.');
             Assert::same($gridFactory, $gridFactory->setGrid($grid), 'GridFactory::setGrid does not return class itself.');
             Assert::same($presenter, $presenter->addComponent($gridFactory, 'gridFactory'), 'IPresenter::addComponent does not return class itself.');
+            Assert::true(is_object($filterForm = $this->mockService->getPrivateProperty($gridFactory, 3)), 'FilterForm is not set.');
+            Assert::false(empty($filterForm->getData()), 'No data for filterForm.');
             Assert::true(isset($_POST[$column]), 'Test $_POST data were unexpected overwrited.');
             Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
-            Assert::false(empty($_POST[$column] = 'false'));
+            $_POST[$column] = 'false';
             Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $notShow = [];
             foreach ($columns as $column) {
@@ -153,7 +155,12 @@ final class MasalaTest extends TestCase {
 
     public function testGetComment() {
         $row = $this->container->getByType('Masala\IRow');
-        Assert::false(empty($key = array_rand($this->container->parameters['tables'])), 'Test source was not set.');
+        Assert::false(empty($tables = $this->container->parameters['tables']), 'Test source was not set.');
+        Assert::false(empty($excluded = $this->container->parameters['mockService']['excluded']), 'No tables to excluded. Do you wish to modify test?');
+        foreach($excluded as $exclude) {
+            unset($tables[$exclude]);
+        }
+        Assert::false(empty($key = array_rand($tables)), 'Test source was not set.');
         Assert::false(empty($source = $this->container->parameters['tables'][$key]), 'Test source was not set.');
         Assert::false(empty($columns = $row->table($source)->getDrivers($source)), 'Columns of tables ' . $source . ' was not set.');
         Assert::false(empty($source = $this->container->parameters['tables']['help']), 'Test source for table help was not set.');

@@ -4,6 +4,7 @@ namespace Test;
 
 use Masala\IBuilder,
     Masala\IRow,
+    Masala\Masala,
     Masala\MockService,
     Nette\Application\UI\Presenter,
     Nette\DI\Container,
@@ -52,17 +53,16 @@ final class BuilderTest extends TestCase {
 
     public function testFilter() {
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
-        $testParameters = ['feed' => 'laurasport',
-            'id' => 126,
-            'date' => date('Y-m-d', strtotime('now')),
-            'limit' => 10,
-            'type' => 'inventure',
-            'status' => 'translated',
-            'producerId' => 126];
         foreach ($presenters as $class => $presenter) {
+            if(isset($this->container->parameters['mockService']['presenters'][$class])) {
+                $testParameters = $this->container->parameters['mockService']['presenters'][$class];
+            } else if(isset($this->container->parameters['mockService']['testParameters'])) {
+                $testParameters = $this->container->parameters['mockService']['testParameters'];
+            } else {
+                $testParameters = [];
+            }
             Assert::true(is_array($parameters = $presenter->request->getParameters('action')), 'Parameters have not been set in ' . $class . '.');
             Assert::true(isset($parameters['action']), 'Action is not set in ' . $class . '.');
-            echo 'testing ' . $class . ':' . $parameters['action'];
             Assert::notSame(6, strlen($method = 'action' . ucfirst(array_shift($parameters))), 'Action method of ' . $class . ' is not set.');
             Assert::true(is_object($reflection = new Method($class, $method)));
             $arguments = [];
@@ -108,7 +108,7 @@ final class BuilderTest extends TestCase {
     }
 
     public function testConfig() {
-        Assert::true(is_object($mockModel = $this->container->getByType('Masala\MockModel')), 'MockModel is not set.');
+        Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
         Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set.');
         Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
         Assert::true(isset($this->container->parameters['mockService']['testUser']), 'Test user is not set.');
@@ -116,8 +116,8 @@ final class BuilderTest extends TestCase {
         Assert::true(isset($configuration['masala']['settings']), 'Column for setting of user is not set.');
         Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users is not set.');
         Assert::false(empty($column = $configuration['masala']['settings']), 'Column for settings of user is not set.');
-        Assert::true(is_object($user = $mockModel->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
-        Assert::true(is_object(json_decode($user->$column)), 'Setting of user ' . $user->$column . ' is not valid json.');
+        Assert::true(is_object($user = $mockRepository->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
+        Assert::true(is_object(json_decode($user->$column)) || "[]" == $user->$column, 'Setting of user ' . $user->$column . ' is not valid json.');
     }
 
 }

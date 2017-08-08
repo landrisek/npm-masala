@@ -2,7 +2,7 @@
 
 namespace Test;
 
-use Masala\MockModel,
+use Masala\IMock,
     Masala\IRow,
     Nette\Database\Table\ActiveRow,
     Nette\DI\Container,
@@ -20,8 +20,8 @@ final class RowTest extends TestCase {
     /** @var IRow */
     private $class;
 
-    /** @var MockModel */
-    private $mockModel;
+    /** @var IMock */
+    private $mockRepository;
 
     /** @var array */
     private $primary;
@@ -35,7 +35,7 @@ final class RowTest extends TestCase {
 
     protected function setUp() {
         Assert::true(is_object($this->class = $this->container->getByType('Masala\IRow')), 'IRow is not set.');
-        Assert::true(is_object($this->mockModel = $this->container->getByType('Masala\MockModel')), 'MockModel is not set.');
+        Assert::true(is_object($this->mockRepository = $this->container->getByType('Masala\IMock')), 'MockModel is not set.');
         Assert::true(is_object($grid = $this->container->getByType('Masala\IBuilder')), 'IBuilder is not set.');
         Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set');
         Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users in config is not set.');
@@ -59,8 +59,9 @@ final class RowTest extends TestCase {
         $before = [];
         Assert::false(empty($row = $this->class->getData()), 'Test row is empty.');
         foreach($row as $column => $value) {
-            if(!isset($this->primary[$this->class->getTable() . '.' .$column])) {
+            if(!isset($this->primary[$this->class->getTable() . '.' .$column]) && null != $value) {
                 Assert::false(empty($before[$column] = 'test'), 'Assign value failed.');
+                echo $value;
                 Assert::false(empty($after[$column] = $value), 'Assign value failed.');
                 break;
             }
@@ -76,8 +77,14 @@ final class RowTest extends TestCase {
                 $before['primary'][$column] = $this->class->$column;
             }
         }
-        Assert::same(false, $this->mockModel->getTestRow($this->class->getTable(), $before['primary']), 'Concated data keys should not exist in test table.');
-        Assert::true(is_object($this->mockModel->getTestRow($this->class->getTable(), $clauses)), 'Concated data keys should not exist in test table.');
+        foreach($after as $column => $value) {
+            if(is_array($value)) {
+            } else if(preg_match('/template/', $value)) {
+                Assert::same('debug', $value, 'Corrupted data to update');
+            }
+        }
+        Assert::same(false, $this->mockRepository->getTestRow($this->class->getTable(), $before['primary']), 'Concated data keys should not exist in test table.');
+        Assert::true(is_object($this->mockRepository->getTestRow($this->class->getTable(), $clauses)), 'Concated data keys should not exist in test table.');
         Assert::true(isset($after['primary']), 'Primary keys are not set.');
         Assert::true(isset($before['primary']), 'Primary keys are not set.');
         Assert::same(1, $this->class->update($before), 'Test update failed. Possible concating of keys for javascript in ReactForm is corrupted');

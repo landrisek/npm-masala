@@ -46,11 +46,11 @@ final class GridTest extends TestCase {
 
     public function testSetRow() {
         $this->setUp();
-        $mockModel = $this->container->getByType('Masala\MockModel');
+        $mockRepository = $this->container->getByType('Masala\IMock');
         Assert::false(empty($key = array_rand($this->container->parameters['tables'])), 'Test source is not set.');
-        if(is_object($mockModel->getTestRow($this->container->parameters['tables'][$key]))) {
-            Assert::true(is_object($this->row->table($this->container->parameters['tables'][$key])->check()), 
-                    'IRow:check failed on source ' . $this->container->parameters['tables'][$key]);            
+        if(is_object($mockRepository->getTestRow($this->container->parameters['tables'][$key]))) {
+            Assert::same(null, $this->row->table($this->container->parameters['tables'][$key])->check(),
+                    'IRow:check should return null with empty where in source ' . $this->container->parameters['tables'][$key]);
         }
         Assert::notSame(false, $this->row, 'There is no VO for testing EditForm.');
         Assert::true($this->row instanceof IRow, 'There is no VO for testing EditForm.');

@@ -45,6 +45,7 @@ final class EditForm extends ReactForm implements IEditFormFactory {
                 $label = ucfirst($this->translatorModel->translate($this->row->getTable() . '.' . $name));
                 $defaults = $this->getDefaults($name);
                 $attributes = $this->getAttributes($column);
+                $validators = $this->getValidators($column, $label);
                 if ('SUBMIT' == $column['nativetype']) {
                     $this->addSubmit($name, $label);
                 } elseif ('PRI' == $column['vendor']['Key'] or
@@ -62,39 +63,39 @@ final class EditForm extends ReactForm implements IEditFormFactory {
                     }
                     $attributes['data'] = $defaults;
                     $attributes['style'] = ['height' => '100%'];
-                    $this->addSelect($name, $label . ':', $attributes);
+                    $this->addSelect($name, $label . ':', $attributes, $validators);
                 } elseif (in_array($column['nativetype'], ['DATETIME', 'TIMESTAMP', 'DATE'])) {
                     $attributes['value'] = (is_object($this->row->$name)) ? $this->row->$name->__toString() : date('Y-m-d H:i:s', strtotime('now'));
-                    $this->addDateTimePicker($name, $label . ':', $attributes);
+                    $this->addDateTimePicker($name, $label . ':', $attributes, $validators);
                 } elseif ($column['nativetype'] == 'TINYINT') {
                     (1 == $this->row->$name) ? $attributes['checked'] = 'checked' : null;
-                    $this->addCheckbox($name, $label, $attributes);
+                    $this->addCheckbox($name, $label, $attributes, $validators);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@textarea')) {
-                    $this->addTextArea($name, $label . ':', $attributes);
+                    $this->addTextArea($name, $label . ':', $attributes, $validators);
                 } elseif (0 < substr_count($column['nativetype'], 'TEXT')) {
                     /** @todo https://www.npmjs.com/package/ckeditor-react */
-                    $this->addTextArea($name, $label . ':', $attributes);
+                    $this->addTextArea($name, $label . ':', $attributes, $validators);
                 } elseif (!empty($defaults) and is_array($defaults) and is_array($this->row->$name) and 'INT' == $column['nativetype']) {
                     $attributes['data'] = $defaults;
                     $attributes['style'] = ['height' => '100%'];
-                    $this->addSelect($name, $label . ':', $attributes);
+                    $this->addSelect($name, $label . ':', $attributes, $validators);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@addMultiSelect') or ( !empty($defaults) and is_array($defaults) and is_array($this->row->$name))) {
                     $attributes['data'] = is_array($this->row->$name) ? $this->row->$name : json_decode($this->row->$name);
-                    $this->addMultiSelect($name, $label . ':', $attributes);
+                    $this->addMultiSelect($name, $label . ':', $attributes, $validators);
                 } elseif (!empty($defaults) and is_array($defaults)) {
                     $attributes['data'] = $defaults;
                     $attributes['style'] = ['height' => '100%'];
-                    $this->addSelect($name, $label . ':', $attributes);
+                    $this->addSelect($name, $label . ':', $attributes, $validators);
                 } elseif (in_array($column['nativetype'], ['DECIMAL', 'FLOAT', 'INT'])) {
                     $attributes['type'] = 'number';
-                    $this->addText($name, $label . ':', $attributes);
+                    $this->addText($name, $label . ':', $attributes, $validators);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@upload')) {
                     $this->addUpload($name, $label);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@multiupload')) {
                     $attributes['max'] = $this->upload;
-                    $this->addMultiUpload($name, $label, $attributes);
+                    $this->addMultiUpload($name, $label, $attribute, $validators);
                 } else {
-                    $this->addText($name, $label . ':', $attributes);
+                    $this->addText($name, $label . ':', $attributes, $validators);
                 }
             }
             if(!empty($this->row->getColumns())) {
@@ -117,16 +118,19 @@ final class EditForm extends ReactForm implements IEditFormFactory {
     private function getAttributes(array $column) {
         $name = $column['name'];
         $attributes = ['class' => 'form-control', 'value' => $this->row->$name];
-        if(false == $column['nullable']) {
-            $attributes['required'] = $column['name'] . ' ' . $this->translatorModel->translate('is required.');
-        }
-        if(substr_count($column['vendor']['Comment'], '@disable') > 0) {
-            $attributes['readonly'] = 'readonly';
-        }
-        if(substr_count($column['vendor']['Comment'], '@onchange') > 0) {
-            $attributes['onChange'] = 'submit';
-        }
+        substr_count($column['vendor']['Comment'], '@disable') > 0 ? $attributes['readonly'] = 'readonly' : null;
+        substr_count($column['vendor']['Comment'], '@onchange') > 0 ? $attributes['onChange'] = 'submit' : null;
         return $attributes;
+    }
+
+    /** @return array */
+    private function getValidators(array $column, $name) {
+        $validators = [];
+        false == $column['nullable'] ? $validators['required'] =  $column['name'] . ' ' . $this->translatorModel->translate('is required.') : null;
+        'UNI' == $column['vendor']['Key'] ? $validators['unique'] = ucfirst($this->translatorModel->translate('unique item'))  . ' '
+            . $name . ' ' . $this->translatorModel->translate('already defined in source table.') : null;
+        (0 < substr_count($column['vendor']['Comment'], '@email')) ? $validators['email'] = $name . ' ' . $this->translatorModel->translate('is not valid email.') : null;
+        return $validators;
     }
 
     /** @return array */

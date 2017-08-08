@@ -5,6 +5,7 @@ import Form from './Form.jsx'
 var ACTIONS = 'actions'
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
+var DIALOGS = 'dialogs'
 var ROWS = 'rows'
 
 export default class Grid extends Form {
@@ -30,6 +31,9 @@ export default class Grid extends Form {
     }
     addActions(row, key) {
         var container = []
+        for(var dialog in this.state[BUTTONS].dialogs) {
+            container.push(this.addDialog(dialog, key, row))
+        }
         for(var action in this.state[ACTIONS]) {
             var id = 'action-' + key + '-' + action
             var href = this.state[ACTIONS][action]['href']
@@ -41,7 +45,7 @@ export default class Grid extends Form {
             for(var parameterId in this.state[ACTIONS][action].parameters) {
                     href += parameterId + '=' + row[this.state[ACTIONS][action].parameters[parameterId]] + '&'
             }
-            if(0 < this.state[ACTIONS][action].url.length) {
+            if(this.state[ACTIONS][action].url.length > 0) {
                 href = row[this.state[ACTIONS][action].url]
             }
             container.push(<div key={id} className='fa-hover col-md-1'><a
@@ -51,15 +55,6 @@ export default class Grid extends Form {
                   onClick={this.bind(this.state[ACTIONS][action].onClick)}
                   target='_blank'
                   title={this.state[ACTIONS][action].label}></a></div>)
-        }
-        if(0 == this.state[ACTIONS].length) {
-            var id = 'edit-' + key
-            container.push(<div key={id} className='fa-hover col-md-1'><a
-                className='fa-hover fa fa-edit'
-                data-target='#masala-edit'
-                data-toggle='modal'
-                onClick={this.edit.bind(this, row)}
-                title='edit'></a></div>)
         }
         return container
     }
@@ -85,11 +80,20 @@ export default class Grid extends Form {
         }
         return body;
     }
+    addDialog(dialog, key, data) {
+        var id = 'dialog-' + dialog + '-' + key
+        return <div key={id} className='fa-hover col-md-1'><a
+            className={'fa-hover fa fa-' + dialog}
+            data-target={'#masala-' + dialog}
+            data-toggle='modal'
+            onClick={this.bind(dialog, key)}
+            title={dialog}></a></div>
+    }
     addSettings() {
         var settings = []
         var columns = this.state[COLUMNS]
         for (var key in columns) {
-            if(null == /\s/.exec(key)) {
+            if(null == /\s/.exec(key) && 'groups' != key) {
                 var id = key + '-setting'
                 var checked = 'checked'
                 if(true == columns[key].Attributes.unrender) { checked = null }
@@ -184,10 +188,9 @@ export default class Grid extends Form {
             if(undefined != this.state[COLUMNS][row] && true != this.state[COLUMNS][row].Attributes.unrender) {
                 var td = 'grid-col-' + key
                 var id = 'grid-col-' + key + row
-                if('object' == typeof(rows[row]) && null !== rows[row])  {
+                if('object' == typeof(rows[row]) && null !== rows[row]) {
                     rows[row].Attributes.id = row
-                    rows[row].Attributes.onChange = this.build.bind(this, key, row)
-                    rows[row].Attributes.onKeyDown = this.update.bind(this, key, row)
+                    rows[row].Attributes.onChange = this.update.bind(this, key, row)
                     container.push(<td key={id} className={td}>{React.createElement(rows[row].Tag, rows[row].Attributes, rows[row].Label)}</td>)
                 } else {
                     container.push(<td key={id} className={td}>{rows[row]}</td>)
@@ -240,14 +243,6 @@ export default class Grid extends Form {
                 type='text' />
         </th>
     }
-    build(key, column, event) {
-        if('object' === typeof(event)) {
-            var state = []
-            state[ROWS] = this.state[ROWS]
-            state[ROWS][key][column].Attributes.value = event.target.value
-            this.setState(state)
-        }
-    }
     change(key, event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
@@ -277,7 +272,10 @@ export default class Grid extends Form {
         this.setState(buttons)
     }
     edit(data) {
-        var link = this.state[BUTTONS]['edit']
+        if("Object" != data.constructor.name && "object" == typeof(data)) {
+            data = new Object()
+        }
+        var link = this.state[BUTTONS].dialogs['edit']
         $.ajax({
             type: 'post',
             data: data,
@@ -363,7 +361,7 @@ export default class Grid extends Form {
             success: function (payload) {
                 return payload
             }
-        }).responseText;
+        }).responseText
         var state = []
         state[BUTTONS] = this.state[BUTTONS]
         state[BUTTONS]['pages'] = response
@@ -383,15 +381,24 @@ export default class Grid extends Form {
         }})
     }
     render() {
-        var setting = ''
-        if (true == this.state[BUTTONS].setting.enabled) {
-            var setting = this.addAction('setting')
+        var dialogs = []
+        for(var dialog in this.state[DIALOGS]) {
+            dialogs.push(<a
+                className='btn btn-success'
+                id={dialog}
+                key={'dialog-' + dialog}
+                type='button'
+                data-target={'#masala-' + dialog}
+                data-toggle='modal'
+                onClick={this.bind(this.state[DIALOGS][dialog].onClick, this.state[DIALOGS][dialog].link)}
+                style = {{marginRight: '10px'}}
+                title='edit'>{this.state[DIALOGS][dialog].label}</a>)
         }
         return <div><ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
                 <tr><td style={{paddingTop:'10px'}}>
-                    {setting}{this.addAction('excel')}{this.addAction('export')}{this.addAction('reset')}{this.addAction('send')}{this.addAction('done')}
+                    {dialogs}{this.addAction('setting')}{this.addAction('excel')}{this.addAction('export')}{this.addAction('reset')}{this.addAction('send')}{this.addAction('done')}
                 </td></tr>
             </tbody></table>
             {this.addSettings()}
@@ -426,6 +433,9 @@ export default class Grid extends Form {
         this.setState(state)
         this.getSpice()
     }
+    remove(key) {
+        this.signal({target:{id:key,href:this.state[BUTTONS].remove},preventDefault(){}})
+    }
     run(payload, key) {
         var self = this
         if(parseInt(payload.stop) > parseInt(payload.offset)) {
@@ -446,10 +456,14 @@ export default class Grid extends Form {
             state[BUTTONS]['page'] = page
             state[ROWS] = this.filter()
             this.setState(state)
+            this.summary(this.paginate())
         }
     }
     signal(event) {
         event.preventDefault()
+        if(false === confirm(this.state[BUTTONS]['proceed'])) {
+            return
+        }
         var response = $.ajax({
             type: 'post',
             data: this.state[ROWS][event.target.id],
@@ -511,7 +525,7 @@ export default class Grid extends Form {
     summary(data) {
         var columns = this.state[COLUMNS]
         for (var key in columns) {
-            if(true != columns[key].Attributes.unrender && true === columns[key].Attributes.summary) {
+            if(true == columns[key].Attributes.unrender || false === columns[key].Attributes.summary) { } else {
                 data['summary'] = key
                 columns[key].Attributes.summary = $.ajax({ type:'post',url:this.state[BUTTONS]['summary'],data:data,async:false}).responseText
             }
@@ -536,9 +550,9 @@ export default class Grid extends Form {
         this.submit()
     }
     update(key, column, event) {
-        if('object' == typeof(event) && 13 == event.keyCode) {
+        if('object' == typeof(event)) {
             var data = this.state[ROWS][key]
-            data[column] = data[column].Attributes.value
+            data[column] = event.target.value
             var state = []
             state[ROWS] = this.state[ROWS]
             state[ROWS][key] = $.ajax({type:'post', url:this.state[BUTTONS]['update'],data:data,async:false}).responseJSON

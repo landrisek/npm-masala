@@ -2,7 +2,7 @@
 
 namespace Test;
 
-use Masala\MockModel,
+use Masala\IMock,
     Masala\MockService,
     Models\TranslatorModel,
     Nette\DI\Container,
@@ -18,8 +18,8 @@ final class MockServiceTest extends TestCase {
     /** @var Container */
     private $container;
 
-    /** @var MockModel */
-    private $mockModel;
+    /** @var IMock */
+    private $mockRepository;
 
     /** @var TranslatorModel */
     private $translatorModel;
@@ -35,10 +35,10 @@ final class MockServiceTest extends TestCase {
     }
 
     function setUp() {
-        $this->mockModel = $this->container->getByType('Masala\MockModel');
+        $this->mockRepository = $this->container->getByType('Masala\IMock');
         $this->translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
         $this->class = $this->container->getByType('Masala\MockService');
-        $this->tables = $this->mockModel->getTestTables();
+        $this->tables = $this->mockRepository->getTestTables();
         $this->request = $this->container->getByType('Nette\Http\IRequest');
     }
 

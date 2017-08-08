@@ -20,9 +20,6 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var array */
     private $config;
 
-    /** @var IHelp */
-    private $helpRepository;
-
     /** @var IBuilder */
     private $grid;
 
@@ -31,6 +28,9 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @var array */
     private $header;
+
+    /** @var IHelp */
+    private $helpRepository;
 
     /** @var IImportFormFactory */
     private $importFormFactory;
@@ -325,8 +325,8 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->npm = $this->config['npm'];
         $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
         $this->template->dialogs = ['edit', 'help', 'import', 'process'];
-        $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $this->template->grid = $this->grid;
+        $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $columns = $this->grid->getColumns();
         $this->template->order = reset($columns);
         $this->template->setFile(__DIR__ . '/templates/@layout.latte');

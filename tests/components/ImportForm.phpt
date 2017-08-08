@@ -43,7 +43,7 @@ final class ImportFormTest extends TestCase {
     }
 
     public function testSetService() {
-        $mockModel = $this->container->getByType('Masala\MockModel');
+        $mockRepository = $this->container->getByType('Masala\IMock');
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $this->presenters[$class]);
             Assert::true(is_object($masala = $presenter->context->getByType('Masala\Masala')), 'Masala is not set.');
@@ -55,7 +55,7 @@ final class ImportFormTest extends TestCase {
             $service = $presenter->grid->getImport();
             Assert::true(is_object($this->class->setService($service)), 'ImportForm:setService does not return class itself.');
             Assert::same($this->class, $this->class->setService($service), 'ImportForm:setService does not return class itself.');
-            Assert::true(is_object($setting = $mockModel->getTestRow($this->container->parameters['masala']['feeds'], 
+            Assert::true(is_object($setting = $mockRepository->getTestRow($this->container->parameters['masala']['feeds'], 
                     ['type' => 'import', 'source' => $presenter->getName() . ':' . $presenter->getAction()])), 'Setting is not set.');
             Assert::true($setting instanceof ActiveRow, 'Import setting is not set in ' . $class . '.');            
             Assert::notSame(null, $setting->mapper, 'Following tests require existing active row for source ' . $setting->feed . '.');
