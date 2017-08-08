@@ -484,7 +484,7 @@ final class Builder implements IBuilder {
                 $resource = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetchAll();
                 $data = [];
                 foreach($resource as $row) {
-                    $data[] = $build ? $this->build->build((array) $row) : $row;
+                    $data[] = $build ? $this->build->build((array) $row) : (array) $row;
                 }
             }
             /** if(!empty($data)) {
