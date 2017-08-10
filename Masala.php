@@ -151,8 +151,10 @@ final class Masala extends Control implements IMasalaFactory {
         $folder = $this->grid->getExport()->getFile();
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $header = '';
-        foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
-            $header .= $this->grid->translate($column, $this->grid->getTable() . '.' .  $column) . ';';
+        foreach($this->grid->prepare()->getOffset(1) as $column => $value) {
+            if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
+                $header .= $this->grid->translate($column, $this->grid->getTable() . '.' .  $column) . ';';
+            }
         }
         $file = $this->grid->getId('export') . '.csv';
         file_put_contents($folder . '/' . $file, $header);
@@ -181,10 +183,12 @@ final class Masala extends Control implements IMasalaFactory {
         $sheet->setTitle(substr($title, 0, 31));
         $letter = 'a';
         foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
-            $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
-            $sheet->getColumnDimension($letter)->setAutoSize(true);
-            $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
-            $letter++;
+            if(false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
+                $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
+                $sheet->getColumnDimension($letter)->setAutoSize(true);
+                $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+                $letter++;
+            }
         }
         $file = $this->grid->getId('excel') . '.xls';
         $objWriter = new PHPExcel_Writer_Excel2007($excel);
@@ -279,10 +283,12 @@ final class Masala extends Control implements IMasalaFactory {
                 foreach($cells as $cellId => $cell) {
                     if($cell instanceof DateTime) {
                         $response['row'][$rowId][$cellId] = $cell->__toString();
-                    } else if(isset($cell['Attributes'])) {
+                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden']) && isset($cell['Attributes'])) {
                         $response['row'][$rowId][$cellId] = $cell['Attributes']['value'];
-                    } else {
+                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden'])) {
                         $response['row'][$rowId][$cellId] = $cell;
+                    } else {
+                        unset($response['row'][$rowId][$cellId]);
                     }
                 }
                 if('export' == $response['status']) {

@@ -13,5 +13,14 @@
     <a class='btn btn-success' type='button' data-target='#{$control->getName()}-process' data-toggle='modal'>{_'process'|firstUpper}</a>
 {/if}
 {control grid}
+<div id='loader' style='display:none;'>
+    <div id='lemon'></div><div id='straw'></div>
+    <div id='glass'>
+        <div id='cubes'><div></div><div></div><div></div></div>
+        <div id='drink'></div>
+        <span id="counter"></span>
+    </div>
+    <div id='coaster'></div>
+</div>
 <div class='modal'><!-- loading --></div>
 {include dialog}

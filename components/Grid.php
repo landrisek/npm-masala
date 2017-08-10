@@ -347,17 +347,18 @@ final class Grid extends Control implements IGridFactory {
         foreach($this->builder->getDialogs() as $key) {
             $dialogs[$key] = ['label'=>$this->translatorModel->translate('dialog:' . $key),'class'=>'btn btn-warning','link' =>$this->link($key),'onClick'=>$key];
         }
-        $actions = is_object($this->builder->getEdit()) ? ['edit' => $this->link('edit')] : [];
+        $buttons = is_object($this->builder->getEdit()) ? ['edit' => $this->link('edit')] : [];
         foreach($this->builder->getActions() as $key) {
-            $actions[$key] = $this->link($key);
+            $buttons[$key] = $this->link($key);
         }
+        $this->template->triggers = ['setting','excel','export','reset','send','done'];
         $this->template->data = json_encode(['actions' => $this->getActions(),
                                                 'buttons' => [
                                                     'done' => ['class' => 'alert alert-success',
                                                                 'label' => $this->translatorModel->translate('Click here to download your file.'),
                                                                 'link' => $this->getParent()->link('done'),
                                                                 'style' => ['display'=>'none', 'marginRight' => '10px']],
-                                                    'dialogs' => $actions,
+                                                    'dialogs' => $buttons,
                                                     'export' => $export,
                                                     'excel' => $excel,
                                                     'filter' => $this->link('filter'),
@@ -380,6 +381,7 @@ final class Grid extends Control implements IGridFactory {
                                                         'link' =>$this->link('setting'),
                                                         'onClick' => 'setting'] : false,
                                                     'summary' => $this->link('summary'),
+                                                    'triggers' => $this->template->triggers,
                                                     'update' => $this->link('update')],
                                                 'columns' => $data,
                                                 'dialogs' => $dialogs,

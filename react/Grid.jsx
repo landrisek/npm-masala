@@ -1,6 +1,6 @@
+import Form from './Form.jsx'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
-import Form from './Form.jsx'
 
 var ACTIONS = 'actions'
 var BUTTONS = 'buttons'
@@ -16,17 +16,18 @@ export default class Grid extends Form {
     }
     addAction(key) {
         if(false == jQuery.isEmptyObject(this.state[BUTTONS][key])) {
-            if(undefined == this.state[BUTTONS][key].style) {
-                var style = {marginRight: '10px'}
-            } else {
-                var style = this.state[BUTTONS][key].style
-            }
-            return <a className={this.state[BUTTONS][key].class}
-                      id={key}
+            return <div style={{marginRight:'10px',float:'left'}}><a className={this.state[BUTTONS][key].class}
+                      id={'trigger-' + key}
                       href={this.state[BUTTONS][key].href}
-                      key={key}
-                      style={style}
-                      onClick={this.bind(this.state[BUTTONS][key].onClick)}>{this.state[BUTTONS][key].label}</a>
+                      key={'trigger-' + key}
+                      style={this.state[BUTTONS][key].style}>{this.state[BUTTONS][key].label}</a>
+                <a className={this.state[BUTTONS][key].class}
+                   id={key}
+                   href={this.state[BUTTONS][key].href}
+                   key={key}
+                   style={{display:'none'}}
+                   onClick={this.bind(this.state[BUTTONS][key].onClick)}>{this.state[BUTTONS][key].label}</a>
+            </div>
         }
     }
     addActions(row, key) {
@@ -74,15 +75,16 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         for (var key in columns) {
             var closure = this[columns[key].Method]
-            if('function' == typeof(closure) && false == columns[key].Attributes.filter) {
+            if('function' == typeof(closure) && false == columns[key].Attributes.filter && false == columns[key].Attributes.unrender) {
                 body.push(this[columns[key].Method](key))
             }
         }
         return body;
     }
-    addDialog(dialog, key, data) {
+    addDialog(dialog, key) {
         var id = 'dialog-' + dialog + '-' + key
         return <div key={id} className='fa-hover col-md-1'><a
+            id={key}
             className={'fa-hover fa fa-' + dialog}
             data-target={'#masala-' + dialog}
             data-toggle='modal'
@@ -90,6 +92,9 @@ export default class Grid extends Form {
             title={dialog}></a></div>
     }
     addSettings() {
+        if(false == this.state[BUTTONS].setting) {
+            return
+        }
         var settings = []
         var columns = this.state[COLUMNS]
         for (var key in columns) {
@@ -98,7 +103,7 @@ export default class Grid extends Form {
                 var checked = 'checked'
                 if(true == columns[key].Attributes.unrender) { checked = null }
                 settings.push(<div key={id} style={{float:'left'}}>
-                    <input checked={checked} id={key} onClick={this.setting.bind(this)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
+                    <input checked={checked} id={key} onClick={this.setting.bind(this, key)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
                 </div>)
             }
         }
@@ -113,7 +118,7 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         for (var key in columns) {
             var closure = this[columns[key].Method]
-            if('function' == typeof(closure) && true == columns[key].Attributes.filter) {
+            if('function' == typeof(closure) && true == columns[key].Attributes.filter && true == columns[key].Attributes.unrender) {
                 body.push(this[columns[key].Method](key))
             }
         }
@@ -134,7 +139,7 @@ export default class Grid extends Form {
             </select></th>
     }
     addLabel(key) {
-        if(true == this.state[COLUMNS][key].Attributes.unfilter || true == this.state[COLUMNS][key].Attributes.filter) {
+        if(true == this.state[COLUMNS][key].Attributes.filter) {
             return <label>{this.state[COLUMNS][key].Label}</label>
         }
     }
@@ -271,8 +276,9 @@ export default class Grid extends Form {
         state[BUTTONS] = buttons
         this.setState(buttons)
     }
-    edit(data) {
-        if("Object" != data.constructor.name && "object" == typeof(data)) {
+    edit(key, event) {
+        var data = this.state[ROWS][key]
+        if(undefined == this.state[ROWS][key]) {
             data = new Object()
         }
         var link = this.state[BUTTONS].dialogs['edit']
@@ -368,7 +374,7 @@ export default class Grid extends Form {
         this.setState(state)
         return data
     }
-    prepare(event) {
+    prepare(data, event) {
         var data = this.getSpice()
         var element = this.state[BUTTONS][event.target.id]
         element.class = 'btn btn-success disabled'
@@ -394,21 +400,27 @@ export default class Grid extends Form {
                 style = {{marginRight: '10px'}}
                 title='edit'>{this.state[DIALOGS][dialog].label}</a>)
         }
-        return <div><ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
+        var triggers = []
+        for(var trigger in this.state[BUTTONS].triggers) {
+            triggers.push(this.addAction(this.state[BUTTONS].triggers[trigger]))
+        }
+        $('#grid').show()
+        $('#loader').hide()
+        return <div>
+            <ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
-                <tr><td style={{paddingTop:'10px'}}>
-                    {dialogs}{this.addAction('setting')}{this.addAction('excel')}{this.addAction('export')}{this.addAction('reset')}{this.addAction('send')}{this.addAction('done')}
-                </td></tr>
+                <tr><td style={{paddingTop:'10px'}}>{dialogs}{triggers}</td></tr>
             </tbody></table>
             {this.addSettings()}
-            <table className="table table-striped table-hover">
+            <table className='table table-striped table-hover'>
             <thead>
             <tr className='grid-labels'>{this.addLabels()}</tr>
             <tr className='grid-columns'>{this.addColumns()}</tr>
             </thead>
             <tbody>{this.addBody()}</tbody>
-        </table></div>
+        </table><ul key='down-paginator' id='down-paginator' className='pagination'>{this.addPaginator()}</ul>
+        </div>
     }
     reset() {
         var state = []
@@ -482,15 +494,18 @@ export default class Grid extends Form {
             this.submit()
         }
     }
-    setting(event) {
+    setting(key, event) {
         var state = []
         var buttons = this.state[BUTTONS]
         if('checkbox' === event.target.type) {
             var columns = this.state[COLUMNS]
             if(true == columns[event.target.id].Attributes.unrender) {
                 columns[event.target.id].Attributes.unrender = false
+                columns[event.target.id].Attributes.filter = false
             } else {
                 columns[event.target.id].Attributes.unrender = true
+                columns[event.target.id].Attributes.unfilter = true
+                columns[event.target.id].Attributes.filter = false
             }
             var data = new Object()
             data[event.target.id] = columns[event.target.id].Attributes.unrender
@@ -506,7 +521,7 @@ export default class Grid extends Form {
         }
         this.setState(state)
     }
-    submit(key, event) {
+    submit(key, data, event) {
         var state = []
         if('object' == typeof(event) && 'Enter' == event.key) {
             var columns = this.state[COLUMNS]

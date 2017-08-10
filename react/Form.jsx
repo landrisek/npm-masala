@@ -250,13 +250,12 @@ export default class Form extends Component {
         data.file = request('GET', file.preview).body
         return $.ajax({type:'post',url:LINKS['save']+'&file='+file.name+'.'+file.type,data:data,async:false}).responseText
     }
-    prepare(event) {
+    prepare(data, event) {
         var response = $.ajax({type: 'post',url: LINKS['prepare'], data:this.state,async:false}).responseJSON
         this.run(response, event.target.id + '-progress')
     }
     submit() {
         var data = new Object()
-        console.log('submit')
         for(var key in this.state) {
             data[key] = this.state[key].Attributes.value
         }
