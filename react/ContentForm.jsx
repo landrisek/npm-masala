@@ -1,16 +1,16 @@
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 
-var CURRENT = 0
+var CURRENT = 'current'
 var CONTENT = 'content'
-var EDIT = 'edit'
 var LABELS = 'labels'
 var LINKS = {}
+var PLAIN = 'plain'
+var SELECT = 'select'
 var STATISTICS = 'statistics'
 var SOURCE = 'source'
 var WRITE = 'write'
 
-/** @todo https://www.npmjs.com/package/react-tag-input */
 export default class ContentForm extends Component {
     constructor(props){
         super(props);
@@ -24,7 +24,7 @@ export default class ContentForm extends Component {
                       onChange={this.update.bind(this)}
                       onKeyPress={this.insert.bind(this)}
                       style={{width: 'auto'}}
-                      value={this.state[CONTENT][key]}
+                      value={this.state[key]}
         /></div>
     }
     addSelect(key) {
@@ -80,7 +80,7 @@ export default class ContentForm extends Component {
         return <input className='form-control'
                       id={key}
                       key={key}
-                      onChange={this.update.bind(this)}
+                      onChange={this.change.bind(this)}
                       onClick={this.click.bind(this)}
                       onDragOver={this.drop.bind(this)}
                       onDrop={this.drop.bind(this)}
@@ -95,8 +95,7 @@ export default class ContentForm extends Component {
     attached() {
         var body = [];
         for (var key in this.state[CONTENT]) {
-            if('select' == key || 'plain' == key) {
-            } else if('object' == typeof(this.state[CONTENT][key])) {
+            if('object' == typeof(this.state[CONTENT][key])) {
                 body.push(this.addSelect(key))
             } else if('string' == typeof(this.state[CONTENT][key])) {
                 body.push(this.addText(key))
@@ -104,40 +103,29 @@ export default class ContentForm extends Component {
         }
         return body;
     }
-    click(event) {
-        CURRENT = event.target.id
-    }
     change(event) {
-        var element = this.state[CONTENT][event.target.id]
-        element[0] = event.target.value
         var state = []
-        state[event.target.id] = element
+        state[CONTENT] = this.state[CONTENT]
+        state[CONTENT][event.target.id] = event.target.value
         this.setState(state)
+    }
+    click(event) {
+        this.state[CURRENT] = parseInt(event.target.id) + 1
     }
     drop(event) {
         console.log('drag')
     }
     edit(event) {
-        if('Enter' != event.key && 'edit' != event.target.value) {
-            return
-        }
         var state = []
         state[CONTENT] = this.state[CONTENT]
-        if(0 === event.target.value.length) {
-            delete state[CONTENT][event.target.id]
-        } else if(event.target.id == this.state[EDIT]) {
+        if('Enter' == event.key && /;/.exec(event.target.value)) {
             state[CONTENT][event.target.id] = this.explode(state[CONTENT][event.target.id])
-            state[EDIT] = -1
-            this.setState(state)
-        } else if(this.state[EDIT] > 0) {
+        } else if ('Enter' == event.key && '' == event.target.value) {
+            delete state[CONTENT][event.target.id]
+        } else if ('Enter' == event.key) {
+            state[CONTENT][event.target.id] = state[CONTENT][event.target.id]
+        } else if ('edit' == event.target.value) {
             state[CONTENT][event.target.id] = this.implode(state[CONTENT][event.target.id])
-            state[CONTENT][this.state[EDIT]] = this.explode(state[CONTENT][this.state[EDIT]])
-            state[EDIT] = event.target.id
-            this.setState(state)
-        } else if('edit' === event.target.value) {
-            state[EDIT] = event.target.id
-            state[CONTENT][event.target.id] = this.implode(state[CONTENT][event.target.id])
-            this.setState(state)
         }
         this.setState(state)
     }
@@ -166,19 +154,20 @@ export default class ContentForm extends Component {
         }
         var state = []
         state[CONTENT] = new Object()
-        for(var key in this.state[CONTENT]) {
-            if(false == isNaN(key) && key >= CURRENT) {
-                state[CONTENT][parseInt(key) + 1] = this.state[CONTENT][key]
-            } else if(false == isNaN(key)) {
+        for(var id in this.state[CONTENT]) {
+            var key = parseInt(id)
+            if(key >= this.state[CURRENT]) {
+                state[CONTENT][key + 1] = this.state[CONTENT][key]
+            } else {
                 state[CONTENT][key] = this.state[CONTENT][key]
             }
         }
-        state[CONTENT][CURRENT] = new Object()
-        state[CONTENT][event.target.id] = ''
         if('select' == event.target.id) {
-            state[CONTENT][CURRENT][0] = event.target.value
+            state[CONTENT][this.state[CURRENT]] = event.target.value.split(';')
+            state[SELECT] = ''
         } else if('plain' == event.target.id) {
-            state[CONTENT][CURRENT] = event.target.value
+            state[CONTENT][this.state[CURRENT]] = event.target.value
+            state[PLAIN] = ''
         }
         this.setState(state)
     }
@@ -198,11 +187,7 @@ export default class ContentForm extends Component {
         var i=0;
         var data = new Object()
         for(var key in this.state[CONTENT]) {
-            if(false == isNaN(key)) {
-                data[i++] = this.state[CONTENT][key]
-            } else {
-                data[key] = this.state[CONTENT][key]
-            }
+            data[i++] = this.state[CONTENT][key]
         }
         return data
     }
@@ -214,11 +199,10 @@ export default class ContentForm extends Component {
     }
     update(event) {
         var state = []
-        state[CONTENT] = this.state[CONTENT]
-        if(0 === event.target.value.length) {
-            delete state[CONTENT][event.target.id]
+        if('select' == event.target.id) {
+            state[SELECT] = event.target.value
         } else {
-            state[CONTENT][event.target.id] = event.target.value
+            state[PLAIN] = event.target.value
         }
         this.setState(state)
     }

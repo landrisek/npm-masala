@@ -115,7 +115,7 @@ final class ContentForm extends Control implements IContentFormFactory {
     public function render(...$args) {
         $this->template->component = $this->getName();
         $this->template->data =  json_encode(['content' => json_decode(trim($this->row->check()->content)),
-                                            'edit'=>-1,
+                                            'current' => 0,
                                             'labels'=>['select'=>ucfirst($this->translatorRepository->translate('select')),
                                                         'plain'=>ucfirst($this->translatorRepository->translate('plain')),
                                                         'submit'=>ucfirst($this->translatorRepository->translate('save')),

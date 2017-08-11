@@ -182,8 +182,8 @@ final class Masala extends Control implements IMasalaFactory {
         $sheet = $excel->getActiveSheet();
         $sheet->setTitle(substr($title, 0, 31));
         $letter = 'a';
-        foreach(array_keys($this->grid->prepare()->getOffset(1)) as $column) {
-            if(false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
+        foreach($this->grid->prepare()->getOffset(1) as $column => $value) {
+            if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
                 $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);

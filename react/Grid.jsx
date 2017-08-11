@@ -441,6 +441,10 @@ export default class Grid extends Form {
             buttons['export'].width = 0
             buttons['export'].class = 'btn btn-success'
         }
+        if(undefined != this.state[BUTTONS]['excel'].class) {
+            buttons['excel'].width = 0
+            buttons['excel'].class = 'btn btn-success'
+        }
         state[BUTTONS] = buttons
         this.setState(state)
         this.getSpice()
