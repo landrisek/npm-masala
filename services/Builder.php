@@ -2,7 +2,7 @@
 
 namespace Masala;
 
-use Nette\Application\UI\Presenter,
+use Nette\Application\IPresenter,
     Nette\Caching\IStorage,
     Nette\Caching\Cache,
     Nette\Database\Context,
@@ -96,7 +96,10 @@ final class Builder implements IBuilder {
     /** @var array */
     private $order;
 
-    /** @var Presenter */
+    /** @var array */
+    private $post;
+
+    /** @var IPresenter */
     private $presenter;
 
     /** @var IProcess */
@@ -501,6 +504,23 @@ final class Builder implements IBuilder {
     }
 
     /** @return array */
+    public function getPost($key) {
+        if(empty($key) && empty($this->post)) {
+            return $this->post = json_decode(file_get_contents('php://input'), true);
+        } else if(empty($key)) {
+            return $this->post;
+        }
+        if(isset($this->post[$key])) {
+            return $this->post[$key];
+        }
+        $this->post = json_decode(file_get_contents('php://input'), true);
+        if(!isset($this->post[$key])) {
+            return [];
+        }
+        return $this->post[$key];
+    }
+
+    /** @return array */
     public function getPrimary() {
         $primary = [];
         if(is_array($keys = $this->database->table($this->table)->getPrimary())) {
@@ -573,7 +593,7 @@ final class Builder implements IBuilder {
 
     /** @return int */
     public function getSummary() {
-        if(!preg_match('/SUM\(/', $summary = $this->columns[$this->presenter->request->getPost('summary')])) {
+        if(!preg_match('/SUM\(/', $summary = $this->columns[$this->getPost('summary')])) {
             $summary = 'SUM(' . $summary . ')';
         }
         $query = preg_replace('/SELECT(.*)FROM/', 'SELECT ' . $summary . ' AS sum FROM', $this->sum);
@@ -773,7 +793,7 @@ final class Builder implements IBuilder {
     }
 
     public function prepare() {
-        if(null == $filters = $this->presenter->request->getPost('filters')) {
+        if(null == $filters = $this->getPost('filters')) {
             $filters = [];
         }
         if(isset($filters['groups'])) {
@@ -782,7 +802,7 @@ final class Builder implements IBuilder {
         } else if(!empty($this->groups)) {
             $this->group = 0;
         }
-        if(null == $sort = $this->presenter->request->getPost('sort') and null == $this->order) {
+        if(null == $sort = $this->getPost('sort') and null == $this->order) {
             foreach($this->columns as $name => $column) {
                 if(false == $this->getAnnotation($name, 'unrender')) {
                     $sort = [$name => 'DESC'];
@@ -797,7 +817,7 @@ final class Builder implements IBuilder {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
         $this->sort = rtrim($this->sort, ', ');
-        $offset = $this->presenter->request->getPost('offset');
+        $offset = $this->getPost('offset');
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
@@ -879,12 +899,12 @@ final class Builder implements IBuilder {
         /** sort */
         $this->query .= ' ORDER BY ' . $this->sort . ' ';
         /** offset */
-        if(in_array($this->presenter->request->getPost('status'), ['excel', 'export'])) {
-            $this->offset = $offset;
-            $this->limit = $this->config['exportSpeed'];
-        } else {
+        if(empty($this->getPost('status'))) {
             $this->offset = ($offset - 1) * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
+        } else {
+            $this->offset = $offset;
+            $this->limit = $this->config['exportSpeed'];
         }
         return $this;
     }

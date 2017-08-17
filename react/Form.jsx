@@ -1,3 +1,4 @@
+import axios from 'axios'
 import React, {Component} from 'react'
 import request from 'sync-request'
 import Dropzone from 'react-dropzone'
@@ -151,17 +152,17 @@ export default class Form extends Component {
     addTitle(key) {
         return <h1 key={key} className={this.state[key].Attributes.class}>{this.state[key].Attributes.value}</h1>
     }
-    bind(method, data) {
+    bind(method) {
         if(undefined === method) {
             return
         }
         var closure = method.replace(/\(/, '').replace(/\)/, '')
         if('function' == typeof(this[closure])) {
-            return this[closure].bind(this, data)
+            return this[closure].bind(this)
         }
     }
     done(payload) {
-        var response = $.ajax({ type:'post',url:LINKS['done'],data:payload,async:false}).responseJSON
+        var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
         for (var key in this.state) {
             var element = this.state[key]
@@ -248,10 +249,10 @@ export default class Form extends Component {
     save(file) {
         var data = new Object()
         data.file = request('GET', file.preview).body
-        return $.ajax({type:'post',url:LINKS['save']+'&file='+file.name+'.'+file.type,data:data,async:false}).responseText
+        return request('POST', LINKS['save'] + '&file=' + file.name + '.' + file.type, { json: data }).getBody('utf8')
     }
-    prepare(data, event) {
-        var response = $.ajax({type: 'post',url: LINKS['prepare'], data:this.state,async:false}).responseJSON
+    prepare(event) {
+        var response = JSON.parse(request('POST', LINKS['prepare'], { json: this.state }).getBody('utf8'))
         this.run(response, event.target.id + '-progress')
     }
     submit() {
@@ -259,12 +260,11 @@ export default class Form extends Component {
         for(var key in this.state) {
             data[key] = this.state[key].Attributes.value
         }
-        $.ajax({type:'post', url:LINKS['submit'],data:data,async:false})
+        request('POST', LINKS['submit'], { json: data })
     }
     run(payload, progress) {
-        var self = this
         if(parseInt(payload.stop) > parseInt(payload.offset)) {
-            $.ajax({ type:'post',url:LINKS['run'], data:payload,success: function(payload) { self.run(payload, progress) }})
+            axios.post(LINKS['run'], payload).then(response => {  this.run(response.data, progress) })
             var element = this.state[progress]
             element.Attributes.width = payload.offset / (payload.stop / 100)
             var state = []

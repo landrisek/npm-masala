@@ -6,11 +6,13 @@ use Nette\Application\UI\Control,
     Nette\Application\IPresenter,
     Nette\Application\Responses\JsonResponse,
     Nette\Database\Table\ActiveRow,
-    Nette\Http\IRequest,
     Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
 final class ContentForm extends Control implements IContentFormFactory {
+
+    /** @var IBuilder */
+    private $builder;
 
     /** @var IContent */
     private $contentRepository;
@@ -27,9 +29,6 @@ final class ContentForm extends Control implements IContentFormFactory {
     /** @var IPresenter */
     private $presenter;
 
-    /** @var IRequest */
-    private $request;
-
     /** @var IRow */
     private $row;
 
@@ -39,14 +38,17 @@ final class ContentForm extends Control implements IContentFormFactory {
     /** @var ITranslator */
     private $translatorRepository;
 
+    /** @var array */
+    private $used = [];
+
     /** @var WriteRepository */
     private $writeRepository;
 
-    public function __construct($jsDir, IContent $contentRepository, IRequest $request, ITranslator $translatorRepository, KeywordsRepository $keywordsRepository, WriteRepository $writeRepository) {
+    public function __construct($jsDir, IContent $contentRepository, IBuilder $builder, ITranslator $translatorRepository, KeywordsRepository $keywordsRepository, WriteRepository $writeRepository) {
         $this->jsDir = $jsDir;
         $this->contentRepository = $contentRepository;
         $this->writeRepository = $writeRepository;
-        $this->request = $request;
+        $this->builder = $builder;
         $this->keywordsRepository = $keywordsRepository;
         $this->translatorRepository = $translatorRepository;
     }
@@ -61,28 +63,31 @@ final class ContentForm extends Control implements IContentFormFactory {
         parent::attached($presenter);
         if($presenter instanceof IPresenter) {
             $this->presenter = $presenter;
-            $this->keyword = $this->request->getQuery('keyword');
+            $this->keyword = $this->builder->getQuery('keyword');
         }
     }
 
     /** @return void */
     public function handleKeyword() {
-        $response = new JsonResponse($this->wildcard($this->request->getPost('keywords'), []));
+        $response = new JsonResponse($this->wildcard($this->builder->getPost('keywords'), []));
         $this->presenter->sendResponse($response);
     }
 
     /** @return void */
     public function handleSubmit() {
-        $this->writeRepository->updateWrite($this->keyword, ['content' => $this->request->getPost('content')]);
+        $this->writeRepository->updateWrite($this->keyword, ['content' => $this->builder->getPost('content')]);
         $this->presenter->sendPayload();
     }
 
     /** @return void */
     public function handleWrite() {
-        $keywords = $this->request->getPost('keywords');
-        $options = $this->request->getPost('options');
-        $wildcards = $this->request->getPost('wildcards');
-        $write = $this->request->getPost('write');
+        $keywords = $this->builder->getPost('keywords');
+        $options = $this->builder->getPost('options');
+        $wildcards = $this->builder->getPost('wildcards');
+        $write = $this->builder->getPost('write');
+        if(empty($this->used = $this->builder->getPost('used'))) {
+            $this->used = [];
+        }
         $max = 0;
         /** solved by name */
         foreach ($options as $optionId => $option) {
@@ -93,11 +98,15 @@ final class ContentForm extends Control implements IContentFormFactory {
             }
         }
         /** solved by database */
-        if (0 == $max && strlen($write) > 0) {
+        $summaries = [];
+        $like = $wildcards;
+        if (0 == $max) {
             foreach ($options as $optionId => $option) {
+                $summaries[$option] = 0;
                 if(sizeof($like = $this->wildcard($option, $wildcards)) > sizeof($wildcards)) {
-                    $summary = $this->contentRepository->getKeywords($like);
+                    $summaries[$option] = $summary = $this->contentRepository->getKeywords($like);
                     if ($summary > $max) {
+                        $final = $like;
                         $max = $summary;
                         $selected = $optionId;
                     }
@@ -107,7 +116,9 @@ final class ContentForm extends Control implements IContentFormFactory {
         if (!isset($selected)) {
             $selected = array_rand($options);
         }
-        $response = new JsonResponse(['keywords' => $keywords, 'option' => $selected, 'options' => $options, 'max' => $max]);
+        $this->used[$options[$selected]] = $options[$selected];
+        $response = new JsonResponse(['keywords' => $keywords, 'option' => $selected, 'options' => $options, 'max' => $max, 'summary' => $summaries,
+            'wildcards' => isset($final) ? $final : $like, 'used' => $this->used]);
         $this->presenter->sendResponse($response);
     }
 
@@ -142,15 +153,37 @@ final class ContentForm extends Control implements IContentFormFactory {
 
     /** @return array */
     private function wildcard($option, array $wildcards) {
-        foreach (explode(' ', trim(preg_replace('/\s+|\./', ' ', $option))) as $wildcard) {
-            $row = $this->keywordsRepository->getKeyword($wildcard);
-            if ($row instanceof ActiveRow && !in_array($wildcard, $wildcards) && !empty($wildcard)) {
+        foreach (explode(' ', trim(preg_replace('/\s+|\.|\,/', ' ', $option))) as $wildcard) {
+            $row = $this->keywordsRepository->getKeyword($wildcard, $this->used);
+            if ($row instanceof ActiveRow && !in_array($wildcard, $wildcards) && !empty($wildcard) && strlen($wildcard) > 2) {
                 foreach(json_decode($row->content) as $content) {
-                    $wildcards[$wildcard][] = '%' . $content . '%';
+                    $wildcards[$wildcard][] = '% ' . $content . ' %';
+                    $wildcards[$wildcard][] = '% ' . $content . '. %';
+                    $wildcards[$wildcard][] = '% ' . $content . ', %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_LOWER, 'UTF-8') . ' %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_TITLE, 'UTF-8') . ' %';
+
+                    $wildcards[$wildcard][] = '% ' . $content . ' %';
+                    $wildcards[$wildcard][] = '% ' . $content . '. %';
+                    $wildcards[$wildcard][] = '% ' . $content . ', %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_LOWER, 'UTF-8') . ' %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_TITLE, 'UTF-8') . ' %';
+
+                    $wildcards[$wildcard][] = '% ' . $content . ' %';
+                    $wildcards[$wildcard][] = '% ' . $content . '. %';
+                    $wildcards[$wildcard][] = '% ' . $content . ', %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_LOWER, 'UTF-8') . ' %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_TITLE, 'UTF-8') . ' %';
+
+                    $wildcards[$wildcard][] = '% ' . $content . ' %';
+                    $wildcards[$wildcard][] = '% ' . $content . '. %';
+                    $wildcards[$wildcard][] = '% ' . $content . ', ';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_LOWER, 'UTF-8') . ' %';
+                    $wildcards[$wildcard][] = '% ' . mb_convert_case($content, MB_CASE_TITLE, 'UTF-8') . ' %';
                 }
             }
-        }
-        return $wildcards;
+       }
+       return $wildcards;
     }
 
 }

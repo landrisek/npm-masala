@@ -124,16 +124,16 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @return array */
     private function getResponse() {
-        $response = ['file' => $this->request->getPost('file'),
-            'data' => $this->request->getPost('data'),
-            'divider' => $this->request->getPost('divider'),
-            'header' => $this->request->getPost('header'),
-            'filters' => $this->request->getPost('filters'),
-            'offset' => $this->request->getPost('offset'),
-            'status' => $this->request->getPost('status'),
-            'stop'=>$this->request->getPost('stop'),
+        $response = ['file' => $this->grid->getPost('file'),
+            'data' => $this->grid->getPost('data'),
+            'divider' => $this->grid->getPost('divider'),
+            'header' => $this->grid->getPost('header'),
+            'filters' => $this->grid->getPost('filters'),
+            'offset' => $this->grid->getPost('offset'),
+            'status' => $this->grid->getPost('status'),
+            'stop'=>$this->grid->getPost('stop'),
         ];
-        if(null == $response['data'] = $this->presenter->request->getPost('data')) {
+        if(null == $response['data'] = $this->grid->getPost('data')) {
             $response['data'] = [];
         }
         return $response;
@@ -142,7 +142,7 @@ final class Masala extends Control implements IMasalaFactory {
     /** @return JsonResponse */
     public function handleDone() {
         $this->grid->log('done');
-        $service = 'get' . ucfirst($this->presenter->request->getPost('status'));
+        $service = 'get' . ucfirst($this->grid->getPost('status'));
         return $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
     }
 
@@ -160,9 +160,9 @@ final class Masala extends Control implements IMasalaFactory {
         file_put_contents($folder . '/' . $file, $header);
         $response = new JsonResponse($this->grid->getExport()->prepare([
                 'file' => $file,
-                'filters' => $this->request->getPost('filters'),
+                'filters' => $this->grid->getPost('filters'),
                 'offset' => 0,
-                'sort' => $this->request->getPost('sort'),
+                'sort' => $this->grid->getPost('sort'),
                 'status' => 'export',
                 'stop' => $this->grid->getSum()], $this));
         return $this->presenter->sendResponse($response);
@@ -195,9 +195,9 @@ final class Masala extends Control implements IMasalaFactory {
         $objWriter->save($folder . '/' .$file);
         $response = new JsonResponse($this->grid->getExport()->prepare([
             'file' => $file,
-            'filters' => $this->request->getPost('filters'),
+            'filters' => $this->grid->getPost('filters'),
             'offset' => 0,
-            'sort' => $this->request->getPost('sort'),
+            'sort' => $this->grid->getPost('sort'),
             'status' => 'excel',
             'stop' => $this->grid->getSum()], $this));
         return $this->presenter->sendResponse($response);
@@ -220,7 +220,7 @@ final class Masala extends Control implements IMasalaFactory {
         }
         $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
                                     'header'=>$this->header,
-                                    'file'=> $this->request->getPost('file'),
+                                    'file'=> $this->grid->getPost('file'),
                                     'link'=>$this->link('run'),
                                     'offset'=> 0,
                                     'status'=>'import',
@@ -230,7 +230,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @return TextResponse */
     public function handleSave($file) {
-        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->request->getPost('file'));
+        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->grid->getPost('file'));
         $response = new TextResponse($id);
         return $this->presenter->sendResponse($response);
     }

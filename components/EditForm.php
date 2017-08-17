@@ -127,7 +127,7 @@ final class EditForm extends ReactForm implements IEditFormFactory {
     private function getValidators(array $column, $name) {
         $validators = [];
         false == $column['nullable'] ? $validators['required'] =  $column['name'] . ' ' . $this->translatorModel->translate('is required.') : null;
-        'UNI' == $column['vendor']['Key'] ? $validators['unique'] = ucfirst($this->translatorModel->translate('unique item'))  . ' '
+        'UNI' == $column['vendor']['Key'] && null == $this->row->getData() ? $validators['unique'] = ucfirst($this->translatorModel->translate('unique item'))  . ' '
             . $name . ' ' . $this->translatorModel->translate('already defined in source table.') : null;
         (0 < substr_count($column['vendor']['Comment'], '@email')) ? $validators['email'] = $name . ' ' . $this->translatorModel->translate('is not valid email.') : null;
         return $validators;

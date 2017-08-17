@@ -229,7 +229,7 @@ final class Grid extends Control implements IGridFactory {
     public function handleRemove() {
         $this->setRow();
         $this->row->check();
-        $this->row->remove($this->request->getPost());
+        $this->row->remove($this->builder->getPost(''));
         $this->presenter->sendResponse(new JsonResponse(['remove'=>true]));
     }
 
@@ -261,7 +261,7 @@ final class Grid extends Control implements IGridFactory {
     /** @return JsonResponse */
     public function handleSubmit() {
         $this->setRow();
-        $this->presenter->sendResponse(new JsonResponse($this->row->update($this->request->getPost())));
+        $this->presenter->sendResponse(new JsonResponse($this->row->update($this->builder->getPost(''))));
     }
     
     /** @return TextResponse */
@@ -273,13 +273,13 @@ final class Grid extends Control implements IGridFactory {
     /** @return JsonResponse */
     public function handleUnique() {
         $this->setRow();
-        $response = new JsonResponse($this->row->unique($this->request->getPost()));
+        $response = new JsonResponse($this->row->unique($this->builder->getPost('')));
         return $this->presenter->sendResponse($response);
     }
 
     /** @return JsonResponse */
     public function handleUpdate() {
-        $response = $this->builder->submit($this->request->getPost());
+        $response = $this->builder->submit($this->builder->getPost(''));
         $this->presenter->sendResponse(new JsonResponse($response));
     }
 
@@ -294,7 +294,7 @@ final class Grid extends Control implements IGridFactory {
         $this->row->table($this->builder->getTable());
         $primary = array_flip($this->builder->getPrimary());
         $result = [];
-        foreach ($this->request->getPost() as $column => $value) {
+        foreach ($this->builder->getPost('') as $column => $value) {
             if(isset($primary[$column])) {
                 $this->row->where($column, $value);
                 $result[$primary[$column]] = $value;

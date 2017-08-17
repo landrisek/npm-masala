@@ -2,20 +2,20 @@
 
 namespace Masala;
 
-use Models\TranslatorModel,
+use Nette\Application\UI\Presenter,
     Nette\Http\IRequest,
-    Nette\Application\UI\Presenter;
+    Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
 final class ImportForm extends ReactForm implements IImportFormFactory {
 
-    /** @var TranslatorModel */
+    /** @var ITranslator */
     private $translatorModel;
 
     /** @var IProcess */
     private $service;
 
-    public function __construct($jsDir, IRequest $request, TranslatorModel $translatorModel) {
+    public function __construct($jsDir, IRequest $request, ITranslator $translatorModel) {
         parent::__construct($jsDir, $request, $translatorModel);
         $this->translatorModel = $translatorModel;
     }

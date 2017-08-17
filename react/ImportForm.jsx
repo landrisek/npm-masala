@@ -1,3 +1,4 @@
+import axios from 'axios'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import Form from './Form.jsx'
@@ -17,7 +18,7 @@ export default class ImportForm extends Form {
         this.setState({'done':element})
     }
     prepare(event) {
-        this.run(JSON.parse(this.state[event.target.id].Attributes.data), event.target.id + '-progress')
+        this.run(this.state[event.target.id].Attributes.data, event.target.id + '-progress')
     }
     submit() {
         if(true == this.validate()) {
@@ -32,12 +33,11 @@ export default class ImportForm extends Form {
             var prepare = this.state['prepare']
             prepare.Attributes.class = 'btn btn-success disabled'
             prepare.Attributes.style = {display:'block'}
-            var self = this
-            $.ajax({type: 'post',url: LINKS['import'],data: data, success: function(payload) {
-                prepare.Attributes.data = JSON.stringify(payload)
+            axios.post(LINKS['import'], data).then(response => {
+                prepare.Attributes.data = response.data
                 prepare.Attributes.class = 'btn btn-success'
-                self.setState({'prepare':prepare})
-            }})
+                this.setState({'prepare':prepare})
+            })
             this.setState({'prepare':prepare})
         }
     }
@@ -45,4 +45,7 @@ export default class ImportForm extends Form {
         return <div>{this.attached()}</div>
     }
 }
-ReactDOM.render(<ImportForm />, document.getElementById('importForm'))
+var element = document.getElementById('importForm')
+if(null != element) {
+    ReactDOM.render(<ImportForm />, document.getElementById('importForm'))
+}

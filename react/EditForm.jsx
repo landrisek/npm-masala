@@ -1,6 +1,7 @@
+import Form from './Form.jsx'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
-import Form from './Form.jsx'
+import request from 'sync-request'
 
 var LINKS = {}
 
@@ -40,13 +41,19 @@ export default class EditForm extends Form {
         }
         return body;
     }
+    done(payload) {
+        super.done(payload)
+        var element = this.state['done']
+        element.Attributes.style = {display:'block'}
+        this.setState({'done':element})
+    }
     isUnique(value, key) {
         if(undefined == value || '' == value  ) {
             return false
         }
         var data = new Object()
         data[key] = value
-        return $.ajax({type:'post', url:LINKS['unique'],data:data,async:false}).responseJSON
+        return JSON.parse(request('POST', LINKS['unique'], { json: data }).getBody('utf8'))
     }
     onChange(event) {
         var element = this.state[event.target.id]
@@ -66,12 +73,6 @@ export default class EditForm extends Form {
         state['edit'] = edit
         this.setState(state)
     }
-    done(payload) {
-        super.done(payload)
-        var element = this.state['done']
-        element.Attributes.style = {display:'block'}
-        this.setState({'done':element})
-    }
     submit() {
         if(true == this.validate()) {
             var data = new Object()
@@ -80,7 +81,7 @@ export default class EditForm extends Form {
             }
             var element = this.state['edit'];
             element.Attributes.style = {display:'block'}
-            var response = $.ajax({type:'post', url:LINKS['submit'],data:data,async:false}).responseJSON
+            var response = JSON.parse(request('POST', LINKS['submit'], { json: data }).getBody('utf8'))
             if(undefined != response.message) {
                 element.Label = response.message
             }

@@ -1,12 +1,25 @@
+import axios from 'axios'
 import Form from './Form.jsx'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
+import request from 'sync-request'
 
 var ACTIONS = 'actions'
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
 var DIALOGS = 'dialogs'
 var ROWS = 'rows'
+
+
+function getMethods(obj) {
+    var res = [];
+    for(var m in obj) {
+        if(typeof obj[m] === "function") {
+            res.push(m);
+        }
+    }
+    return res;
+}
 
 export default class Grid extends Form {
     constructor(props) {
@@ -15,20 +28,18 @@ export default class Grid extends Form {
         this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'));
     }
     addAction(key) {
-        if(false == jQuery.isEmptyObject(this.state[BUTTONS][key])) {
-            return <div style={{marginRight:'10px',float:'left'}}><a className={this.state[BUTTONS][key].class}
-                      id={'trigger-' + key}
-                      href={this.state[BUTTONS][key].href}
-                      key={'trigger-' + key}
-                      style={this.state[BUTTONS][key].style}>{this.state[BUTTONS][key].label}</a>
-                <a className={this.state[BUTTONS][key].class}
-                   id={key}
-                   href={this.state[BUTTONS][key].href}
-                   key={key}
-                   style={{display:'none'}}
-                   onClick={this.bind(this.state[BUTTONS][key].onClick)}>{this.state[BUTTONS][key].label}</a>
+        return <div style={{marginRight:'10px',float:'left'}}><a className={this.state[BUTTONS][key].class}
+                    id={'trigger-' + key}
+                    href={this.state[BUTTONS][key].href}
+                    key={'trigger-' + key}
+                    style={this.state[BUTTONS][key].style}>{this.state[BUTTONS][key].label}</a>
+            <a className={this.state[BUTTONS][key].class}
+                href={this.state[BUTTONS][key].href}
+                id={key}
+                key={key}
+                style={{display:'none'}}
+                onClick={this.bind(this.state[BUTTONS][key].onClick)}>{this.state[BUTTONS][key].label}</a>
             </div>
-        }
     }
     addActions(row, key) {
         var container = []
@@ -52,7 +63,7 @@ export default class Grid extends Form {
             container.push(<div key={id} className='fa-hover col-md-1'><a
                   className={this.state[ACTIONS][action].class}
                   href={href}
-                  id={key}
+                  id={action}
                   onClick={this.bind(this.state[ACTIONS][action].onClick)}
                   target='_blank'
                   title={this.state[ACTIONS][action].label}></a></div>)
@@ -88,7 +99,7 @@ export default class Grid extends Form {
             className={'fa-hover fa fa-' + dialog}
             data-target={'#masala-' + dialog}
             data-toggle='modal'
-            onClick={this.bind(dialog, key)}
+            onClick={this.bind(dialog)}
             title={dialog}></a></div>
     }
     addSettings() {
@@ -99,11 +110,10 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         for (var key in columns) {
             if(null == /\s/.exec(key) && 'groups' != key) {
-                var id = key + '-setting'
                 var checked = 'checked'
                 if(true == columns[key].Attributes.unrender) { checked = null }
-                settings.push(<div key={id} style={{float:'left'}}>
-                    <input checked={checked} id={key} onClick={this.setting.bind(this, key)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
+                settings.push(<div key={key + '-setting'} style={{float:'left'}}>
+                    <input checked={checked} id={key} onClick={this.setting.bind(this)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
                 </div>)
             }
         }
@@ -132,9 +142,9 @@ export default class Grid extends Form {
             {this.addLabel(key)}
             <select className={columns[key].Attributes.class}
                     defaultValue={columns[key].Attributes.value}
-                    id={columns[key].Attributes.id}
+                    id={key}
                     multiple style={columns[key].Attributes.style}
-                    onChange={this.change.bind(this, key)}
+                    onChange={this.change.bind(this)}
                 >{this.getOptions(key)}>
             </select></th>
     }
@@ -183,7 +193,7 @@ export default class Grid extends Form {
     }
     addProgressBar(key){
         var id = key + '-progress'
-        if(false == jQuery.isEmptyObject(this.state[BUTTONS][key])) {
+        if(this.state[BUTTONS][key].length > 0 || undefined === this.state[BUTTONS][key].length) {
             return <div key={id} className='progress'><div className='progress-bar' style={{width:this.state[BUTTONS][key].width+'%'}}></div></div>
         }
     }
@@ -213,9 +223,9 @@ export default class Grid extends Form {
                 {this.addLabel(key)}
                 <select className={columns[key].Attributes.class}
                         defaultValue={columns[key].Attributes.value}
-                        id={columns[key].Attributes.id}
+                        id={key}
                         style={columns[key].Attributes.style}
-                        onChange={this.change.bind(this, key)}
+                        onChange={this.change.bind(this)}
                         >{this.getOptions(key)}>
                 </select></th>
     }
@@ -237,18 +247,18 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         return <th className={th} key={key}>
             {this.addLabel(key)}
-            <input id={columns[key].Attributes.id}
+            <input id={key}
                 className={columns[key].Attributes.class}
                 data={columns[key].Attributes.data}
-                onBlur={this.change.bind(this, key)}
-                onChange={this.change.bind(this, key)}
-                onKeyPress={this.submit.bind(this, key)}
+                onBlur={this.change.bind(this)}
+                onChange={this.change.bind(this)}
+                onKeyPress={this.submit.bind(this)}
                 style={columns[key].Attributes.style}
                 value={columns[key].Attributes.value}
                 type='text' />
         </th>
     }
-    change(key, event) {
+    change(event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
         if('select-multiple' == event.target.type) {
@@ -259,14 +269,14 @@ export default class Grid extends Form {
                     value.push(options[i].value);
                 }
             }
-            state[COLUMNS][key].Attributes.value = value
+            state[COLUMNS][event.target.id].Attributes.value = value
         } else {
-            state[COLUMNS][key].Attributes.value = event.target.value
+            state[COLUMNS][event.target.id].Attributes.value = event.target.value
         }
         this.setState(state)
     }
     done(payload, key) {
-        var response = $.ajax({ type:'post',url:this.state[BUTTONS]['done'].link,data:payload,async:false}).responseJSON
+        var response = JSON.parse(request('POST', this.state[BUTTONS]['done'].link, { json: payload }).getBody('utf8'))
         var buttons = this.state[BUTTONS]
         buttons['done'].href = response.link
         buttons['done'].style = {display:'block'}
@@ -276,36 +286,15 @@ export default class Grid extends Form {
         state[BUTTONS] = buttons
         this.setState(buttons)
     }
-    edit(key, event) {
-        var data = this.state[ROWS][key]
-        if(undefined == this.state[ROWS][key]) {
+    edit(event) {
+        var data = this.state[ROWS][event.target.id]
+        if(undefined == this.state[ROWS][event.target.id]) {
             data = new Object()
         }
-        var link = this.state[BUTTONS].dialogs['edit']
-        $.ajax({
-            type: 'post',
-            data: data,
-            url: link,
-            async: false,
-            success: function (payload) {
-                $('#masala-edit-modal-body').html('');
-                $(payload).appendTo('#masala-edit-modal-body');
-                return payload
-            }
-        })
+        $(request('POST', this.state[BUTTONS].dialogs['edit'], { json: data }).getBody('utf8')).appendTo('#masala-edit-modal-body')
     }
     filter() {
-        var data = this.getSpice()
-        var link = this.state[BUTTONS]['filter']
-        return $.ajax({
-            type: 'post',
-            data: data,
-            url: link,
-            async: false,
-            success: function (payload) {
-                return payload
-            }
-        }).responseJSON
+        return JSON.parse(request('POST', this.state[BUTTONS]['filter'], { json: this.getSpice() }).getBody('utf8'))
     }
     getOptions(key) {
         var container = []
@@ -342,8 +331,10 @@ export default class Grid extends Form {
         var sort = new Object()
         var columns = this.state[COLUMNS]
         for (var key in columns) {
-            if(undefined != columns[key].Attributes.value && '' != columns[key].Attributes.value && false == $.isEmptyObject(columns[key].Attributes.value)) {
-                spice[key] = columns[key].Attributes.value;
+            if(undefined != columns[key].Attributes.value) {
+                if(undefined == columns[key].Attributes.value.length || columns[key].Attributes.value.length > 0) {
+                    spice[key] = columns[key].Attributes.value
+                }
             }
             if(undefined != columns[key].Attributes.order) {
                 sort[key] = columns[key].Attributes.order
@@ -359,32 +350,22 @@ export default class Grid extends Form {
     }
     paginate() {
         var data = this.getSpice()
-        var response = $.ajax({
-            type: 'post',
-            data: data,
-            async: false,
-            url: this.state[BUTTONS]['paginate'],
-            success: function (payload) {
-                return payload
-            }
-        }).responseText
+        var response = request('POST', this.state[BUTTONS]['paginate'], { json: data }).getBody('utf8')
         var state = []
         state[BUTTONS] = this.state[BUTTONS]
         state[BUTTONS]['pages'] = response
         this.setState(state)
         return data
     }
-    prepare(data, event) {
+    prepare(event) {
         var data = this.getSpice()
         var element = this.state[BUTTONS][event.target.id]
         element.class = 'btn btn-success disabled'
-        var self = this
-        $.ajax({type: 'post', url: this.state[BUTTONS][event.target.id].link, data: data, async:false, success: function(payload) {
-            var state = []
-            state[event.target.id] = element
-            self.setState(state)
-            self.run(payload, 'export')
-        }})
+        var response = JSON.parse(request('POST', this.state[BUTTONS][event.target.id].link, { json: data }).getBody('utf8'))
+        var state = []
+        state[event.target.id] = element
+        this.setState(state)
+        this.run(response, 'export')
     }
     render() {
         var dialogs = []
@@ -392,11 +373,12 @@ export default class Grid extends Form {
             dialogs.push(<a
                 className='btn btn-success'
                 id={dialog}
-                key={'dialog-' + dialog}
-                type='button'
+                data-link={this.state[DIALOGS][dialog].link}
                 data-target={'#masala-' + dialog}
                 data-toggle='modal'
-                onClick={this.bind(this.state[DIALOGS][dialog].onClick, this.state[DIALOGS][dialog].link)}
+                key={'dialog-' + dialog}
+                type='button'
+                onClick={this.bind(this.state[DIALOGS][dialog].onClick)}
                 style = {{marginRight: '10px'}}
                 title='edit'>{this.state[DIALOGS][dialog].label}</a>)
         }
@@ -404,8 +386,11 @@ export default class Grid extends Form {
         for(var trigger in this.state[BUTTONS].triggers) {
             triggers.push(this.addAction(this.state[BUTTONS].triggers[trigger]))
         }
-        $('#grid').show()
-        $('#loader').hide()
+        document.getElementById('grid').style.display = 'block'
+        var loader = document.getElementById('loader')
+        if(null != loader) {
+            loader.style.display = 'none'
+        }
         return <div>
             <ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table><tbody>
@@ -449,13 +434,12 @@ export default class Grid extends Form {
         this.setState(state)
         this.getSpice()
     }
-    remove(key) {
-        this.signal({target:{id:key,href:this.state[BUTTONS].remove},preventDefault(){}})
+    remove(event) {
+        this.signal({target:{id:event.target.id,href:this.state[BUTTONS].remove},preventDefault(){}})
     }
     run(payload, key) {
-        var self = this
         if(parseInt(payload.stop) > parseInt(payload.offset)) {
-            $.ajax({ type:'post',url:this.state[BUTTONS]['run'], data:payload,success: function(payload) { self.run(payload, key) }})
+            axios.post(this.state[BUTTONS]['run'], payload).then(response => {  this.run(response.data, key) })
             var buttons = this.state[BUTTONS]
             buttons[key].width = payload.offset / (payload.stop / 100)
             var state = []
@@ -480,14 +464,7 @@ export default class Grid extends Form {
         if(false === confirm(this.state[BUTTONS]['proceed'])) {
             return
         }
-        var response = $.ajax({
-            type: 'post',
-            data: this.state[ROWS][event.target.id],
-            url: event.target.href,
-            async: false,
-            success: function (payload) {
-            }
-        }).responseJSON
+        var response = JSON.parse(request('POST', event.target.href, { json: this.state[ROWS][event.target.id] }).getBody('utf8'))
         if(true === response.remove) {
             var element = this.state[ROWS]
             delete element[event.target.id]
@@ -498,7 +475,7 @@ export default class Grid extends Form {
             this.submit()
         }
     }
-    setting(key, event) {
+    setting(event) {
         var state = []
         var buttons = this.state[BUTTONS]
         if('checkbox' === event.target.type) {
@@ -514,7 +491,7 @@ export default class Grid extends Form {
             var data = new Object()
             data[event.target.id] = columns[event.target.id].Attributes.unrender
             state[COLUMNS] = columns
-            $.ajax({ type:'post',url:this.state[BUTTONS].setting.link,data:data,async:false})
+            request('POST', this.state[BUTTONS].setting.link, { json: data })
         } else {
             if('block' == buttons.setting.display) {
                 buttons.setting.display = 'none'
@@ -525,14 +502,15 @@ export default class Grid extends Form {
         }
         this.setState(state)
     }
-    submit(key, data, event) {
+    submit(event) {
         var state = []
         if('object' == typeof(event) && 'Enter' == event.key) {
             var columns = this.state[COLUMNS]
-            var element = columns[key]
+            var element = columns[event.target.id]
             element.Attributes.value = event.target.value
-            state[key] = element
-        } else if('object' == typeof(event) && 'react-click' != event.type) {
+            columns[event.target.id] = element
+            state[COLUMNS] = columns
+        } else if('object' == typeof(event) && 'click' != event.type) {
             return
         }
         state[ROWS] = this.filter()
@@ -546,7 +524,7 @@ export default class Grid extends Form {
         for (var key in columns) {
             if(true == columns[key].Attributes.unrender || false === columns[key].Attributes.summary) { } else {
                 data['summary'] = key
-                columns[key].Attributes.summary = $.ajax({ type:'post',url:this.state[BUTTONS]['summary'],data:data,async:false}).responseText
+                columns[key].Attributes.summary = JSON.parse(request('POST', this.state[BUTTONS]['summary'], { json: data }).getBody('utf8'))
             }
         }
         var state = []
@@ -574,11 +552,13 @@ export default class Grid extends Form {
             data[column] = event.target.value
             var state = []
             state[ROWS] = this.state[ROWS]
-            state[ROWS][key] = $.ajax({type:'post', url:this.state[BUTTONS]['update'],data:data,async:false}).responseJSON
+            state[ROWS][key] = JSON.parse(request('POST', this.state[BUTTONS]['update'], { json: data }).getBody('utf8'))
             this.setState({state})
         }
     }
 
 }
-var dom = ReactDOM.render(<Grid />, document.getElementById('grid'));
-dom.submit()
+var element = document.getElementById('grid')
+if(null != element) {
+    ReactDOM.render(<Grid />, document.getElementById('grid')).submit()
+}

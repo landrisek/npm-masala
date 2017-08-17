@@ -33,7 +33,7 @@ final class MockService {
     /** @var Context */
     private $context;
 
-    /** @var BuilderExtension */
+    /** @var MasalaExtension */
     private $extension;
 
     /** @var Http\Request */
@@ -63,7 +63,7 @@ final class MockService {
     /** @var IUser */
     private $usersModel;
 
-    public function __construct(BuilderExtension $extension, Container $container, ITranslator $translatorModel, IUser $usersModel)  {
+    public function __construct(MasalaExtension $extension, Container $container, ITranslator $translatorModel, IUser $usersModel)  {
         $this->container = $container;
         $this->config = $container->getParameters();
         $this->extension = $extension;

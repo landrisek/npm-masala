@@ -1,5 +1,6 @@
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
+import request from 'sync-request'
 
 var CURRENT = 'current'
 var CONTENT = 'content'
@@ -187,7 +188,9 @@ export default class ContentForm extends Component {
         var i=0;
         var data = new Object()
         for(var key in this.state[CONTENT]) {
-            data[i++] = this.state[CONTENT][key]
+            if('' != this.state[CONTENT][key]) {
+                data[i++] = this.state[CONTENT][key]
+            }
         }
         return data
     }
@@ -195,7 +198,7 @@ export default class ContentForm extends Component {
         event.preventDefault()
         var data = new Object
         data.content = JSON.stringify(this.reset())
-        $.ajax({type: 'post', data: data, url: LINKS['submit'], async: false})
+        request('POST', LINKS['submit'], { json: data })
     }
     update(event) {
         var state = []
@@ -210,19 +213,24 @@ export default class ContentForm extends Component {
         var contents = this.reset()
         var data = new Object()
         data.keywords = this.state[SOURCE][event.target.value]
-        data.wildcards = $.ajax({type: 'post', data: data, url: LINKS['keyword'], async: false}).responseJSON
+        data.wildcards = JSON.parse(request('POST', LINKS['keyword'], { json: data }).getBody('utf8'))
         var state = []
         state[WRITE] = ''
+        var used = new Object()
         state[STATISTICS] = new Object()
         for(var content in contents) {
             if('object' == typeof(contents[content])) {
                 data.options = contents[content]
+                data.used = used
                 data.write = state[WRITE]
-                var response = $.ajax({type: 'post', data: data, url: LINKS['write'], async: false}).responseJSON
+                var response = JSON.parse(request('POST', LINKS['write'], { json: data }).getBody('utf8'))
+                for(var usage in response.used) {
+                    used[usage] = response.used[usage]
+                }
                 state[WRITE] += contents[content][response.option] + ' '
                 state[STATISTICS][response.options[response.option]] = response.max
             } else {
-                state[WRITE] += contents[content] + ' '
+                state[WRITE] += ' ' + contents[content] + ' '
             }
         }
         this.setState(state)
