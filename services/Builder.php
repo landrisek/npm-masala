@@ -151,7 +151,7 @@ final class Builder implements IBuilder {
         if ($this->import instanceof IProcess and ( $setting = $this->getSetting('import')) instanceof ActiveRow) {
             $this->import->setSetting($setting);
         } elseif ($this->import instanceof IProcess) {
-            throw new InvalidStateException('Missing definition of import setting in table ' . $this->config['feedFeeds'] . ' in call ' .
+            throw new InvalidStateException('Missing definition of import setting in table ' . $this->config['feeds'] . ' in call ' .
                 $this->presenter->getName() . ':' . $this->presenter->getAction());
         }
         /** export */
@@ -193,7 +193,11 @@ final class Builder implements IBuilder {
         $select = 'SELECT ';
         $primary = $this->getPrimary();
         foreach ($this->columns as $alias => $column) {
-            $column = (preg_match('/\.|\s| |\(|\)/', trim($column))) ? $column : $this->table . '.' . $column;
+            if(empty($column)) {
+                $column = 'NULL';
+            } else if (!preg_match('/\.|\s| |\(|\)/', trim($column))) {
+                $column = $this->table . '.' . $column;
+            }
             if(isset($primary[$column])) {
                 unset($primary[$column]);
             }
@@ -371,7 +375,7 @@ final class Builder implements IBuilder {
         if (isset($this->where[trim($key)])) {
             return preg_replace('/\%/', '', $this->where[$key]);
         }
-        return false;
+        return '';
     }
 
     /** @return array */
@@ -829,29 +833,29 @@ final class Builder implements IBuilder {
                 foreach ($subfilters as $filter) {
                     $this->where[$filter . ' LIKE'] = '%' . $value . '%';
                 }
-            } elseif (preg_match('/\s\>\=/', $column) and (bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif (preg_match('/\s\>\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
                 $this->where[$this->columns[$key] . ' >='] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\>\=/', $column)) {
                 $this->where[$this->columns[$key] . ' >='] = $value;
-            } elseif (preg_match('/\s\<\=/', $column) and (bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif (preg_match('/\s\<\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
                 $this->where[$this->columns[$key] . ' <='] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\<\=/', $column)) {
                 $this->where[$this->columns[$key] . ' <='] = $value;
-            } elseif (preg_match('/\s\>/', $column) and (bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif (preg_match('/\s\>/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
                 $this->where[$this->columns[$key] . ' >'] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\>/', $column)) {
                 $this->where[$this->columns[$key] . ' >'] = $value;
-            } elseif (preg_match('/\s\</', $column) and (bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif (preg_match('/\s\</', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
                 $this->where[$this->columns[$key] . ' <'] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\</', $column)) {
                 $this->where[$this->columns[$key] . ' <'] = $value;
-            } elseif (preg_match('/\(/', $this->columns[$column]) and (bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif (preg_match('/\(/', $this->columns[$column]) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value))) {
                 $this->having .= $column . ' = "' . $value . '" AND ';
-            } elseif (preg_match('/\(/', $this->columns[$column]) and is_numeric($value)) {
+            } elseif (preg_match('/\(/', $this->columns[$column]) && is_numeric($value)) {
                 $this->having .= $column . ' = ' . $value . ' AND ';
             } elseif (preg_match('/\(/', $this->columns[$column])) {
                 $this->having .= $column . ' LIKE "%' . $value . '%" AND ';
-            } elseif ((bool) strpbrk($value, 1234567890) and is_int($converted = strtotime($value))) {
+            } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
                 $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $value);
             } elseif (is_numeric($value)) {
                 $this->where[$this->columns[$column]] = $value;

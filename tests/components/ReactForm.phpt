@@ -34,12 +34,11 @@ final class ReactFormTest extends TestCase {
 
     protected function setUp() {
         $this->mockService = $this->container->getByType('Masala\MockService');
-        $extension = $this->container->getByType('Masala\BuilderExtension');
+        $extension = $this->container->getByType('Masala\MasalaExtension');
         Assert::false(empty($parameters = $extension->getConfiguration([])), 'ExtensionBuilder default configuration is empty.');
         $jsDir = $parameters['masala']['assets'];
         $request = $this->container->getByType('Nette\Http\IRequest');
         $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        /** must be pure instance because of DI */
         $this->class = new ReactForm($jsDir, $request, $translatorModel);
         $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
     }

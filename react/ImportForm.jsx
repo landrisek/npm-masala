@@ -18,7 +18,13 @@ export default class ImportForm extends Form {
         this.setState({'done':element})
     }
     prepare(event) {
-        this.run(this.state[event.target.id].Attributes.data, event.target.id + '-progress')
+        var data = this.state[event.target.id].Attributes.data
+        if(undefined != data.header && 'string' == typeof(data.header)) {
+            document.getElementById('masala-message-modal-body').insertAdjacentHTML('afterbegin', '<p>' + data.header + '</p>')
+            $('#trigger-message').trigger('click')
+            return
+        }
+        this.run(data, event.target.id + '-progress')
     }
     submit() {
         if(true == this.validate()) {

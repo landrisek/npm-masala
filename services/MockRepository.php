@@ -21,8 +21,9 @@ final class MockRepository extends BaseRepository implements IMock {
     }
 
     /** @return IRow */
-    public function getTestRow($table, array $clauses = []) {
+    public function getTestRow($table, array $clauses = [], $select = null) {
         $resource = $this->database->table($table);
+        empty($select) ?  null : $resource->select($select);
         foreach ($clauses as $column => $value) {
             is_bool($value) ? $resource->where($column) : $resource->where($column, $value);
         }

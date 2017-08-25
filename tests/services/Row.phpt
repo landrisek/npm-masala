@@ -37,7 +37,7 @@ final class RowTest extends TestCase {
         Assert::true(is_object($this->class = $this->container->getByType('Masala\IRow')), 'IRow is not set.');
         Assert::true(is_object($this->mockRepository = $this->container->getByType('Masala\IMock')), 'MockModel is not set.');
         Assert::true(is_object($grid = $this->container->getByType('Masala\IBuilder')), 'IBuilder is not set.');
-        Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set');
+        Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set');
         Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users in config is not set.');
         Assert::false(empty($credentials = $this->container->parameters['mockService']['testUser']), 'Table of users in config is not set.');
         unset($credentials['password']);

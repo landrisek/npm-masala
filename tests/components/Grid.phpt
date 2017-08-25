@@ -2,7 +2,8 @@
 
 namespace Test;
 
-use Masala\Grid,
+use Masala\EmptyRow,
+    Masala\Grid,
     Masala\IRow,
     Masala\MockService,
     Nette\DI\Container,
@@ -49,7 +50,7 @@ final class GridTest extends TestCase {
         $mockRepository = $this->container->getByType('Masala\IMock');
         Assert::false(empty($key = array_rand($this->container->parameters['tables'])), 'Test source is not set.');
         if(is_object($mockRepository->getTestRow($this->container->parameters['tables'][$key]))) {
-            Assert::same(null, $this->row->table($this->container->parameters['tables'][$key])->check(),
+            Assert::true($this->row->table($this->container->parameters['tables'][$key])->check() instanceof EmptyRow,
                     'IRow:check should return null with empty where in source ' . $this->container->parameters['tables'][$key]);
         }
         Assert::notSame(false, $this->row, 'There is no VO for testing EditForm.');

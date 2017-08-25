@@ -3,6 +3,8 @@
 namespace Test;
 
 use Masala\ImportForm,
+    Masala\IImportFormFactory,
+    Masala\IProcess,
     Masala\MockService,
     Nette\Database\Table\ActiveRow,
     Nette\DI\Container,
@@ -28,20 +30,32 @@ final class ImportFormTest extends TestCase {
     /** @var IImportFormFactory */
     private $class;
 
+    /** @var IProcess */
+    private $service;
+
     public function __construct(Container $container) {
         $this->container = $container;
     }
 
+    /** @return void */
     protected function setUp() {
-        $this->mockService = $this->container->getByType('Masala\MockService');
-        $this->class = $this->container->getByType('Masala\ImportForm');
+        Assert::true(is_object($this->mockService = $this->container->getByType('Masala\MockService')), 'MockService is not set.');
+        Assert::false(empty($processes = $this->container->findByType('Masala\IProcess')), 'No Masala\IProcess found.');
+        Assert::false(empty($service = $processes[rand(0, sizeof($processes) -1)]));
+        Assert::true(is_object($this->service = $this->container->getService($service)), 'Get IProcess failed.');
+        Assert::false(empty($assets = isset($this->container->parameters['masala']['assets']) ? $this->container->parameters['masala']['assets'] : 'assets'));
+        Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/js/manifest.json',
+            $this->container->getByType('Nette\Http\IRequest'), $this->container->getByType('Nette\Localization\ITranslator'))),
+            'IImportFormFactory is not set.');
         $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
     }
 
+    /** @return void */
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
+    /** @return void */
     public function testSetService() {
         $mockRepository = $this->container->getByType('Masala\IMock');
         foreach ($this->presenters as $class => $latte) {
@@ -65,6 +79,7 @@ final class ImportFormTest extends TestCase {
         }
     }
 
+    /** @return void */
     public function testAttached() {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
@@ -76,10 +91,9 @@ final class ImportFormTest extends TestCase {
         }
     }
 
+    /** @return void */
     public function testSucceed() {
-
         $testParameters = ['id' => 1, 'feed' => 'laurasport', 'page' => 1, 'grid' => 'products'];
-        /* http://stackoverflow.com/questions/21807656/use-mockery-to-unit-test-a-class-with-dependencies */
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $latte);
             Assert::true(is_array($parameters = $presenter->request->getParameters('action')), 'Parameters have not been set in ' . $class . '.');
@@ -93,21 +107,19 @@ final class ImportFormTest extends TestCase {
             Assert::true(is_object($presenter), 'Presenter is not class.');
             Assert::true(in_array('addComponent', get_class_methods($presenter)), 'Presenter has no method addComponent.');
             Assert::true(is_object($this->class), 'ImportForm was not set.');
-            Assert::true($this->class instanceof ImportForm, 'ImportForm has wrong instantion.');
-            /* Assert::same(true, is_object($this->class->getValues()));
-              Assert::true($this->class->getValues() instanceof Nette\Utils\ArrayHash); */
+            Assert::true($this->class instanceof IImportFormFactory, 'ImportForm has wrong instantion.');
+            Assert::same(null, $this->class->getData(), 'Data has been attached too early.');
             Assert::true(property_exists($this->class, 'translatorModel'), 'Translator model was not set');
-            /* $presenter->addComponent($this->class, 'ImportForm'); */
+            Assert::true(is_object($this->class->setService($this->service)), 'IProcess was not set.');
             $csv = __DIR__ . '/' . Strings::webalize(preg_replace('/App|Module|Presenter|action/', '', $class . '-' . $method)) . '.csv';
             Assert::true(is_file($csv), 'Test upload file ' . $csv . ' is not set.');
-            /* Assert::same(1, $this->class->succeed($this->class));
-              $submittedBy = Mockery::mock(Nette\Forms\Controls\SubmitButton::class);
-              $submittedBy->shouldReceive('getName')
-              ->andReturn('save'); */
+            $presenter->addComponent($this->class, 'importForm');
+            Assert::false(empty($data = $this->class->getData()), 'Data are empty.');
+            Assert::true(isset($data['prepare-progress']), 'Prepare button is missing.');
+            $presenter->removeComponent($this->class);
             $this->setUp();
         }
     }
-
 }
 
 id(new ImportFormTest($container))->run();

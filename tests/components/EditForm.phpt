@@ -3,10 +3,11 @@
 namespace Test;
 
 use Masala\EditForm,
+    Masala\EmptyRow,
     Masala\IMock,
     Masala\MockService,
     Masala\IRow,
-    Nette\Database\Row,
+    Masala\Row,
     Nette\Database\Table\ActiveRow,
     Nette\DI\Container,
     Tester\Assert,
@@ -66,7 +67,8 @@ final class EditFormTest extends TestCase {
     public function testSetRow() {
         Assert::false(empty($source = $this->getRandomTable()), 'Test table is not set.');
         if(is_object($this->mockRepository->getTestRow($source))) {
-            //Assert::same(null, $this->row->table($source)->check(), 'Check without where clause should return null data in source ' . $source);
+            $row = new Row($this->container->parameters['masala'], $this->container->getByType('Nette\Database\Context'), $this->container->getByType('Nette\Caching\IStorage'));
+            Assert::true($row->table($source)->check() instanceof EmptyRow, 'Check without where clause should return null data in source ' . $source);
             Assert::true(is_object($this->row->table($source)->where('id IS NOT NULL')->check()), 'IRow::check failed.');
         }
         Assert::notSame(false, $this->row, 'There is no VO for testing EditForm.');
@@ -154,7 +156,7 @@ final class EditFormTest extends TestCase {
         foreach ($tables as $name) {
             Assert::false(empty($name));
             Assert::true(is_integer($index = rand(0, count($this->tables) - 1)), 'Index for random table is not set.');
-            Assert::true(($table = $this->tables[$index]) instanceof Row, 'Table to test column comments is not set.');
+            Assert::true(($table = $this->tables[$index]) instanceof IRow, 'Table to test column comments is not set.');
             Assert::true(is_string($name), 'Table name is not defined.');
             Assert::true(is_array($columns = $this->row->getColumns($name)), 'Table columns are not defined.');
         }

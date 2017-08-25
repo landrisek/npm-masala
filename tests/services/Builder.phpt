@@ -45,14 +45,16 @@ final class BuilderTest extends TestCase {
 
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
+        stream_wrapper_restore('php');
     }
 
     public function testTable() {
         Assert::same($this->class, $this->class->table('test'), 'Table setter failed.');
     }
 
-    public function testFilter() {
+    public function testPrepare() {
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
+        $this->mockService->setPost();
         foreach ($presenters as $class => $presenter) {
             if(isset($this->container->parameters['mockService']['presenters'][$class])) {
                 $testParameters = $this->container->parameters['mockService']['presenters'][$class];
@@ -75,9 +77,6 @@ final class BuilderTest extends TestCase {
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
             Assert::false(empty($presenter->grid->getTable()), 'Table is not set.');
             Assert::same($source, $presenter->grid->getTable(), 'Table ' . $source . ' was not set.');
-            /** @todo: mock post parameters
-             * Assert::same(1, $presenter->grid->filter()->getOffsets(), 'Offset rows for grid were not set.');
-             * Assert::same(null, $presenter->grid->build([], null, $this->masala->getName()), 'Source ' . $source . ' in ' . $class . ':' . $method . ' for Masala failed.'); */
             Assert::false(isset($this->select), 'Select in Builder should be private.');
             Assert::false(isset($this->join), 'Join in Builder should be private.');
             Assert::false(isset($this->leftJoin), 'Left join in Builder should be private.');
@@ -90,6 +89,7 @@ final class BuilderTest extends TestCase {
             Assert::same(null, $this->masala->attached($presenter), 'Masala:attached method succeed but it does return something. Do you wish modify test?');
             Assert::same(null, $this->class->attached($this->masala), 'Builder:attached method succed but it does return something. Do you wish modify test?');
             Assert::same($this->class->getId('test'), md5($this->masala->getName() . ':' . $presenter->getName() . ':' . $presenter->getAction()  . ':test:' . $presenter->getUser()->getId()), 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
+            Assert::false(empty($this->class->prepare()), 'Offset rows for grid were not set.');
             $this->setUp();
         }
         Assert::false(isset($this->class->table), 'Builder table variable should be private.');
@@ -109,7 +109,7 @@ final class BuilderTest extends TestCase {
 
     public function testConfig() {
         Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
-        Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')), 'BuilderExtension is not set.');
+        Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set.');
         Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
         Assert::true(isset($this->container->parameters['mockService']['testUser']), 'Test user is not set.');
         Assert::true(isset($this->container->parameters['masala']['users']), 'Table of users is not set.');

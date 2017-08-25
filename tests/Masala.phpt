@@ -35,6 +35,7 @@ final class MasalaTest extends TestCase {
 
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
+        stream_wrapper_restore('php');
     }
 
     public function testAttached() {
@@ -54,7 +55,7 @@ final class MasalaTest extends TestCase {
                 }
             }
         }
-        Assert::true(is_object($extension = $this->container->getByType('Masala\BuilderExtension')));
+        Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')));
         Assert::false(empty($config = $extension->getConfiguration($this->container->parameters)));
         Assert::false(empty($settings = (array) json_decode($this->mockService->getUser()->getIdentity()->getData()[$config['masala']['settings']])), 'Test user does not have settings.');
         Assert::false(empty($setting = (array) reset($settings)), 'User setting is not set');
@@ -71,7 +72,6 @@ final class MasalaTest extends TestCase {
                 $testParameters = [];
             }
             echo 'testing ' . $presenter . "\n";
-            /** @todo: when using this->import, Module:Presenter:action MUST be in fc_feeds.source */
             Assert::true(is_array($parameters = $presenter->request->getParameters('action')), 'Parameters have not been set in ' . $class . '.');
             Assert::notSame(6, strlen($method = 'action' . ucfirst(array_shift($parameters))), 'Action method of ' . $class . ' is not set.');
             Assert::true(is_object($reflection = new Method($class, $method)));
@@ -81,20 +81,17 @@ final class MasalaTest extends TestCase {
                 $arguments[$parameter->getName()] = $testParameters[$parameter->getName()];
             }
             Assert::true(method_exists($class, $method), 'According to latte file should exist method ' . $method . ' in ' . $class . '.');
-            /* Assert::same(null, call_user_func_array([$presenter, $method], $arguments), 'Method ' . $method . ' of ' . $class . ' does return something. Do you wish to modify test?'); */
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
             Assert::true(is_object($presenter->grid->where('id IS NOT NULL')), 'Grid setter method does not return class itself.');
             $this->class->setGrid($presenter->grid);
             $presenter->addComponent($this->class, 'IMasalaFactory');
             Assert::true(is_object($grid = $presenter->grid), 'Grid IBuilder is not set.');
             Assert::same($source, $presenter->grid->getTable(), 'Source ' . $source . ' for Masala IBuilder was not set.');
-            /* Assert::same(null, $presenter->grid->build([], $this->class->getName()), 'Source ' . $source . ' in ' . $class . ':' . $method . ' for Masala failed.'); */
             Assert::false(isset($presenter->grid->select), 'Select in IBuilder should be private.');
             Assert::false(isset($presenter->grid->join), 'Join in IBuilder should be private.');
             Assert::false(isset($presenter->grid->leftJoin), 'Left join in IBuilder should be private.');
             Assert::false(isset($presenter->grid->innerJoin), 'Inner join in IBuilder should be private.');
             Assert::true(is_array($filters = (null != $presenter->grid->getFilters()) ? $presenter->grid->getFilters() : []), 'Filters in Masala IBuilder are not set.');
-            /* Assert::same(null, $this->class->getGrid()->build([], $this->class->getName()), 'VO:build does retunn something. Do you wish to modify test?'); */
             Assert::same($presenter->grid, $presenter->grid->table($source), 'Set table of VO does not return class itself.');
             Assert::true(is_array($columns = $presenter->grid->getDrivers($source)), 'Table columns are not defined.');
             Assert::true(is_object($grid = $this->mockService->getPrivateProperty($this->class, 1)), 'Masala builder is not set.');
@@ -145,15 +142,12 @@ final class MasalaTest extends TestCase {
         }
     }
 
-    public function testLatte() {
-        $latte = $this->container->parameters['appDir'] . '/Masala/templates/grid.latte';
-        Assert::true(is_file($latte), 'Latte file for grid is not set.');
-        Assert::false(empty($grid = file_get_contents($latte)), 'Latte file is empty.');
-        Assert::true(0 < substr_count($grid, '$(this).datetimepicker({ format: $(this).attr(\'data\'), locale: {$locale} })'), 'It seems that datatimepicker in javascript has unintended format. Did you manipulated just with space?');
-        Assert::true(0 < substr_count($grid, '<script src="{$js}"></script>'), 'It seems that react component is not included.');
+    public function testHandleExport() {
+        Assert::same(null, $this->mockService->setPost(), 'MockService:setPost succeed but it does return something. Do you wish to modify test?');
+        Assert::true(is_object($this->class->setGrid($this->container->getByType('Masala\IBuilder')->export(true))));
     }
 
-    public function testGetComment() {
+    public function testHandleRun() {
         $row = $this->container->getByType('Masala\IRow');
         Assert::false(empty($tables = $this->container->parameters['tables']), 'Test source was not set.');
         Assert::false(empty($excluded = $this->container->parameters['mockService']['excluded']), 'No tables to excluded. Do you wish to modify test?');
@@ -169,6 +163,14 @@ final class MasalaTest extends TestCase {
         Assert::same('json', $columns[1]['name'], 'Json column was not set');
         Assert::false(empty($comment = $columns[1]['vendor']['Comment']), 'Json column comment should be not empty');
         Assert::same(1, substr_count($comment, '@hidden'), $source . '.json should have disabled comment via annotation @hidden.');
+    }
+
+    public function testRender() {
+        $latte = $this->container->parameters['appDir'] . '/Masala/templates/grid.latte';
+        Assert::true(is_file($latte), 'Latte file for grid is not set.');
+        Assert::false(empty($grid = file_get_contents($latte)), 'Latte file is empty.');
+        Assert::true(0 < substr_count($grid, '$(this).datetimepicker({ format: $(this).attr(\'data\'), locale: {$locale} })'), 'It seems that datatimepicker in javascript has unintended format. Did you manipulated just with space?');
+        Assert::true(0 < substr_count($grid, '<script src="{$js}"></script>'), 'It seems that react component is not included.');
     }
 
 }

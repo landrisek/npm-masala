@@ -5,8 +5,7 @@ namespace Masala;
 use Nette\Caching\Cache,
     Nette\Caching\IStorage,
     Nette\Database\Context,
-    Nette\Database\Table\ActiveRow,
-    Nette\Database\Table\Selection,
+    Nette\Database\Table,
     Nette\InvalidStateException;
 
 /** @author Lubomir Andrisek */
@@ -21,7 +20,7 @@ final class Row implements IRow {
     /** @var array */
     private $rowColumns = [];
 
-    /** @var ActiveRow */
+    /** @var Table\IRow */
     private $rowData;
 
     /** @var Context */
@@ -36,7 +35,7 @@ final class Row implements IRow {
     /** @var string */
     private $rowTitle = 'edit item';
 
-    /** @var Selection */
+    /** @var Table\Selection */
     private $rowResource;
 
     /** @var IEdit */
@@ -65,7 +64,7 @@ final class Row implements IRow {
 
     /** @return void */
     public function before(IReactFormFactory $form) {
-        if ($this->rowResource instanceof Selection  and !is_object($this->rowData = $this->check())) {
+        if ($this->rowResource instanceof Table\Selection  and $this->rowData = $this->check() instanceof EmptyRow) {
             foreach ($this->rowColumns as $row) {
                 if (is_array($row)) {
                     $rowName = $row['name'];
@@ -75,7 +74,7 @@ final class Row implements IRow {
         }
     }
 
-    /** @return ActiveRow */
+    /** @return Table\IRow */
     public function check() {
         if (null == $this->rowData) {
             if(!empty($this->rowColumns) && !empty($this->rowResource->getSqlBuilder()->getConditions())) {
@@ -99,6 +98,9 @@ final class Row implements IRow {
                     $this->$key = $row;
                 }
             }
+        }
+        if(false == $this->rowData) {
+            return new EmptyRow();
         }
         return $this->rowData;
     }
@@ -165,6 +167,10 @@ final class Row implements IRow {
         $this->rowTable = (string) $table;
         $this->rowResource = $this->rowDatabase->table($table);
         return $this;
+    }
+
+    public function debug() {
+        echo $this->rowResource->getSql(); exit;
     }
 
     /** @return IRow */

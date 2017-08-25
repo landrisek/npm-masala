@@ -10,17 +10,6 @@ var COLUMNS = 'columns'
 var DIALOGS = 'dialogs'
 var ROWS = 'rows'
 
-
-function getMethods(obj) {
-    var res = [];
-    for(var m in obj) {
-        if(typeof obj[m] === "function") {
-            res.push(m);
-        }
-    }
-    return res;
-}
-
 export default class Grid extends Form {
     constructor(props) {
         super(props)
@@ -66,7 +55,7 @@ export default class Grid extends Form {
                   id={action}
                   onClick={this.bind(this.state[ACTIONS][action].onClick)}
                   target='_blank'
-                  title={this.state[ACTIONS][action].label}></a></div>)
+                  title={this.state[ACTIONS][action].label}></a>{action}</div>)
         }
         return container
     }
@@ -291,7 +280,8 @@ export default class Grid extends Form {
         if(undefined == this.state[ROWS][event.target.id]) {
             data = new Object()
         }
-        $(request('POST', this.state[BUTTONS].dialogs['edit'], { json: data }).getBody('utf8')).appendTo('#masala-edit-modal-body')
+        data.hidden = 'row-' + event.target.id
+        $('#masala-edit-modal-body').replaceWith('<div class="modal-body" id="masala-edit-modal-body">' + request('POST', this.state[BUTTONS].dialogs['edit'], { json: data }).getBody('utf8') + '</div>')
     }
     filter() {
         return JSON.parse(request('POST', this.state[BUTTONS]['filter'], { json: this.getSpice() }).getBody('utf8'))

@@ -131,6 +131,7 @@ export default class Form extends Component {
             onBlur={this.bind(this.state[key].Attributes.onBlur)}
             onClick={this.bind(this.state[key].Attributes.onClick)} 
             onChange={this.onChange.bind(this)}
+            readOnly={this.state[key].Attributes.readonly}
             style={this.state[key].Attributes.style}
             type={this.state[key].Attributes.type}
             value={this.state[key].Attributes.value} />

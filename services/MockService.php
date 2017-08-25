@@ -126,7 +126,6 @@ final class MockService {
             $this->setPresenter();
             $this->setDependencies($class);
         }
-        echo 'testing ' . $class . "\n";
         Assert::false(empty($source = preg_replace('/(App|Module|Presenter|)/', '', $class)), 'Name of presenter is empty.');
         Assert::true(is_string($name = preg_replace('/\\\/', ':', $source)), 'Name of presenter is not set.');
         Assert::false(empty($name = ltrim($name, ':')), 'Name of presenter is empty');
@@ -191,7 +190,7 @@ final class MockService {
             /** $request = Mockery::mock('Nette\Application\Request[getPost]', [$presenterRequest, 'GET', array_merge(['action' => $presenterAction], $parameters)]);
             $request->shouldReceive('getPost')->andReturn($_POST); */
         }
-        echo 'testing name ' . $name , "\n";
+        echo 'testing name ' . $name . ':' . $presenterAction, "\n";
         $presenter->run($request);
         return $presenter;
     }
@@ -367,6 +366,15 @@ final class MockService {
         }
     }
 
+    /** @retrun void */
+    public function setPost() {
+        file_put_contents('php://memory', 'PHP');
+        stream_wrapper_unregister("php");
+        stream_wrapper_register("php", "Masala\Stream");
+        file_put_contents('php://input', '{"offset":1}');
+
+    }
+
     private function setProtectedProperty($object, $property, $value) {
         $reflection = new \ReflectionClass($object);
         $protected = $reflection->getProperty($property);
@@ -392,5 +400,69 @@ final class MockService {
         $this->templateFactory = new TemplateFactory($latteFactory, $this->httpRequest);
     }
 
+}
 
+final class Stream {
+
+    protected $index = 0;
+    protected $length = null;
+    protected $data = 'hello world';
+
+    public $context;
+
+    function __construct(){
+        if(file_exists($this->buffer_filename())){
+            $this->data = file_get_contents($this->buffer_filename());
+        }else{
+            $this->data = '';
+        }
+        $this->index = 0;
+        $this->length = strlen($this->data);
+    }
+
+    protected function buffer_filename(){
+        return sys_get_temp_dir().'\php_input.txt';
+    }
+
+    function stream_open($path, $mode, $options, &$opened_path){
+        return true;
+    }
+
+    function stream_close(){
+    }
+
+    function stream_stat(){
+        return array();
+    }
+
+    function stream_flush(){
+        return true;
+    }
+
+    function stream_read($count){
+        if(is_null($this->length) === TRUE){
+            $this->length = strlen($this->data);
+        }
+        $length = min($count, $this->length - $this->index);
+        $data = substr($this->data, $this->index);
+        $this->index = $this->index + $length;
+        return $data;
+    }
+
+    function stream_eof(){
+        return ($this->index >= $this->length ? TRUE : FALSE);
+    }
+
+    function stream_write($data){
+        return file_put_contents($this->buffer_filename(), $data);
+    }
+
+    function unlink(){
+        if(file_exists($this->buffer_filename())){
+            unlink($this->buffer_filename());
+        }
+        $this->data = '';
+        $this->index = 0;
+        $this->length = 0;
+    }
 }

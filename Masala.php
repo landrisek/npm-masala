@@ -109,14 +109,15 @@ final class Masala extends Control implements IMasalaFactory {
         }
     }
 
+    /** @return string */
     private function getDivider($file) {
-        $handle = fopen($file, 'r');
         $dividers = [];
         foreach ([',', ';', '"'] as $divider) {
+            $handle = fopen($file, 'r');
             $line = fgetcsv($handle, 10000, $divider);
+            fclose($handle);
             $dividers[count($line)] = $divider;
         }
-        fclose($handle);
         ksort($dividers);
         $divider = array_reverse($dividers);
         return array_shift($divider);
@@ -330,7 +331,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->assets = $this->config['assets'];
         $this->template->npm = $this->config['npm'];
         $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-        $this->template->dialogs = ['edit', 'help', 'import', 'process'];
+        $this->template->dialogs = ['edit', 'help', 'import', 'message', 'process'];
         $this->template->grid = $this->grid;
         $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $columns = $this->grid->getColumns();

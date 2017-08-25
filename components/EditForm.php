@@ -93,7 +93,7 @@ final class EditForm extends ReactForm implements IEditFormFactory {
                     $this->addUpload($name, $label);
                 } elseif (0 < substr_count($column['vendor']['Comment'], '@multiupload')) {
                     $attributes['max'] = $this->upload;
-                    $this->addMultiUpload($name, $label, $attribute, $validators);
+                    $this->addMultiUpload($name, $label, $attributes, $validators);
                 } else {
                     $this->addText($name, $label . ':', $attributes, $validators);
                 }

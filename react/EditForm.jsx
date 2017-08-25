@@ -85,6 +85,9 @@ export default class EditForm extends Form {
             if(undefined != response.message) {
                 element.Label = response.message
             }
+            if(undefined != response.remove && false != response.remove) {
+                document.getElementById(response.remove).remove()
+            }
             this.setState({ 'edit': element })
         }
     }

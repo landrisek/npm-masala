@@ -205,7 +205,7 @@ final class Grid extends Control implements IGridFactory {
     /** @return TextResponse */
     public function handleEdit() {
         $primary = $this->setRow();
-        $this->editForm->create()->setRow($this->row)->setPrimary($primary);
+        $this->editForm->create()->setRow($this->row)->setPrimary($primary)->addHidden('offset-row', 'offset-row', ['value' => $this->builder->getPost('hidden')]);
         $this->addComponent($this->editForm, 'editForm');
         return $this->presenter->sendResponse(new TextResponse($this->editForm->attached($this->presenter)->render()));
     }
@@ -261,7 +261,19 @@ final class Grid extends Control implements IGridFactory {
     /** @return JsonResponse */
     public function handleSubmit() {
         $this->setRow();
-        $this->presenter->sendResponse(new JsonResponse($this->row->update($this->builder->getPost(''))));
+        $post = $this->builder->getPost('');
+        $row = $post['offset-row'];
+        unset($post['offset-row']);
+        $this->row->update($post);
+        foreach($this->builder->getPost('') as $column => $value) {
+            if(!empty($this->builder->getFilter($column)) || !empty($this->builder->getFilter($this->builder->getTable() . '.' . $column))) {
+                $this->row->where($column, $value);
+            }
+        }
+        foreach($this->builder->getFilters() as $column => $value) {
+            $this->row->where($column, $value);
+        }
+        $this->presenter->sendResponse(new JsonResponse(['remove' => $this->row->check() instanceof EmptyRow ? $row : false]));
     }
     
     /** @return TextResponse */
@@ -342,10 +354,10 @@ final class Grid extends Control implements IGridFactory {
         }
         $dialogs = [];
         if(is_object($this->builder->getEdit())) {
-            $dialogs['edit'] = ['label'=>$this->translatorModel->translate('add item'),'class'=>'btn btn-warning','link' =>$this->link('edit'),'onClick'=>'edit'];
+            $dialogs['edit'] = ['label'=>$this->translatorModel->translate('add item'),'class'=>'btn btn-warning','link' => $this->link('edit'), 'onClick'=>'edit'];
         }
         foreach($this->builder->getDialogs() as $key) {
-            $dialogs[$key] = ['label'=>$this->translatorModel->translate('dialog:' . $key),'class'=>'btn btn-warning','link' =>$this->link($key),'onClick'=>$key];
+            $dialogs[$key] = ['label'=>$this->translatorModel->translate('dialog:' . $key),'class'=>'btn btn-warning','link' => $this->link($key), 'onClick'=>$key];
         }
         $buttons = is_object($this->builder->getEdit()) ? ['edit' => $this->link('edit')] : [];
         foreach($this->builder->getActions() as $key) {
