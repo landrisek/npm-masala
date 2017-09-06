@@ -30,7 +30,7 @@ final class Row implements IRow {
     private $rowDefaults = [];
 
     /** @var string */
-    private $rowSelect = '*';
+    private $rowSelect;
 
     /** @var string */
     private $rowTitle = 'edit item';
@@ -50,7 +50,7 @@ final class Row implements IRow {
         $this->rowCache = new Cache($storage);
     }
 
-    /** @return ActiveRow */
+    /** @return Table\IRow */
     public function add(array $data) {
         return $this->rowResource->insert($data);
     }
@@ -64,7 +64,7 @@ final class Row implements IRow {
 
     /** @return void */
     public function before(IReactFormFactory $form) {
-        if ($this->rowResource instanceof Table\Selection  and $this->rowData = $this->check() instanceof EmptyRow) {
+        if ($this->rowResource instanceof Table\Selection and $this->rowData = $this->check() instanceof EmptyRow) {
             foreach ($this->rowColumns as $row) {
                 if (is_array($row)) {
                     $rowName = $row['name'];
@@ -76,11 +76,11 @@ final class Row implements IRow {
 
     /** @return Table\IRow */
     public function check() {
-        if (null == $this->rowData) {
-            if(!empty($this->rowColumns) && !empty($this->rowResource->getSqlBuilder()->getConditions())) {
+        if (empty($this->rowData)) {
+            if(!empty($this->rowResource->getSqlBuilder()->getConditions()) && !empty($this->rowSelect)) {
                 $this->rowData = $this->rowResource->select($this->rowSelect)->fetch();
-            } else if(!empty($this->rowResource->getSqlBuilder()->getConditions())) {
-                $this->rowData = $this->rowResource->select($this->rowSelect)->fetch();
+            } else if(!empty($this->rowResource->getSqlBuilder()->getConditions()) && empty($this->rowResource->getSqlBuilder()->getSelect())) {
+                $this->rowData = $this->rowResource->select('*')->fetch();
             }
             foreach ($this->getDrivers() as $column) {
                 if(isset($this->rowColumns[$column['name']]) and is_string($this->rowColumns[$column['name']]) and preg_match('/\sAS\s/', $this->rowColumns[$column['name']])) {
@@ -158,6 +158,7 @@ final class Row implements IRow {
         return $this->rowService;
     }
 
+    /** @return Table\Selection */
     public function getResource() {
         return $this->rowResource;
     }
@@ -167,10 +168,6 @@ final class Row implements IRow {
         $this->rowTable = (string) $table;
         $this->rowResource = $this->rowDatabase->table($table);
         return $this;
-    }
-
-    public function debug() {
-        echo $this->rowResource->getSql(); exit;
     }
 
     /** @return IRow */

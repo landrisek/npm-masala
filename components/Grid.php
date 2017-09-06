@@ -199,7 +199,7 @@ final class Grid extends Control implements IGridFactory {
         $this->row->table($this->builder->getTable());
         $this->editForm->create()->setRow($this->row);
         $this->addComponent($this->editForm, 'editForm');
-        return $this->presenter->sendResponse(new TextResponse($this->editForm->attached($this->presenter)->render()));
+        return $this->presenter->sendResponse(new TextResponse($this->editForm->render()));
     }
 
     /** @return TextResponse */
@@ -207,7 +207,7 @@ final class Grid extends Control implements IGridFactory {
         $primary = $this->setRow();
         $this->editForm->create()->setRow($this->row)->setPrimary($primary)->addHidden('offset-row', 'offset-row', ['value' => $this->builder->getPost('hidden')]);
         $this->addComponent($this->editForm, 'editForm');
-        return $this->presenter->sendResponse(new TextResponse($this->editForm->attached($this->presenter)->render()));
+        return $this->presenter->sendResponse(new TextResponse($this->editForm->render()));
     }
 
     /** @return JsonResponse */
@@ -262,18 +262,32 @@ final class Grid extends Control implements IGridFactory {
     public function handleSubmit() {
         $this->setRow();
         $post = $this->builder->getPost('');
-        $row = $post['offset-row'];
-        unset($post['offset-row']);
+        if(isset($post['offset-row'])) {
+            $row = $post['offset-row'];
+            unset($post['offset-row']);
+        } else {
+            $this->row->add($post);
+            $this->presenter->sendResponse(new JsonResponse([]));
+        }
         $this->row->update($post);
+        $parameters = [];
         foreach($this->builder->getPost('') as $column => $value) {
-            if(!empty($this->builder->getFilter($column)) || !empty($this->builder->getFilter($this->builder->getTable() . '.' . $column))) {
+            if(is_array($this->builder->getFilter($column)) ||
+                is_array($this->builder->getFilter($this->builder->getTable() . '.' . $column)) ||
+                strlen($this->builder->getFilter($column)) > 0 ||
+                strlen($this->builder->getFilter($this->builder->getTable() . '.' . $column)) > 0) {
                 $this->row->where($column, $value);
+                $parameters[$column] = $value;
             }
         }
+        $conditions = array_flip($this->row->getResource()->getSqlBuilder()->getConditions());
+        $response = ['remove' => false];
         foreach($this->builder->getFilters() as $column => $value) {
-            $this->row->where($column, $value);
+            if(isset($conditions[$column]) && isset($parameters[$column]) && $parameters[$column] != $value) {
+                $response = ['remove' => $row];
+            }
         }
-        $this->presenter->sendResponse(new JsonResponse(['remove' => $this->row->check() instanceof EmptyRow ? $row : false]));
+        $this->presenter->sendResponse(new JsonResponse($response));
     }
     
     /** @return TextResponse */
@@ -354,7 +368,7 @@ final class Grid extends Control implements IGridFactory {
         }
         $dialogs = [];
         if(is_object($this->builder->getEdit())) {
-            $dialogs['edit'] = ['label'=>$this->translatorModel->translate('add item'),'class'=>'btn btn-warning','link' => $this->link('edit'), 'onClick'=>'edit'];
+            $dialogs['edit'] = ['label'=>$this->translatorModel->translate('add item'),'class'=>'btn btn-warning','link' => $this->link('add'), 'onClick'=>'add'];
         }
         foreach($this->builder->getDialogs() as $key) {
             $dialogs[$key] = ['label'=>$this->translatorModel->translate('dialog:' . $key),'class'=>'btn btn-warning','link' => $this->link($key), 'onClick'=>$key];

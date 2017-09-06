@@ -215,7 +215,6 @@ export default class Form extends Component {
     }
     onDrop(key, files) {
         var element = this.state[key]
-        var names = []
         for(var file in files) {
             for(var validator in this.state[key].Validators) {
                 var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
@@ -223,11 +222,10 @@ export default class Form extends Component {
                     element.Validators[validator].style = { display : 'block' }
                 } else {
                     element.Validators[validator].style = { display : 'none' }
-                    names[this.save(files[file])] = files[file].name
+                    this.save(key, files[file])
                 }
             }
         }
-        element.Attributes.value = names
         var state = []
         state[key] = element
         this.setState(state)
@@ -247,10 +245,26 @@ export default class Form extends Component {
         state[event.target.id]
         this.setState(state)
     }
-    save(file) {
-        var data = new Object()
-        data.file = request('GET', file.preview).body
-        return request('POST', LINKS['save'] + '&file=' + file.name + '.' + file.type, { json: data }).getBody('utf8')
+    save(key, file) {
+        var upload = this.state[key]
+        if(undefined == upload.Attributes.value) {
+            upload.Attributes.value = []
+        }
+        var save = this.state.save
+        save.Attributes.class = 'btn btn-success disabled'
+        axios.get(file.preview).then(response => {
+            var data = new Object()
+            data.file = response.data
+            axios.post(LINKS['save'] + '&file=' + file.name + '.' + file.type, data).then(response => {
+                upload.Attributes.value[response.data] = file.name
+                save.Attributes.class = 'btn btn-success'
+                var state = {'save':save}
+                state[key] = upload
+                this.setState(state)
+            })
+
+        })
+        this.setState({'save':save})
     }
     prepare(event) {
         var response = JSON.parse(request('POST', LINKS['prepare'], { json: this.state }).getBody('utf8'))

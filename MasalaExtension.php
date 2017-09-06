@@ -10,6 +10,7 @@ final class MasalaExtension extends CompilerExtension {
 
     private $defaults = ['assets' => 'assets/masala',
         'exportSpeed' => 20,
+        'importSpeed' => 100,
         'feeds' => 'feeds',
         'format' => ['date' => ['edit' => 'Y-m-d', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")', 'text' => 'd.m.Y'],
                     'time' => ['edit' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")', 'text' => 'd.m.Y H:i:s']],

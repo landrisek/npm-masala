@@ -70,19 +70,19 @@ final class Masala extends Control implements IMasalaFactory {
         foreach ($row as $key => $column) {
             mb_detect_encoding($column, 'UTF-8', true) == false ? $column = trim(iconv('windows-1250', 'utf-8', $column)) : $column = trim($column);
             if (isset($header->$column)) {
-                foreach ($header->$column as $feedColumn => $feedValue) {
-                    if (!isset($this->header[$feedColumn]) and is_numeric($feedValue)) {
-                        $this->header[$feedColumn] = [$feedValue => $key];
-                    } elseif (!isset($this->header[$feedColumn]) and is_bool($feedColumn)) {
-                        $this->header[$feedColumn] = $key;
-                    } elseif ('break' == $feedValue and ! isset($this->header[$feedColumn])) {
-                        $this->header[$feedColumn] = $key;
-                    } elseif ('break' == $feedValue and isset($this->header[$feedColumn])) {
+                foreach ($header->$column as $feed => $value) {
+                    if (!isset($this->header[$feed]) and is_numeric($value)) {
+                        $this->header[$feed] = [$value => $key];
+                    } elseif (!isset($this->header[$feed]) and is_bool($feed)) {
+                        $this->header[$feed] = $key;
+                    } elseif ('break' == $value and ! isset($this->header[$feed])) {
+                        $this->header[$feed] = $key;
+                    } elseif ('break' == $value and isset($this->header[$feed])) {
                         
-                    } elseif (is_array($header->$feedColumn)) {
-                        is_numeric($feedValue) ? $this->header[$feedColumn][$feedValue] = $key : $this->header[$feedColumn][] = $key;
-                    } elseif (is_numeric($feedValue)) {
-                        $this->header[$feedColumn] = [0 => $key, $feedValue => $header->$feedColumn];
+                    } elseif (is_array($header->$feed)) {
+                        is_numeric($value) ? $this->header[$feed][$value] = $key : $this->header[$feedColumn][] = $key;
+                    } elseif (is_numeric($value)) {
+                        $this->header[$feed] = [0 => $key, $value => $header->$feed];
                     }
                 }
             }
@@ -212,8 +212,10 @@ final class Masala extends Control implements IMasalaFactory {
         $divider = $this->getDivider($path);
         $handle = fopen($path, 'r');
         while (false !== ($row = fgets($handle, 10000))) {
+            $before = $row;
             $row = $this->sanitize($row, $divider);
             if (empty($this->header)) {
+                $offset = strlen($before);
                 $this->getHeader($row, $header);
             } elseif (!empty($this->header)) {
                 break;
@@ -222,8 +224,8 @@ final class Masala extends Control implements IMasalaFactory {
         $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
                                     'header'=>$this->header,
                                     'file'=> $this->grid->getPost('file'),
-                                    'link'=>$this->link('run'),
-                                    'offset'=> 0,
+                                    'link'=> $this->link('run'),
+                                    'offset'=> $offset,
                                     'status'=>'import',
                                     'stop' => filesize($path)], $this));
         return $this->presenter->sendResponse($response);
@@ -250,22 +252,26 @@ final class Masala extends Control implements IMasalaFactory {
         if ('import' == $response['status']) {
             $path = $this->grid->getImport()->getFile();
             $handle = fopen($path, 'r');
-            fseek($handle, $response['offset']);
-            $offset = fgets($handle);
-            $response['offset'] = ftell($handle);
-            $response['row'] = [];
-            $offset = $this->sanitize($offset, $response['divider']);
-            foreach ($response['header'] as $headerId => $header) {
-                if (is_array($header)) {
-                    foreach ($header as $valueId => $value) {
-                        $response['row'][$headerId][$valueId] = $offset[$value];
-                    }
-                } else {
-                    $response['row'][$headerId] = $offset[$header];
+            for($i=0;$i<$this->config['importSpeed'];$i++) {
+                fseek($handle, $response['offset']);
+                $offset = fgets($handle);
+                if($response['stop'] == $response['offset'] = ftell($handle)) {
+                    $i = $this->config['importSpeed'];
                 }
+                $response['row'] = [];
+                $offset = $this->sanitize($offset, $response['divider']);
+                foreach ($response['header'] as $headerId => $header) {
+                    if (is_array($header)) {
+                        foreach ($header as $valueId => $value) {
+                            $response['row'][$headerId][$valueId] = $offset[$value];
+                        }
+                    } else {
+                        $response['row'][$headerId] = $offset[$header];
+                    }
+                }
+                $service = $this->grid->getImport();
+                $response = $service->run($response, $this);
             }
-            $service = $this->grid->getImport();
-            $response = $service->run($response, $this);
         /** export */
         } elseif(in_array($response['status'], ['export', 'excel'])) {
             $service = $this->grid->getExport();
@@ -343,12 +349,7 @@ final class Masala extends Control implements IMasalaFactory {
     }
 
     private function sanitize($row, $divider) {
-        preg_match_all('/\"(.*?)\"/', $row, $matches);
-        $matches[1] = (isset($matches[1])) ? $matches[1] : [];
-        foreach ($matches[1] as $match) {
-            $row = str_replace('<?php', '', (str_replace($match, str_replace(',', '.', $match), $row)));
-        }
-        return explode($divider, str_replace('"', '', $row));
+        return explode($divider, preg_replace('/\<\?php|\"/', '', $row));
     }
 
     /** @return IGridFactory */

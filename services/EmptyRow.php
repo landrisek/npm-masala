@@ -53,4 +53,8 @@ class EmptyRow implements Iterator, \Nette\Database\Table\IRow {
     /** @return void */
     public function offsetUnset($offset) {}
 
+    /** @retrun array */
+    public function toArray() {
+        return [];
+    }
 }

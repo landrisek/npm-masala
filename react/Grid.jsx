@@ -16,6 +16,10 @@ export default class Grid extends Form {
         var name = this.constructor.name;
         this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'));
     }
+    add() {
+        var data = new Object()
+        $('#masala-edit-modal-body').replaceWith('<div class="modal-body" id="masala-edit-modal-body">' + request('POST', this.state[DIALOGS].edit.link, { json: data }).getBody('utf8') + '</div>')
+    }
     addAction(key) {
         return <div style={{marginRight:'10px',float:'left'}}><a className={this.state[BUTTONS][key].class}
                     id={'trigger-' + key}
@@ -55,7 +59,7 @@ export default class Grid extends Form {
                   id={action}
                   onClick={this.bind(this.state[ACTIONS][action].onClick)}
                   target='_blank'
-                  title={this.state[ACTIONS][action].label}></a>{action}</div>)
+                  title={this.state[ACTIONS][action].label}></a></div>)
         }
         return container
     }
@@ -281,7 +285,7 @@ export default class Grid extends Form {
             data = new Object()
         }
         data.hidden = 'row-' + event.target.id
-        $('#masala-edit-modal-body').replaceWith('<div class="modal-body" id="masala-edit-modal-body">' + request('POST', this.state[BUTTONS].dialogs['edit'], { json: data }).getBody('utf8') + '</div>')
+        $('#masala-edit-modal-body').replaceWith('<div class="modal-body" id="masala-edit-modal-body">' + request('POST', this.state[BUTTONS].dialogs.edit, { json: data }).getBody('utf8') + '</div>')
     }
     filter() {
         return JSON.parse(request('POST', this.state[BUTTONS]['filter'], { json: this.getSpice() }).getBody('utf8'))

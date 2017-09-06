@@ -821,7 +821,9 @@ final class Builder implements IBuilder {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
         $this->sort = rtrim($this->sort, ', ');
-        $offset = $this->getPost('offset');
+        if(empty($offset = $this->getPost('offset'))) {
+            $offset = 1;
+        }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
@@ -833,19 +835,19 @@ final class Builder implements IBuilder {
                 foreach ($subfilters as $filter) {
                     $this->where[$filter . ' LIKE'] = '%' . $value . '%';
                 }
-            } elseif (preg_match('/\s\>\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
+            } elseif (preg_match('/\s\>\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$key] . ' >='] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\>\=/', $column)) {
                 $this->where[$this->columns[$key] . ' >='] = $value;
-            } elseif (preg_match('/\s\<\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
+            } elseif (preg_match('/\s\<\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*\./', $value)) {
                 $this->where[$this->columns[$key] . ' <='] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\<\=/', $column)) {
                 $this->where[$this->columns[$key] . ' <='] = $value;
-            } elseif (preg_match('/\s\>/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
+            } elseif (preg_match('/\s\>/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$key] . ' >'] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\>/', $column)) {
                 $this->where[$this->columns[$key] . ' >'] = $value;
-            } elseif (preg_match('/\s\</', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
+            } elseif (preg_match('/\s\</', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$key] . ' <'] = date($this->config['format']['date']['query'], $converted);
             } elseif (preg_match('/\s\</', $column)) {
                 $this->where[$this->columns[$key] . ' <'] = $value;
@@ -855,7 +857,7 @@ final class Builder implements IBuilder {
                 $this->having .= $column . ' = ' . $value . ' AND ';
             } elseif (preg_match('/\(/', $this->columns[$column])) {
                 $this->having .= $column . ' LIKE "%' . $value . '%" AND ';
-            } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-/', $value)) {
+            } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $value);
             } elseif (is_numeric($value)) {
                 $this->where[$this->columns[$column]] = $value;

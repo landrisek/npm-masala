@@ -38,7 +38,7 @@ class ReactForm extends Control implements IReactFormFactory {
     private function add($key, $label, $method, array $attributes = [], array $validators = []) {
         $validations = [];
         foreach($validators as $validatorId => $validator) {
-            $validations[$validatorId] = ['value' => $validator, 'style' => ['display' => 'none']];
+            $validations[$validatorId] = ['value' => ucfirst($validator), 'style' => ['display' => 'none']];
         }
         $attributes['id'] = strtolower('frm-' .
             preg_replace('/\\\(.*)/', '', get_class($this)) . '-' .
