@@ -367,11 +367,11 @@ final class MockService {
     }
 
     /** @retrun void */
-    public function setPost() {
+    public function setPost(array $post) {
         file_put_contents('php://memory', 'PHP');
         stream_wrapper_unregister("php");
         stream_wrapper_register("php", "Masala\Stream");
-        file_put_contents('php://input', '{"offset":1}');
+        file_put_contents('php://input', json_encode($post));
 
     }
 

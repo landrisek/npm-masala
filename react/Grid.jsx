@@ -8,6 +8,8 @@ var ACTIONS = 'actions'
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
 var DIALOGS = 'dialogs'
+var GRAPHS = 'graphs'
+var LISTENERS = 'listeners'
 var ROWS = 'rows'
 
 export default class Grid extends Form {
@@ -56,7 +58,7 @@ export default class Grid extends Form {
             container.push(<div key={id} className='fa-hover col-md-1'><a
                   className={this.state[ACTIONS][action].class}
                   href={href}
-                  id={action}
+                  id={key}
                   onClick={this.bind(this.state[ACTIONS][action].onClick)}
                   target='_blank'
                   title={this.state[ACTIONS][action].label}></a></div>)
@@ -71,6 +73,17 @@ export default class Grid extends Form {
         for(var key in rows) {
             var id = 'row-' + i++;
             body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
+            if("object" == typeof(this.state[GRAPHS][key])) {
+                var container = []
+                for(var graph in this.state[GRAPHS][key]) {
+                    var value = ''
+                    if(this.state[GRAPHS][key][graph].value > 0) {
+                        value = this.state[GRAPHS][key][graph].value
+                    }
+                    container.push(<li><span style={{height:this.state[GRAPHS][key][graph].percent + '%'}} title={graph}>{value}</span></li>)
+                }
+                body.push(<tr id={'graph-' + i}><ul className='chart'>{container}</ul></tr>)
+            }
         }
         return body
     }
@@ -94,23 +107,6 @@ export default class Grid extends Form {
             data-toggle='modal'
             onClick={this.bind(dialog)}
             title={dialog}></a></div>
-    }
-    addSettings() {
-        if(false == this.state[BUTTONS].setting) {
-            return
-        }
-        var settings = []
-        var columns = this.state[COLUMNS]
-        for (var key in columns) {
-            if(null == /\s/.exec(key) && 'groups' != key) {
-                var checked = 'checked'
-                if(true == columns[key].Attributes.unrender) { checked = null }
-                settings.push(<div key={key + '-setting'} style={{float:'left'}}>
-                    <input checked={checked} id={key} onClick={this.setting.bind(this)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
-                </div>)
-            }
-        }
-        return <div style={{display:this.state[BUTTONS].setting.display}}>{settings}</div>
     }
     addEmpty(key) {
         var th = 'grid-col-' + key
@@ -137,6 +133,7 @@ export default class Grid extends Form {
                     defaultValue={columns[key].Attributes.value}
                     id={key}
                     multiple style={columns[key].Attributes.style}
+                    onClick={this.click.bind(this, key)}
                     onChange={this.change.bind(this)}
                 >{this.getOptions(key)}>
             </select></th>
@@ -169,6 +166,23 @@ export default class Grid extends Form {
         }
         return labels;
     }
+    addSettings() {
+        if(false == this.state[BUTTONS].setting) {
+            return
+        }
+        var settings = []
+        var columns = this.state[COLUMNS]
+        for (var key in columns) {
+            if(null == /\s/.exec(key) && 'groups' != key) {
+                var checked = 'checked'
+                if(true == columns[key].Attributes.unrender) { checked = null }
+                settings.push(<div key={key + '-setting'} style={{float:'left'}}>
+                    <input checked={checked} id={key} onClick={this.setting.bind(this)} type='checkbox' />&nbsp;&nbsp;{columns[key].Label}&nbsp;&nbsp;
+                </div>)
+            }
+        }
+        return <div style={{display:this.state[BUTTONS].setting.display}}>{settings}</div>
+    }
     addPaginator() {
         var container = []
         var extent = 9
@@ -199,7 +213,11 @@ export default class Grid extends Form {
                 if('object' == typeof(rows[row]) && null !== rows[row]) {
                     rows[row].Attributes.id = row
                     rows[row].Attributes.onChange = this.update.bind(this, key, row)
-                    container.push(<td key={id} className={td}>{React.createElement(rows[row].Tag, rows[row].Attributes, rows[row].Label)}</td>)
+                    if(null == rows[row].Attributes.value) {
+                        rows[row].Attributes.value = ''
+                    }
+                    var element = React.createElement(rows[row].Tag, rows[row].Attributes, rows[row].Label)
+                    container.push(<td key={id} className={td}>{element}</td>)
                 } else {
                     container.push(<td key={id} className={td}>{rows[row]}</td>)
                 }
@@ -251,6 +269,25 @@ export default class Grid extends Form {
                 type='text' />
         </th>
     }
+    click(key, event) {
+        if(1 == this.state[COLUMNS][key].Attributes.value.length && 0 == this.state[COLUMNS][key].Attributes.value[0].length && event.target.value.length > 0) {
+            var state = []
+            state[COLUMNS] = this.state[COLUMNS]
+            state[COLUMNS][key].Attributes.value = [event.target.value]
+            this.setState(state)
+        }
+    }
+    componentWillMount() {
+        if(this.state[LISTENERS].length > 0) {
+            document.addEventListener('keydown', this.keyDown.bind(this));
+        }
+    }
+    componentWillUnmount() {
+        this.forceUpdate()
+        if(this.state[LISTENERS].length > 0) {
+            document.removeEventListener('keydown', this.keyDown.bind(this));
+        }
+    }
     change(event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
@@ -259,7 +296,7 @@ export default class Grid extends Form {
             var value = [];
             for (var i = 0, l = options.length; i < l; i++) {
                 if (options[i].selected) {
-                    value.push(options[i].value);
+                    value.push(options[i].value)
                 }
             }
             state[COLUMNS][event.target.id].Attributes.value = value
@@ -297,7 +334,7 @@ export default class Grid extends Form {
         var option = key + '-'
         if(undefined != options['']) {
             var id = options['']
-            container.push(<option key={option} value=''>{id}</option>)
+            container.push(<option key={option} value=''>{id}</option>);
         }
         for (var value in options) {
             if('' != value) {
@@ -341,6 +378,33 @@ export default class Grid extends Form {
         data.sort = sort
         data.offset = this.state[BUTTONS]['page']
         return data
+    }
+    push() {
+        var state = new Object()
+        var data = this.getSpice()
+        data.columns = this.state[COLUMNS]
+        data.rows = this.state[ROWS]
+        state[ROWS] = JSON.parse(request('POST', this.state[BUTTONS].push, { json: data }).getBody('utf8'))
+        if('string' == typeof(state[ROWS])) {
+            alert(state[ROWS])
+            this.forceUpdate()
+        } else {
+            this.setState(state)
+        }
+    }
+    keyDown (event) {
+        for(var listener in this.state[LISTENERS]) {
+            if(this.state[LISTENERS][listener] == event.keyCode) {
+                var state = new Object()
+                var data = {columns:this.state[COLUMNS],rows:this.state[ROWS]}
+                state[ROWS] = JSON.parse(request('POST', this.state[BUTTONS].listen, { json: data }).getBody('utf8'))
+                if('string' == typeof(state[ROWS])) {
+                    alert(state[ROWS])
+                } else {
+                    this.setState(state)
+                }
+            }
+        }
     }
     paginate() {
         var data = this.getSpice()
@@ -406,7 +470,7 @@ export default class Grid extends Form {
         var columns = this.state[COLUMNS]
         for(var filter in columns) {
             if('object' == typeof(columns[filter].Attributes.value)) {
-                columns[filter].Attributes.value = []
+                columns[filter].Attributes.value = ['']
             } else if('string' == typeof(columns[filter].Attributes.value)) {
                 columns[filter].Attributes.value = ''
             }
@@ -429,6 +493,9 @@ export default class Grid extends Form {
         this.getSpice()
     }
     remove(event) {
+        if(false === confirm(this.state[BUTTONS]['proceed'])) {
+            return
+        }
         this.signal({target:{id:event.target.id,href:this.state[BUTTONS].remove},preventDefault(){}})
     }
     run(payload, key) {
@@ -455,18 +522,23 @@ export default class Grid extends Form {
     }
     signal(event) {
         event.preventDefault()
-        if(false === confirm(this.state[BUTTONS]['proceed'])) {
-            return
-        }
         var response = JSON.parse(request('POST', event.target.href, { json: this.state[ROWS][event.target.id] }).getBody('utf8'))
+        var state = []
         if(true === response.remove) {
             var element = this.state[ROWS]
             delete element[event.target.id]
-            var state = []
             state[ROWS] = element
             this.setState(state)
         } else if(true === response.submit) {
             this.submit()
+        } else if(true === response.graph && undefined == this.state[GRAPHS][event.target.id]) {
+            state[GRAPHS] = this.state[GRAPHS]
+            state[GRAPHS][event.target.id] = response.data
+            this.setState(state)
+        } else if(true === response.graph) {
+            state[GRAPHS] = this.state[GRAPHS]
+            delete state[GRAPHS][event.target.id]
+            this.setState(state)
         }
     }
     setting(event) {
@@ -476,11 +548,11 @@ export default class Grid extends Form {
             var columns = this.state[COLUMNS]
             if(true == columns[event.target.id].Attributes.unrender) {
                 columns[event.target.id].Attributes.unrender = false
-                columns[event.target.id].Attributes.filter = false
+                columns[event.target.id].Method = 'addText'
             } else {
                 columns[event.target.id].Attributes.unrender = true
                 columns[event.target.id].Attributes.unfilter = true
-                columns[event.target.id].Attributes.filter = false
+                columns[event.target.id].Method = 'addHidden'
             }
             var data = new Object()
             data[event.target.id] = columns[event.target.id].Attributes.unrender
@@ -496,6 +568,13 @@ export default class Grid extends Form {
         }
         this.setState(state)
     }
+    start() {
+        var state = this.state
+        state[ROWS] = this.filter()
+        state[BUTTONS] = this.state[BUTTONS]
+        this.setState(state)
+        this.summary(this.paginate())
+    }
     submit(event) {
         var state = []
         if('object' == typeof(event) && 'Enter' == event.key) {
@@ -507,9 +586,10 @@ export default class Grid extends Form {
         } else if('object' == typeof(event) && 'click' != event.type) {
             return
         }
-        state[ROWS] = this.filter()
         state[BUTTONS] = this.state[BUTTONS]
-        state[BUTTONS]['page'] = 1
+        state[BUTTONS].page = 1
+        this.setState(state)
+        state[ROWS] = this.filter()
         this.setState(state)
         this.summary(this.paginate())
     }
@@ -554,5 +634,5 @@ export default class Grid extends Form {
 }
 var element = document.getElementById('grid')
 if(null != element) {
-    ReactDOM.render(<Grid />, document.getElementById('grid')).submit()
+    ReactDOM.render(<Grid />, document.getElementById('grid')).start()
 }

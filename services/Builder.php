@@ -27,6 +27,9 @@ final class Builder implements IBuilder {
     /** @var IBuild */
     private $build;
 
+    /** @var IButton */
+    private $button;
+
     /** @var Cache */
     private $cache;
 
@@ -66,6 +69,9 @@ final class Builder implements IBuilder {
     /** @var IFilter */
     private $filter;
 
+    /** @var IGraph */
+    private $graph;
+
     /** @var int */
     private $group;
 
@@ -89,6 +95,9 @@ final class Builder implements IBuilder {
 
     /** @var int */
     private $limit;
+
+    /** @var IListener */
+    private $listener;
 
     /** @var int */
     private $offset;
@@ -235,6 +244,12 @@ final class Builder implements IBuilder {
     }
 
     /** @return IBuilder */
+    public function button(IButton $button) {
+        $this->button = $button;
+        return $this;
+    }
+
+    /** @return IBuilder */
     public function copy() {
         return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->httpRequest);
     }
@@ -242,10 +257,8 @@ final class Builder implements IBuilder {
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
             
-        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect']) and ! preg_match('/\(/', $this->columns[$column])) {
-            $this->defaults[$column] = $this->getList($this->columns[$column]);
         } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect'])) {
-            $this->defaults[$column] = $this->getList($this->table . '.' . $column);
+            $this->defaults[$column] = $this->getList($column);
         } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and false == $this->getAnnotation($column, 'unfilter')) {
             $this->defaults[$column] = $enum;
         } else {
@@ -310,6 +323,11 @@ final class Builder implements IBuilder {
     /** @return array */
     public function getArguments() {
         return $this->arguments;
+    }
+
+    /** @return IButton */
+    public function getButton() {
+        return $this->button;
     }
 
     /** @return string | Bool */
@@ -386,15 +404,22 @@ final class Builder implements IBuilder {
     /** @return string */
     public function getFormat($table, $column) {
         $drivers = $this->getDrivers($table);
-        if('DATE' == $drivers[$column]['nativetype']) {
-            $select = 'DATE_FORMAT(' . $column . ', ' . $this->config['format']['date']['select'] . ')';
+        if(!isset($drivers[$column])) {
+            $select = 'NULL';
+        } else if('DATE' == $drivers[$column]['nativetype']) {
+            $select = 'DISTINCT(DATE_FORMAT(' . $column . ', ' . $this->config['format']['date']['select'] . '))';
         } else if('TIMESTAMP' == $drivers[$column]['nativetype']) {
-            $select = 'DATE_FORMAT(' . $column . ', ' . $this->config['format']['date']['select'] . ')';
+            $select = 'DISTINCT(DATE_FORMAT(' . $column . ', ' . $this->config['format']['date']['select'] . '))';
         } else {
             $select = $column;
         }
-        return 'DISTINCT(' . $select . ') AS ' . $column;
+        return $select . ' AS ' . $column;
 
+    }
+
+    /** @return IGraph */
+    public function getGraph() {
+        return $this->graph;
     }
 
     /** @return array */
@@ -417,17 +442,29 @@ final class Builder implements IBuilder {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
     }
 
+    /** @return IListener */
+    public function getListener() {
+        return $this->listener;
+    }
+
     /** @return array */
-    public function getList($annotation) {
-        $table = preg_match('/\./', $annotation) ? trim(preg_replace('/\.(.*)/', '', $annotation)) : $this->table;
-        $column = preg_match('/\./', $annotation) ? trim(preg_replace('/(.*)\./', '', $annotation)) : trim($annotation);
-        $key = $this->getKey('getList', $annotation);
+    public function getList($alias) {
+        if(!preg_match('/\(/', $this->columns[$alias]) && preg_match('/\./', $this->columns[$alias])) {
+            $table = trim(preg_replace('/\.(.*)/', '', $this->columns[$alias]));
+            $column = trim(preg_replace('/(.*)\./', '', $this->columns[$alias]));
+        } else {
+            $table = $this->table;
+            $column = $alias;
+        }
+        $key = $this->getKey('getList', $this->columns[$alias]);
+        $list = $this->cache->load($key);
         if(isset($this->where[$table . '.' . $column]) && is_array($this->where[$table . '.' . $column])) {
             return array_combine($this->where[$table . '.' . $column], $this->where[$table . '.' . $column]);
         } else if(isset($this->where[$column]) && is_array($this->where[$column])) {
             return array_combine($this->where[$column], $this->where[$column]);
-        } else if (null == $list = $this->cache->load($key)) {
-            if(true == $this->validate($annotation) || is_array($primary = $this->database->table($table)->getPrimary())) {
+        } else if($this->filter instanceof IFilter && !empty($list = $this->filter->getList($alias))) {
+        } else if (null == $list && isset($this->getDrivers($table)[$column])) {
+            if(true == $this->validate($this->columns[$alias]) || is_array($primary = $this->database->table($table)->getPrimary())) {
                 $select = $this->getFormat($table, $column);
                 $primary = $column;
             } else {
@@ -440,7 +477,9 @@ final class Builder implements IBuilder {
                 ->group($column)
                 ->order($column)
                 ->fetchPairs($primary, $column);
-            //$this->cache->save($key, $list);
+            $this->cache->save($key, $list);
+        } else if(null == $list) {
+            $list = [];
         }
         return $list;
     }
@@ -569,7 +608,7 @@ final class Builder implements IBuilder {
         $spices = (array) json_decode($this->presenter->request->getParameter(strtolower($this->control) . '-spice'));
         foreach($spices as $key => $spice) {
             if(is_array($spice)) {
-                $allowed = $this->getList($this->columns[$key]);
+                $allowed = $this->getList($key);
                 foreach($spice as $id => $core) {
                     if(!isset($allowed[$core])) {
                         unset($spices[$key][$id]);
@@ -591,7 +630,13 @@ final class Builder implements IBuilder {
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
             }
-            return $this->database->query($this->sum, ...$arguments)->getRowCount();
+            if(null == $this->group && false == $resoruce = $this->database->query($this->sum, ...$arguments)->fetch()) {
+                return 1;
+            } else if(empty($this->groups)) {
+                return $this->database->query($this->sum, ...$arguments)->fetch()->sum;
+            } else {
+                return $this->database->query($this->sum, ...$arguments)->getRowCount();
+            }
         }
     }
 
@@ -601,10 +646,10 @@ final class Builder implements IBuilder {
             $summary = 'SUM(' . $summary . ')';
         }
         $query = preg_replace('/SELECT(.*)FROM/', 'SELECT ' . $summary . ' AS sum FROM', $this->sum);
-        if(null == $sum = $this->database->query($query, ...$this->arguments)->fetch()->sum) {
+        if(false == $row = $this->database->query($query, ...$this->arguments)->fetch()) {
             return 0;
         }
-        return $sum;
+        return $row->sum;
     }
 
     /** @return ActiveRow */
@@ -623,6 +668,12 @@ final class Builder implements IBuilder {
     /** @return string */
     public function getQuery() {
         return $this->query;
+    }
+
+    /** @return IBuilder */
+    public function graph(IGraph $graph) {
+        $this->graph = $graph;
+        return $this;
     }
 
     /** @return IBuilder */
@@ -667,26 +718,37 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    /** @return IBuilder */
     public function innerJoin($innerJoin) {
         $this->innerJoin[] = (string) $innerJoin;
         return $this;
     }
 
+    /** @return IBuilder */
     public function join($join) {
         $this->join[] = (string) $join;
         return $this;
     }
 
+    /** @return IBuilder */
     public function leftJoin($leftJoin) {
         $this->leftJoin[] = (string) $leftJoin;
         return $this;
     }
 
+    /** @return IBuilder */
     public function limit($limit) {
         $this->limit = (int) $limit;
         return $this;
     }
 
+    /** @return IBuilder */
+    public function listen(IListener $listener) {
+        $this->listener = $listener;
+        return $this;
+    }
+
+    /** @return ActiveRow */
     private function logQuery($key) {
         if (false == $this->database->table($this->config['spice'])
                         ->where('key', $key)
@@ -801,7 +863,7 @@ final class Builder implements IBuilder {
             $filters = [];
         }
         if(isset($filters['groups'])) {
-            $this->group = preg_replace('/_/', '', $filters['groups']);
+            $this->group = rtrim($filters['groups'], '_');
             unset($filters['groups']);
         } else if(!empty($this->groups)) {
             $this->group = 0;
@@ -826,8 +888,13 @@ final class Builder implements IBuilder {
         }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
-            if(is_array($value)) {
+            if(is_array($value) && [""] != $value) {
+                foreach($value as $underscoreId => $underscore) {
+                    $value[$underscoreId] = ltrim($value[$underscoreId], '_');
+                }
                 $this->where[$this->columns[$key]] = $value;
+                continue;
+            } else if([""] == $value) {
                 continue;
             }
             $value = preg_replace('/\;/', '', htmlspecialchars($value));

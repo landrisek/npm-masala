@@ -54,7 +54,7 @@ final class BuilderTest extends TestCase {
 
     public function testPrepare() {
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
-        $this->mockService->setPost();
+        $this->mockService->setPost(['offset'=>1]);
         foreach ($presenters as $class => $presenter) {
             if(isset($this->container->parameters['mockService']['presenters'][$class])) {
                 $testParameters = $this->container->parameters['mockService']['presenters'][$class];

@@ -108,6 +108,7 @@ final class MasalaTest extends TestCase {
             Assert::true(is_object($filterForm = $this->mockService->getPrivateProperty($gridFactory, 3)), 'FilterForm is not set.');
             Assert::false(empty($filterForm->getData()), 'No data for filterForm.');
             Assert::true(isset($_POST[$column]), 'Test $_POST data were unexpected overwrited.');
+            $this->mockService->setPost($_POST);
             Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $_POST[$column] = 'false';
             Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
@@ -143,7 +144,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testHandleExport() {
-        Assert::same(null, $this->mockService->setPost(), 'MockService:setPost succeed but it does return something. Do you wish to modify test?');
+        Assert::same(null, $this->mockService->setPost(['offset'=>1]), 'MockService:setPost succeed but it does return something. Do you wish to modify test?');
         Assert::true(is_object($this->class->setGrid($this->container->getByType('Masala\IBuilder')->export(true))));
     }
 

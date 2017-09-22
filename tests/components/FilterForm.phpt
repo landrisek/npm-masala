@@ -50,11 +50,11 @@ final class FilterFormTest extends TestCase {
         $builder = $this->container->getByType('Masala\IRow');
         foreach($this->container->parameters['tables'] as $table) {
             $builder->table($table);
-            foreach($builder->getDrivers() as $column) {
-                if('DATETIME' == $column['nativetype']) {
-                    Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
-                    break;
-                }
+                foreach($builder->getDrivers() as $column) {
+                    if('DATETIME' == $column['nativetype']) {
+                        Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
+                        break;
+                    }
             }
         }
         Assert::true(isset($date), 'No datetime column to test for');

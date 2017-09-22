@@ -184,6 +184,14 @@ final class Grid extends Control implements IGridFactory {
             $actions[$size]['url'] = '';
             $actions[$size]['href'] = $this->link('remove');
         }
+        if($this->builder->getGraph() instanceof IGraph) {
+            $size = sizeof($actions);
+            $actions[$size]['onClick'] = 'signal';
+            $actions[$size]['label'] = ucfirst($this->translatorModel->translate('graph'));
+            $actions[$size]['class'] = 'fa-hover fa fa-bar-chart';
+            $actions[$size]['url'] = '';
+            $actions[$size]['href'] = $this->link('graph');
+        }
         return $actions;
     }
 
@@ -217,11 +225,39 @@ final class Grid extends Control implements IGridFactory {
         return $this->presenter->sendResponse($response);
     }
 
+    /** @return JsonResponse */
+    public function handleGraph() {
+        $data = [];
+        $graph = $this->builder->getGraph()->graph($this->builder->getPost(''));
+        $percent = max($graph) / 100;
+        foreach($graph as $value) {
+            if($percent > 0) {
+                $data[] = ['percent' => $value / $percent, 'value' => $value];
+            } else {
+                $data[] = ['percent' => 0, 'value' => $value];
+            }
+
+        }
+        return $this->presenter->sendResponse(new JsonResponse(['graph'=>true,'data'=>$data]));
+    }
+
+    /** @return JsonResponse */
+    public function handleListen() {
+        $response = new JsonResponse($this->builder->getListener()->listen($this->builder->getPost('')));
+        return $this->presenter->sendResponse($response);
+    }
+
     /** @return TextResponse */
     public function handlePaginate() {
         $sum = $this->builder->prepare()->getSum();
         $total = ($sum > $this->builder->getPagination()) ? intval(ceil($sum / $this->builder->getPagination())) : 1;
         $response = new TextResponse($total);
+        return $this->presenter->sendResponse($response);
+    }
+
+    /** @return JsonResponse */
+    public function handlePush() {
+        $response = new JsonResponse($this->builder->getButton()->push($this->builder->getPost('')));
         return $this->presenter->sendResponse($response);
     }
 
@@ -238,7 +274,7 @@ final class Grid extends Control implements IGridFactory {
         $annotation = 'unrender';
         $path = $this->presenter->getName() . ':' . $this->presenter->getAction();
         $setting = (array) json_decode($this->user->getIdentity()->getData()[$this->config['settings']]);
-        foreach($this->presenter->request->getPost() as $key => $value) {
+        foreach($this->builder->getPost('') as $key => $value) {
             if(isset($setting[$path]->$key) && 'true' == $value && !preg_match('/@' . $annotation . '/', $setting[$path]->$key)) {
                 $setting[$path]->$key = $setting[$path]->$key . '@' . $annotation;
             } else if(isset($setting[$path]->$key) && 'false' == $value && '@' . $annotation == $setting[$path]->$key && 1 == sizeof($setting[$path])) {
@@ -351,7 +387,7 @@ final class Grid extends Control implements IGridFactory {
             $link .= $parameterId . '=' . $parameter . '&';
         }
         $link .= $spice . '=';
-        $data = $this->filterForm->getData();
+        $columns = $this->filterForm->getData();
         $export = [];
         $excel = [];
         if(is_object($this->getParent()->getGrid()->getExport())) {
@@ -378,40 +414,59 @@ final class Grid extends Control implements IGridFactory {
             $buttons[$key] = $this->link($key);
         }
         $this->template->triggers = ['setting','excel','export','reset','send','done'];
-        $this->template->data = json_encode(['actions' => $this->getActions(),
-                                                'buttons' => [
-                                                    'done' => ['class' => 'alert alert-success',
-                                                                'label' => $this->translatorModel->translate('Click here to download your file.'),
-                                                                'link' => $this->getParent()->link('done'),
-                                                                'style' => ['display'=>'none', 'marginRight' => '10px']],
-                                                    'dialogs' => $buttons,
-                                                    'export' => $export,
-                                                    'excel' => $excel,
-                                                    'filter' => $this->link('filter'),
-                                                    'link' => $link,
-                                                    'page' => $page,
-                                                    'pages' => 2,
-                                                    'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
-                                                    'paginate' => $this->link('paginate'),
-                                                    'remove' => $this->link('remove'),
-                                                    'reset' => ['label' =>$this->translatorModel->translate('reset form'),
-                                                                'class' => 'btn btn-warning',
-                                                                'onClick' => 'reset'],
-                                                    'run' => $this->getParent()->link('run'),
-                                                    'send' => ['label' => $this->translatorModel->translate('filter data'),
-                                                        'class' => 'btn btn-success',
-                                                        'onClick' => 'submit'],
-                                                    'setting' => isset($this->user->getIdentity()->getData()[$this->config['settings']]) ? ['class' => 'btn btn-success',
-                                                        'display' => ['none'],
-                                                        'label'=> $this->translatorModel->translate('setting'),
-                                                        'link' =>$this->link('setting'),
-                                                        'onClick' => 'setting'] : false,
-                                                    'summary' => $this->link('summary'),
-                                                    'triggers' => $this->template->triggers,
-                                                    'update' => $this->link('update')],
-                                                'columns' => $data,
-                                                'dialogs' => $dialogs,
-                                                'rows' => []]);
+        if($this->builder->getButton() instanceof IButton) {
+            foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
+                $this->template->triggers[] = $buttonId;
+            }
+        }
+        $data = ['actions' => $this->getActions(),
+                'buttons' => [
+                    'done' => ['class' => 'alert alert-success',
+                        'label' => $this->translatorModel->translate('Click here to download your file.'),
+                        'link' => $this->getParent()->link('done'),
+                        'style' => ['display'=>'none', 'marginRight' => '10px']],
+                    'dialogs' => $buttons,
+                    'export' => $export,
+                    'excel' => $excel,
+                    'filter' => $this->link('filter'),
+                    'link' => $link,
+                    'listen' => $this->link('listen'),
+                    'page' => $page,
+                    'pages' => 2,
+                    'paginate' => $this->link('paginate'),
+                    'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
+                    'push' => $this->link('push'),
+                    'remove' => $this->link('remove'),
+                    'reset' => ['label' =>$this->translatorModel->translate('reset form'),
+                        'class' => 'btn btn-warning',
+                        'onClick' => 'reset'],
+                    'run' => $this->getParent()->link('run'),
+                    'send' => ['label' => $this->translatorModel->translate('filter data'),
+                        'class' => 'btn btn-success',
+                        'onClick' => 'submit'],
+                    'setting' => isset($this->user->getIdentity()->getData()[$this->config['settings']]) ? ['class' => 'btn btn-success',
+                        'display' => ['none'],
+                        'label'=> $this->translatorModel->translate('setting'),
+                        'link' =>$this->link('setting'),
+                        'onClick' => 'setting'] : false,
+                    'summary' => $this->link('summary'),
+                        'triggers' => $this->template->triggers,
+                        'update' => $this->link('update')],
+                    'columns' => $columns,
+                    'dialogs' => $dialogs,
+                    'graphs' => [],
+                    'listeners' => [],
+                    'rows' => []];
+        if($this->builder->getListener() instanceof IListener) {
+            $data['listeners'] = $this->builder->getListener()->getKeys();
+        }
+        if($this->builder->getButton() instanceof IButton) {
+            foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
+                $data['buttons'][$buttonId] = $button;
+                $data['buttons'][$buttonId]['onClick'] = 'push';
+            }
+        }
+        $this->template->data = json_encode($data);
         $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
         $this->template->render();
     }
