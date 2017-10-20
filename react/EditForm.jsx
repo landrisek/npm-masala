@@ -47,13 +47,14 @@ export default class EditForm extends Form {
         element.Attributes.style = {display:'block'}
         this.setState({'done':element})
     }
-    isUnique(value, key) {
-        if(undefined == value || '' == value  ) {
+    isUnique(value, key, form) {
+        if(undefined == value || '' == value || undefined == form.primary) {
+            console.log('It is possible that primary data is missing, cannot apply unique validator.');
             return false
         }
-        var data = new Object()
-        data[key] = value
-        return JSON.parse(request('POST', LINKS['unique'], { json: data }).getBody('utf8'))
+        var unique = new Object()
+        unique[key] = value
+        return JSON.parse(request('POST', LINKS['unique'], {json:{primary:form.primary.Attributes.value,value:unique}}).getBody('utf8'))
     }
     onChange(event) {
         var element = this.state[event.target.id]

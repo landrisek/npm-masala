@@ -210,8 +210,11 @@ final class Row implements IRow {
     }
 
     /** @return bool */
-    public function unique(array $data) {
-        foreach($data as $column => $value) {
+    public function unique(array $primary, array $values) {
+        foreach($primary as $column => $value) {
+            $this->rowResource->where($column . ' !=', $value);
+        }
+        foreach($values as $column => $value) {
             $this->rowResource->where($column, $value);
         }
         return !is_object($this->rowResource->fetch());

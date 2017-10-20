@@ -65,8 +65,6 @@ final class MasalaExtension extends CompilerExtension {
                 ->setClass('Masala\MockRepository');
         $builder->addDefinition($this->prefix('mockService'))
                 ->setClass('Masala\MockService');
-        $builder->addDefinition($this->prefix('processForm'))
-                ->setClass('Masala\ProcessForm', [$manifest['ProcessForm.js']]);
         $builder->addDefinition($this->prefix('row'))
                 ->setClass('Masala\Row', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('writeRepository'))

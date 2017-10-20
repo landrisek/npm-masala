@@ -29,6 +29,9 @@ export default class Form extends Component {
                   className={this.state[key].Attributes.class}
                   onClick={this.bind(this.state[key].Attributes.onClick)}>{this.state[key].Label}</a>
     }
+    addButton(key) {
+        console.log('Add button method is suppose to be overloaded by children component.')
+    }
     addCheckbox(key) {
         return <div key={key} style={this.state[key].Attributes.style}>
                     <input checked={this.state[key].Attributes.checked}
@@ -267,7 +270,7 @@ export default class Form extends Component {
         this.setState({'save':save})
     }
     prepare(event) {
-        var response = JSON.parse(request('POST', LINKS['prepare'], { json: this.state }).getBody('utf8'))
+        var response = JSON.parse(request('POST', LINKS.prepare, { json: this.state }).getBody('utf8'))
         this.run(response, event.target.id + '-progress')
     }
     submit() {
@@ -299,7 +302,7 @@ export default class Form extends Component {
                 } else {
                     var validate = this.state[key].Attributes.value
                 }
-                if('function' == typeof(closure) && false == closure(validate, key)) {
+                if('function' == typeof(closure) && false == closure(validate, key, this.state)) {
                     var state = [];
                     var element = this.state[key];
                     element.Validators[validator].style = { display : 'block' }

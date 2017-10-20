@@ -113,8 +113,12 @@ final class MasalaTest extends TestCase {
             $_POST[$column] = 'false';
             Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $notShow = [];
+            $overload = $presenter->grid->getColumns();
+            echo '@todo: solved overloading of hidden annotation';
+            dump($overload);
             foreach ($columns as $column) {
-                if (0 < substr_count($column['vendor']['Comment'], '@hidden')) {
+                if (isset($overload[$column['name']]) && 0 == substr_count($column['vendor']['Comment'], '@hidden')) {
+                } else if (0 < substr_count($column['vendor']['Comment'], '@hidden')) {
                     $notShow[$column['name']] = $column['name'];
                 }
             }

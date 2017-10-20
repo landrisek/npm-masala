@@ -35,22 +35,18 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var IImportFormFactory */
     private $importFormFactory;
 
-    /** @var IProcessFormFactory */
-    private $processFormFactory;
-
     /** @var IRequest */
     private $request;
 
     /** @var ITranslator */
     private $translatorModel;
 
-    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IProcessFormFactory $processFormFactory, IRequest $request, ITranslator $translatorModel) {
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IRequest $request, ITranslator $translatorModel) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
         $this->helpRepository = $helpRepository;
         $this->importFormFactory = $importFormFactory;
-        $this->processFormFactory = $processFormFactory;
         $this->request = $request;
         $this->translatorModel = $translatorModel;
     }
@@ -152,7 +148,7 @@ final class Masala extends Control implements IMasalaFactory {
         $folder = $this->grid->getExport()->getFile();
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $header = '';
-        foreach($this->grid->prepare()->getOffset(1) as $column => $value) {
+        foreach($this->grid->prepare()->getOffset(0) as $column => $value) {
             if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
                 $header .= $this->grid->translate($column, $this->grid->getTable() . '.' .  $column) . ';';
             }
@@ -183,8 +179,8 @@ final class Masala extends Control implements IMasalaFactory {
         $sheet = $excel->getActiveSheet();
         $sheet->setTitle(substr($title, 0, 31));
         $letter = 'a';
-        foreach($this->grid->prepare()->getOffset(1) as $column => $value) {
-            if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden'])) {
+        foreach($this->grid->prepare()->getOffset(0) as $column => $value) {
+            if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden', 'unexport'])) {
                 $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
@@ -241,7 +237,11 @@ final class Masala extends Control implements IMasalaFactory {
     /** @return JsonResponse */
     public function handlePrepare() {
         $this->grid->log('prepare');
-        $data = ['offset' => 0, 'stop' => $this->grid->prepare()->getSum(), 'status' => 'service'];
+        $data = ['filters' => $this->grid->getPost('filters'),
+            'offset' => 0,
+            'sort' => $this->grid->getPost('sort'),
+            'status' => 'service',
+            'stop' => $this->grid->prepare()->getSum()];
         $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
         return $this->presenter->sendResponse($response);
     }
@@ -278,6 +278,7 @@ final class Masala extends Control implements IMasalaFactory {
             $path = $service->getFile() . '/' . $response['file'];
             $response['limit'] = $this->config['exportSpeed'];
             $response['row'] = $this->grid->prepare()->getOffsets();
+            $response['sort'] = $this->grid->getPost('sort');
             $response = $service->run($response, $this);
             if('export' == $response['status']) {
                 $handle = fopen('nette.safe://' . $path, 'a');
@@ -290,9 +291,9 @@ final class Masala extends Control implements IMasalaFactory {
                 foreach($cells as $cellId => $cell) {
                     if($cell instanceof DateTime) {
                         $response['row'][$rowId][$cellId] = $cell->__toString();
-                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden']) && isset($cell['Attributes'])) {
+                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden', 'unexport']) && isset($cell['Attributes']) && isset($cell['Attributes']['value'])) {
                         $response['row'][$rowId][$cellId] = $cell['Attributes']['value'];
-                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden'])) {
+                    } else if(false == $this->grid->getAnnotation($cellId, ['unrender', 'hidden', 'unexport']) && !isset($cell['Attributes'])) {
                         $response['row'][$rowId][$cellId] = $cell;
                     } else {
                         unset($response['row'][$rowId][$cellId]);
@@ -318,10 +319,10 @@ final class Masala extends Control implements IMasalaFactory {
         /** process */
         } else {
             $service = $this->grid->getService();
-            $response['offset'] = $response['offset'] + 1;
             if(!empty($response['row'] = $this->grid->prepare()->getOffset($response['offset']))) {
                 $response = $service->run($response, $this);
             }
+            $response['offset'] = $response['offset'] + 1;
         }
         $setting = $service->getSetting();
         $callbacks = is_object($setting) ? json_decode($setting->callback) : [];
@@ -337,7 +338,7 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->assets = $this->config['assets'];
         $this->template->npm = $this->config['npm'];
         $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-        $this->template->dialogs = ['edit', 'help', 'import', 'message', 'process'];
+        $this->template->dialogs = ['edit', 'help', 'import', 'message'];
         $this->template->grid = $this->grid;
         $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $columns = $this->grid->getColumns();
@@ -362,12 +363,6 @@ final class Masala extends Control implements IMasalaFactory {
     protected function createComponentImportForm() {
         return $this->importFormFactory->create()
             ->setService($this->grid->getImport());
-    }
-
-    /** @return IProcessFormFactory */
-    protected function createComponentProcessForm() {
-        return $this->processFormFactory->create()
-            ->setService($this->grid->getService());
     }
 
 }

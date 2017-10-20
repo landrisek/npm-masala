@@ -107,7 +107,6 @@
             -webkit-transform: rotate(-34deg);
             -webkit-transform-origin: center bottom;
         }
-
         #coaster {
             width: 130%; height: 4px;
             margin-left: -15%;
@@ -123,7 +122,6 @@
         .chart {
             display: table;
             table-layout: fixed;
-            width: 200%;
             height: 100px;
             margin: 0 auto;
             margin-bottom: 30px;
@@ -131,32 +129,30 @@
             background-size: 100% 50px;
             background-position: left top;
         }
-        .chart li {
-            position: relative;
+        .chart th {
             display: table-cell;
-            vertical-align: bottom;
             height: 200px;
+            position: relative;
+            vertical-align: bottom;
         }
         .chart span {
-            display: block;
-            background: rgba(209, 236, 250, 0.75);
             animation: draw 1s ease-in-out;
-        }
-        .chart span:before {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 100%;
             display: block;
             text-align: center;
+        }
+        .chart span:before {
             content: attr(title);
+            display: block;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            text-align: center;
             word-wrap: break-word;
         }
-
-        @keyframes draw {
-            0% {
-                height: 0;
-            }
+        li.list-group-item:hover {
+            background-color: rgb(51, 122, 183);
+            color: white;
         }
     </style>
 {/block}

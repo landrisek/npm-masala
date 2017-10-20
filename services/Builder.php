@@ -257,7 +257,7 @@ final class Builder implements IBuilder {
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
             
-        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect'])) {
+        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiCheckbox', 'addMultiSelect'])) {
             $this->defaults[$column] = $this->getList($column);
         } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and false == $this->getAnnotation($column, 'unfilter')) {
             $this->defaults[$column] = $enum;
@@ -468,7 +468,7 @@ final class Builder implements IBuilder {
                 $select = $this->getFormat($table, $column);
                 $primary = $column;
             } else {
-                $select = $this->getFormat($table, $column) . ', CONCAT("_", ' . $primary . ') AS ' . $primary;
+                $select = $this->getFormat($table, $column) . ', ' . $primary;
             }
             $list = $this->database->table($table)
                 ->select($select)
@@ -603,6 +603,10 @@ final class Builder implements IBuilder {
         return $this->service;
     }
 
+    public function getSort() {
+        return $this->sort;
+    }
+
     /** @return array */
     public function getSpice() {
         $spices = (array) json_decode($this->presenter->request->getParameter(strtolower($this->control) . '-spice'));
@@ -610,7 +614,7 @@ final class Builder implements IBuilder {
             if(is_array($spice)) {
                 $allowed = $this->getList($key);
                 foreach($spice as $id => $core) {
-                    if(!isset($allowed[$core])) {
+                    if(!isset($allowed[preg_replace('/(\_)*/', '', $core)])) {
                         unset($spices[$key][$id]);
                     }
                 }
@@ -630,7 +634,7 @@ final class Builder implements IBuilder {
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
             }
-            if(null == $this->group && false == $resoruce = $this->database->query($this->sum, ...$arguments)->fetch()) {
+            if(null == $this->group && false == $this->database->query($this->sum, ...$arguments)->fetch()) {
                 return 1;
             } else if(empty($this->groups)) {
                 return $this->database->query($this->sum, ...$arguments)->fetch()->sum;
@@ -698,8 +702,8 @@ final class Builder implements IBuilder {
             } elseif (preg_match('/\(/', $annotationId)) {
                 $explode = explode(',', preg_replace('/(.*)\(|\)|\'/', '', $annotationId));
                 $this->annotations[$column][preg_replace('/\((.*)/', '', $annotationId)] = array_combine($explode, $explode);
-            } elseif (preg_match('/\=/', $annotationId)) {
-                $this->annotations[$column][preg_replace('/\=(.*)/', '', $annotationId)][] = preg_replace('/(.*)\=/', '', $annotationId);
+            } elseif (preg_match('/\{.*\}/', $annotationId)) {
+                $this->annotations[$column][preg_replace('/\{(.*)\}/', '', $annotationId)] = (array) json_decode('{' . preg_replace('/(.*)\{/', '', $annotationId));
             } else {
                 $this->annotations[$column][$annotationId] = true;
             }
@@ -883,18 +887,18 @@ final class Builder implements IBuilder {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
         $this->sort = rtrim($this->sort, ', ');
-        if(empty($offset = $this->getPost('offset'))) {
+        if(!is_numeric($offset = $this->getPost('offset'))) {
             $offset = 1;
         }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
-            if(is_array($value) && [""] != $value) {
+            if(is_array($value) && [""] != $value && !empty($value)) {
                 foreach($value as $underscoreId => $underscore) {
                     $value[$underscoreId] = ltrim($value[$underscoreId], '_');
                 }
                 $this->where[$this->columns[$key]] = $value;
                 continue;
-            } else if([""] == $value) {
+            } else if([""] == $value || empty($value)) {
                 continue;
             }
             $value = preg_replace('/\;/', '', htmlspecialchars($value));
@@ -925,7 +929,7 @@ final class Builder implements IBuilder {
             } elseif (preg_match('/\(/', $this->columns[$column])) {
                 $this->having .= $column . ' LIKE "%' . $value . '%" AND ';
             } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
-                $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $value);
+                $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $converted);
             } elseif (is_numeric($value)) {
                 $this->where[$this->columns[$column]] = $value;
             } else {
@@ -977,6 +981,9 @@ final class Builder implements IBuilder {
             $this->limit = $this->config['pagination'];
         } else {
             $this->offset = $offset;
+            foreach($this->getPrimary() as $primary => $value) {
+                $this->sort .= ', ' . $primary . ' DESC ';
+            }
             $this->limit = $this->config['exportSpeed'];
         }
         return $this;

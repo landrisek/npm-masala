@@ -48,7 +48,7 @@ class ReactForm extends Control implements IReactFormFactory {
             if(null === $attribute) {
                 unset($attributes[$attributeId]);
             /** keep given order in javascript */    
-            } elseif ('data' == $attributeId && is_array($attribute) && is_numeric(key($attribute))) {
+            } elseif ('data' == $attributeId && is_array($attribute)) {
                 foreach($attribute as $overwriteId => $overwrite) {
                     $attributes[$attributeId]['_' . $overwriteId] = $overwrite;
                     unset($attributes[$attributeId][$overwriteId]);

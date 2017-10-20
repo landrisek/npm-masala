@@ -3,7 +3,8 @@
 namespace Masala;
 
 use Nette\Database\Table\ActiveRow,
-    Nette\Http\IRequest;
+    Nette\Http\IRequest,
+    Nette\Localization\ITranslator;
 
 final class ExportService implements IProcess {
 
@@ -19,16 +20,19 @@ final class ExportService implements IProcess {
     /** @var string */
     private $tempDir;
 
-    public function __construct($tempDir, IRequest $request) {
+    /** @var ITranslator */
+    private $translatorModel;
+
+    public function __construct($tempDir, IRequest $request, ITranslator $translatorModel) {
         $this->tempDir = $tempDir;
         $this->request = $request;
         $url = $this->request->getUrl();
         $this->link = $url->scheme . '://' . $url->host . $url->scriptPath;
+        $this->translatorModel = $translatorModel;
     }
 
     /** @return void */
-    public function attached(IReactFormFactory $form) {
-    }
+    public function attached(IReactFormFactory $form) { }
 
     /** @return string */
     public function getFile() {
@@ -58,7 +62,7 @@ final class ExportService implements IProcess {
 
     /** @return array */
     public function done(array $response, IMasalaFactory $masala) {
-        return ['link' => $this->link . 'temp/' . $response['file']];
+        return ['label' => $this->translatorModel->translate('Click here to download your file.'),'href' => $this->link . 'temp/' . $response['file']];
     }
 
 }
