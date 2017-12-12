@@ -8,15 +8,19 @@ use Nette\Application\IPresenter,
     Nette\Database\Context,
     Nette\Database\Table\ActiveRow,
     Nette\Database\Table\Selection,
-    Nette\InvalidStateException,
     Nette\Http\IRequest,
-    Nette\Localization\ITranslator;
+    Nette\InvalidStateException,
+    Nette\Localization\ITranslator,
+    Nette\Utils\Validators;
 
 /** @author Lubomir Andrisek */
 final class Builder implements IBuilder {
 
     /** @var array */
     private $actions = [];
+
+    /** @var IAdd */
+    private $add;
 
     /** @var array */
     private $annotations;
@@ -44,9 +48,6 @@ final class Builder implements IBuilder {
 
     /** @var Context */
     private $database;
-
-    /** @var IRemove */
-    private $remove;
 
     /** @var array */
     private $dialogs = [];
@@ -111,6 +112,15 @@ final class Builder implements IBuilder {
     /** @var IPresenter */
     private $presenter;
 
+    /** @var array */
+    private $primary = [];
+
+    /** @var IRemove */
+    private $remove;
+
+    /** @var IRowFormFactory */
+    private $row;
+
     /** @var IProcess */
     private $service;
 
@@ -120,14 +130,17 @@ final class Builder implements IBuilder {
     /** @var string */
     private $select;
 
+    /** @var IStorage */
+    private $storage;
+
     /** @var string */
     private $sum;
 
     /** @var array */
     private $where = [];
 
-    /** @var array */
-    private $table;
+    /** @var string */
+    private $table = '';
 
     /** @var IUpdate */
     private $update;
@@ -138,18 +151,24 @@ final class Builder implements IBuilder {
     /** @var string */
     private $query;
 
-    public function __construct(array $config, ExportService $exportService, Context $database, IStorage $storage, IRequest $httpRequest, ITranslator $translatorModel) {
+    public function __construct(array $config, ExportService $exportService, Context $database, IStorage $storage, IRowFormFactory $row,
+        ITranslator $translatorModel) {
         $this->config = $config;
         $this->exportService = $exportService;
         $this->database = $database;
         $this->cache = new Cache($storage);
+        $this->row = $row;
+        $this->storage = $storage;
         $this->translatorModel = $translatorModel;
     }
 
-    /** @return IBuilder */
-    public function actions(array $actions) {
-        $this->actions = $actions;
-        return $this;
+    /** @return array */
+    public function add() {
+        $data = $this->getRow();
+        if($this->add instanceof IAdd) {
+            return $this->add->insert($data);
+        }
+        return $this->database->table($this->table)->insert($data)->toArray();
     }
 
     /** @return void */
@@ -176,14 +195,15 @@ final class Builder implements IBuilder {
             if (preg_match('/\sAS\s/', $annotation)) {
                 throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
             } elseif (in_array($column, ['style', 'groups'])) {
-                throw new InvalidStateException('Style and groups keywords are reserved for callbacks. See https://github.com/landrisek/Masala/wiki/Methods. Use different alias.');
+                throw new InvalidStateException('Style and groups keywords are reserved for callbacks and column for Grid.jsx:update method. See https://github.com/landrisek/Masala/wiki/Select-statement. Use different alias.');
             }
             $this->inject($annotation, $column);
         }
-        foreach ($this->getDrivers($this->table) as $column) {
-            if (!isset($this->columns[$column['name']])) {
-                $this->inject($column['vendor']['Comment'] . '@' . $column['vendor']['Type'], $column['name']);
-                isset($this->defaults[$column['name']]) ? $this->columns[$column['name']] = $this->table . '.' . $column['name'] : null;
+        foreach ($this->getDrivers($this->table) as $driver) {
+            if (!isset($this->columns[$driver['name']])) {
+                $driver['nullable'] ? null : $driver['vendor']['Comment'] .= '@required';
+                $this->inject($driver['vendor']['Comment'] . '@' . $driver['vendor']['Type'] . '@' . strtolower($driver['vendor']['Key']) . '@' . strtolower($driver['nativetype']), $driver['name']);
+                isset($this->defaults[$driver['name']]) ? $this->columns[$driver['name']] = $this->table . '.' . $driver['name'] : null;
             }
         }
         if(isset($this->config['settings']) &&
@@ -192,7 +212,10 @@ final class Builder implements IBuilder {
             foreach($setting as $source => $annotations) {
                 if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
                     foreach($annotations as $annotationId => $annotation) {
-                        if(!preg_match('/' . $annotation . '/', $this->columns[$annotationId])) {
+                        if(empty($annotation) && isset($this->annotations[$annotationId]['unrender'])) {
+                            $this->annotations[$annotationId]['filter'] = false;
+                            unset($this->annotations[$annotationId]['unrender']);
+                        } else if(!preg_match('/' . $annotation . '/', $this->columns[$annotationId])) {
                             $this->inject($this->columns[$annotationId] . $annotation, $annotationId);
                         }
                     }
@@ -200,21 +223,20 @@ final class Builder implements IBuilder {
             }
         }
         $select = 'SELECT ';
-        $primary = $this->getPrimary();
         foreach ($this->columns as $alias => $column) {
             if(empty($column)) {
                 $column = 'NULL';
             } else if (!preg_match('/\.|\s| |\(|\)/', trim($column))) {
                 $column = $this->table . '.' . $column;
             }
-            if(isset($primary[$column])) {
-                unset($primary[$column]);
-            }
-            if($this->validate($column)) {
+            /*if(isset($this->primary[$column])) {
+                unset($this->primary[$column]);
+            }*/
+            if($this->sanitize($column)) {
                 $select .= ' ' . $column . ' AS `' . $alias . '`, ';
             }
         }
-        foreach($primary as $column => $alias) {
+        foreach($this->primary as $column => $alias) {
             if(isset($this->columns[$alias]) and !preg_match('/\./', $this->columns[$alias])) {
                 throw new InvalidStateException('Alias ' . $alias . ' is reserved for primary key.');
             }
@@ -251,13 +273,12 @@ final class Builder implements IBuilder {
 
     /** @return IBuilder */
     public function copy() {
-        return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->httpRequest);
+        return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->row, $this->translatorModel);
     }
     
     private function column($column) {
         if (true == $this->getAnnotation($column, 'hidden')) {
-            
-        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiCheckbox', 'addMultiSelect'])) {
+        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect'])) {
             $this->defaults[$column] = $this->getList($column);
         } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and false == $this->getAnnotation($column, 'unfilter')) {
             $this->defaults[$column] = $enum;
@@ -273,6 +294,24 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    /** @return array */
+    public function delete() {
+        $data = $this->getRow();
+        if(empty($this->primary)) {
+            throw new InvalidStateException('Primary keys were not set.');
+        }
+        if($this->remove instanceof IRemove) {
+            $this->remove->remove($data);
+        } else {
+            $resource = $this->database->table($this->table);
+            foreach($this->primary as $column => $value) {
+                $resource->where($column, $value);
+            }
+            $resource->delete();
+        }
+        return ['remove' => true];
+    }
+
     /** @return IBuilder */
     public function export($export) {
         $this->export = ($export instanceof IProcess) ? $export : $this->exportService;
@@ -280,8 +319,10 @@ final class Builder implements IBuilder {
     }
 
     /** @return IBuilder */
-    public function edit(IEdit $edit) {
+    public function edit($edit) {
         $this->edit = $edit;
+        $this->actions['add'] = 'add';
+        $this->actions['edit'] = 'edit';
         return $this;
     }
 
@@ -358,6 +399,10 @@ final class Builder implements IBuilder {
 
     /** @retun array */
     public function getDialogs() {
+        if($this->edit instanceof IEdit || true == $this->edit) {
+            $this->dialogs['add'] = 'add';
+            $this->dialogs['edit'] = 'edit';
+        }
         return $this->dialogs;
     }
 
@@ -464,7 +509,7 @@ final class Builder implements IBuilder {
             return array_combine($this->where[$column], $this->where[$column]);
         } else if($this->filter instanceof IFilter && !empty($list = $this->filter->getList($alias))) {
         } else if (null == $list && isset($this->getDrivers($table)[$column])) {
-            if(true == $this->validate($this->columns[$alias]) || is_array($primary = $this->database->table($table)->getPrimary())) {
+            if(true == $this->sanitize($this->columns[$alias]) || is_array($primary = $this->database->table($table)->getPrimary())) {
                 $select = $this->getFormat($table, $column);
                 $primary = $column;
             } else {
@@ -549,7 +594,13 @@ final class Builder implements IBuilder {
     /** @return array */
     public function getPost($key) {
         if(empty($key) && empty($this->post)) {
-            return $this->post = json_decode(file_get_contents('php://input'), true);
+            $this->post = json_decode(file_get_contents('php://input'), true);
+            foreach($this->post as $column => $value) {
+                if(is_string($value)) {
+                    $this->post[$column] = ltrim($value, '_');
+                }
+            }
+            return $this->post;
         } else if(empty($key)) {
             return $this->post;
         }
@@ -561,19 +612,6 @@ final class Builder implements IBuilder {
             return [];
         }
         return $this->post[$key];
-    }
-
-    /** @return array */
-    public function getPrimary() {
-        $primary = [];
-        if(is_array($keys = $this->database->table($this->table)->getPrimary())) {
-            foreach($keys as $key) {
-                $primary[$this->table . '.'  . $key] = $key;
-            }
-        } else {
-            $primary = [$this->table . '.'  . $keys => $keys];
-        }
-        return $primary;
     }
 
     /** @return IRemove */
@@ -596,6 +634,37 @@ final class Builder implements IBuilder {
         }
         empty($this->having) ? null : $dataSource->having($this->having);
         return $dataSource;
+    }
+
+    /** @return array */
+    public function getRow() {
+        foreach($row = $this->getPost('row') as $column => $value) {
+            if(is_array($value) && isset($value['Label'])) {
+                $row[$column] = $value['Label'];
+            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['int', 'tinyint'])) {
+                $row[$column] = intval($value['Attributes']['value']);
+            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['decimal', 'float'])) {
+                $row[$column] = floatval($value['Attributes']['value']);
+            } else if (is_array($value) && isset($value['Attributes'])) {
+                $row[$column] = $value['Attributes']['value'];
+            } else if($this->getAnnotation($column, 'pri') && null == $value) {
+                unset($row[$column]);
+            } else if($this->getAnnotation($column, 'pri')) {
+                $this->primary[$column] = $value;
+                unset($row[$column]);
+            } else if($this->getAnnotation($column, 'unedit')) {
+                unset($row[$column]);
+            } else if($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint']) && empty(ltrim($value, '_'))) {
+                unset($row[$column]);
+            } else if (is_float($value) || $this->getAnnotation($column, ['decimal', 'float'])) {
+                $row[$column] = floatval($value);
+            } else if ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
+                $row[$column] = date($this->config['format']['date']['query'], $converted);
+            } else if(is_string($value)) {
+                $row[$column] = ltrim($value, '_');
+            }
+        }
+        return $row;
     }
 
     /** @return IProcess */
@@ -625,7 +694,9 @@ final class Builder implements IBuilder {
 
     /** @return int */
     public function getSum() {
-        if(empty($this->where)) {
+        if($this->service instanceof IFetch) {
+            return $this->service->sum($this);
+        } else if(empty($this->where)) {
             return $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
         } elseif (empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin)) {
             return $this->getResource()->count();
@@ -664,6 +735,19 @@ final class Builder implements IBuilder {
                         ->fetch();
     }
 
+    /** @return array */
+    private function getPrimary() {
+        $primary = [];
+        if(is_array($keys = $this->database->table($this->table)->getPrimary())) {
+            foreach($keys as $key) {
+                $primary[$this->table . '.'  . $key] = $key;
+            }
+        } else {
+            $primary = [$this->table . '.'  . $keys => $keys];
+        }
+        return $primary;
+    }
+
     /** @return string */
     public function getTable() {
         return $this->table;
@@ -697,7 +781,8 @@ final class Builder implements IBuilder {
         unset($annotations[0]);
         $this->annotations[$column] = isset($this->annotations[$column]) ? $this->annotations[$column] : [];
         foreach ($annotations as $annotationId) {
-            if ($this->presenter->getName() == $annotationId or $this->presenter->getName() . ':' . $this->presenter->getAction() == $annotationId) {
+            if('enum' == $annotationId) {
+            } else if ($this->presenter->getName() == $annotationId or $this->presenter->getName() . ':' . $this->presenter->getAction() == $annotationId) {
                 $this->annotations[$column]['hidden'] = true;
             } elseif (preg_match('/\(/', $annotationId)) {
                 $explode = explode(',', preg_replace('/(.*)\(|\)|\'/', '', $annotationId));
@@ -723,20 +808,26 @@ final class Builder implements IBuilder {
     }
 
     /** @return IBuilder */
+    public function insert(IAdd $add) {
+        $this->add = $add;
+        return $this;
+    }
+
+    /** @return IBuilder */
     public function innerJoin($innerJoin) {
-        $this->innerJoin[] = (string) $innerJoin;
+        $this->innerJoin[] = (string) trim($innerJoin);
         return $this;
     }
 
     /** @return IBuilder */
     public function join($join) {
-        $this->join[] = (string) $join;
+        $this->join[] = (string) trim($join);
         return $this;
     }
 
     /** @return IBuilder */
     public function leftJoin($leftJoin) {
-        $this->leftJoin[] = (string) $leftJoin;
+        $this->leftJoin[] = (string) trim($leftJoin);
         return $this;
     }
 
@@ -778,10 +869,80 @@ final class Builder implements IBuilder {
 
     /** @return IBuilder */
     public function remove(IRemove $remove) {
+        $this->actions['remove'] = 'remove';
         $this->remove = $remove;
         return $this;
     }
 
+    /** @return IBuilder */
+    public function row($id, array $row) {
+        foreach($row as $column => $status) {
+            $value = $this->getPost('add') ? null : $status;
+            $label = ucfirst($this->translatorModel->translate($this->table . '.' . $column));
+            $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
+            $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
+            $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
+            if ($this->getAnnotation($column, 'pri')) {
+                $this->row->addHidden($column, $value, $attributes);
+            } elseif ($this->getAnnotation($column, 'unedit')) {
+            } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
+                $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
+                foreach($default as $option => $status) {
+                    $attributes['data'][$option] = $this->translatorModel->translate($status);
+                }
+                $attributes['value'] = '_' . $value;
+                $attributes['style'] = ['height' => '100%'];
+                $this->row->addSelect($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
+                $attributes['format'] = $this->config['format']['time']['edit'];
+                $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
+                $attributes['value'] = is_null($value) ? null : date($this->config['format']['time']['edit'], strtotime($value));
+                $this->row->addDateTime($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, ['date'])) {
+                $attributes['format'] = $this->config['format']['date']['edit'];
+                $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
+                $attributes['value'] = is_null($value) ? null : date($this->config['format']['date']['edit'], strtotime($value));
+                $this->row->addDateTime($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, 'tinyint') && 1 == $value) {
+                $attributes['checked'] = 'checked';
+                $this->row->addCheckbox($column, $label, $attributes, []);
+            } elseif ($this->getAnnotation($column, 'tinyint')) {
+                $this->row->addCheckbox($column, $label, $attributes, []);
+            } elseif ($this->getAnnotation($column, 'textarea')) {
+                $this->row->addTextArea($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, 'text')) {
+                /** @todo https://www.npmjs.com/package/ckeditor-react */
+                $this->row->addTextArea($column, $label . ':', $attributes, []);
+            } elseif (is_array($value) && $this->getAnnotation($column, 'int')) {
+                $attributes['data'] = $value;
+                $attributes['style'] = ['height' => '100%'];
+                $this->row->addSelect($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, 'addMultiSelect') || (!empty($value) && is_array($value))) {
+                $attributes['data'] = $value;
+                $this->row->addMultiSelect($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, 'addMultiSelect') && is_string($value)) {
+                $attributes['data'] = json_decode($value);
+                $this->row->addMultiSelect($column, $label . ':', $attributes, []);
+            } elseif (!empty($value) and is_array($value)) {
+                $attributes['data'] = $value;
+                $attributes['style'] = ['height' => '100%'];
+                $this->row->addSelect($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, ['decimal', 'float', 'int'])) {
+                $attributes['type'] = 'number';
+                $this->row->addText($column, $label . ':', $attributes, []);
+            } elseif ($this->getAnnotation($column, 'upload')) {
+                $this->row->addUpload($column, $label);
+            } elseif ($this->getAnnotation($column, 'multiupload')) {
+                $attributes['max'] = $this->config['upload'];
+                $this->row->addMultiUpload($column, $label, $attributes, []);
+            } else {
+                $this->row->addText($column, $label . ':', $attributes, []);
+            }
+        }
+        $this->row->addSubmit('_submit', ucfirst($this->translatorModel->translate('save')),
+                    ['className' => 'btn btn-success', 'id' => 'add', 'name' => $attributes['name'], 'onClick' => 'submit']);
+        return $this->row;
+    }
 
     /** @return IBuilder */
     public function select(array $columns) {
@@ -789,17 +950,40 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    /** @return array */
-    public function submit(array $row) {
-        if($this->update instanceof IUpdate) {
-            $row = $this->update->update($row);
+    /** @return IBuilder */
+    public function setConfig($key, $value) {
+        $this->config[(string) $key] = $value;
+        return $this;
+    }
+
+    /** @return array*/
+    public function submit($submit) {
+        $row = $this->getRow();
+        $resource = $this->database->table($this->table);
+        if(empty($this->primary)) {
+            throw new InvalidStateException('Primary keys were not set.');
         }
-        return $row;
+        foreach($this->primary as $column => $value) {
+            $resource->where($column, $value);
+        }
+        $resource->update($row);
+        foreach($this->where as $column => $value) {
+            $resource->where($column, $value);
+        }
+        if(true == $submit && $this->edit instanceof IEdit) {
+            return $this->edit->submit($this->primary, $this->getPost('row'));
+        } else if(false == $submit && $this->update instanceof IUpdate) {
+            return $this->update->update($this->getPost('id'), $this->getPost('row'));
+        } else if(false == $resource->fetch()) {
+            return [];
+        } else {
+            return $this->getPost('row');
+        }
     }
 
     /** @return IBuilder */
     public function table($table) {
-        $this->table = (string) $table;
+        $this->table = Types::string($table);
         return $this;
     }
     
@@ -809,9 +993,34 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    /** @return array */
+    public function validate() {
+        $validators = [];
+        $row = $this->getRow();
+        foreach($row as $column => $value) {
+            if($this->getAnnotation($column, 'required') && empty($value)) {
+                $validators[$column] = ucfirst($this->translatorModel->translate($column)) . ' ' . $this->translatorModel->translate('is required.');
+            } else if($this->getAnnotation($column, 'uni')) {
+                $resource = $this->database->table($this->table);
+                foreach($this->getPrimary() as $primary => $id) {
+                    if(isset($this->primary[$id])) {
+                        $resource->where($primary . ' !=', $this->primary[$id]);
+                    }
+                }
+                if($resource->where($column, $value)->fetch() instanceof ActiveRow) {
+                    $validators[$column] =  ucfirst($this->translatorModel->translate('unique item'))  . ' ' . $this->translatorModel->translate($column) . ' ' . $this->translatorModel->translate('already defined in source table.');
+                }
+            } else if($this->getAnnotation($column, 'email') && Validators::isEmail($value)) {
+                $validators[$column] = $this->translatorModel->translate($column) . ' ' . $this->translatorModel->translate('is not valid email.');
+            } else if($this->getAnnotation($column, ['int', 'decimal', 'double', 'float']) && !is_numeric($value)) {
+                $validators[$column] = $this->translatorModel->translate($column) . ' ' . $this->translatorModel->translate('is not valid number.');
+            }
+        }
+        return $validators;
+    }
+
     /** @return IBuilder */
     public function where($key, $column = null, $condition = null) {
-        /*if((is_bool($condition) and false == $condition) || (is_array($column) && empty($column))) { */
         if(is_bool($condition) and false == $condition) {
         } elseif ('?' == $column and isset($this->where[$key])) {
             $this->arguments[$key] = $this->where[$key];
@@ -886,7 +1095,6 @@ final class Builder implements IBuilder {
         foreach($sort as $order => $sorted) {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
-        $this->sort = rtrim($this->sort, ', ');
         if(!is_numeric($offset = $this->getPost('offset'))) {
             $offset = 1;
         }
@@ -901,7 +1109,9 @@ final class Builder implements IBuilder {
             } else if([""] == $value || empty($value)) {
                 continue;
             }
-            $value = preg_replace('/\;/', '', htmlspecialchars($value));
+
+
+            $value = ltrim(preg_replace('/\;/', '', htmlspecialchars($value)), '_');
             if(is_array($subfilters = $this->getAnnotation($column, 'filter'))) {
                 foreach ($subfilters as $filter) {
                     $this->where[$filter . ' LIKE'] = '%' . $value . '%';
@@ -931,6 +1141,8 @@ final class Builder implements IBuilder {
             } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $converted);
             } elseif (is_numeric($value)) {
+
+
                 $this->where[$this->columns[$column]] = $value;
             } else {
                 $this->where[$this->columns[$column] . ' LIKE'] = '%' . $value . '%';
@@ -973,20 +1185,38 @@ final class Builder implements IBuilder {
             $this->query .= ' HAVING ' . $this->having . ' ';
             $this->sum .= ' HAVING ' . $this->having . ' ';
         }
-        /** sort */
-        $this->query .= ' ORDER BY ' . $this->sort . ' ';
         /** offset */
-        if(empty($this->getPost('status'))) {
+        if(empty($status = $this->getPost('status'))) {
             $this->offset = ($offset - 1) * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
         } else {
-            $this->offset = $offset;
-            foreach($this->getPrimary() as $primary => $value) {
-                $this->sort .= ', ' . $primary . ' DESC ';
+            if(in_array($status, ['excel', 'export'])) {
+                $this->limit = $this->export->speed($this->config['speed']);
+            } else if('import' == $status) {
+                $this->limit = $this->import->speed($this->config['speed']);
+            } else {
+                $this->limit = $this->service->speed($this->config['speed']);
             }
-            $this->limit = $this->config['exportSpeed'];
+            $this->offset = $offset;
+            $this->sort = '';
+            foreach($this->primary as $primary => $value) {
+                $this->sort .= $primary . ' ASC, ';
+            }
+        }
+        /** sort */
+        $this->sort = rtrim($this->sort, ', ');
+        if(!empty($this->sort)) {
+            $this->query .= ' ORDER BY ' . $this->sort . ' ';
         }
         return $this;
+    }
+
+    /** @return bool */
+    private function sanitize($column) {
+        return 1  == sizeof($joined = explode('.', (string) $column)) ||
+            preg_match('/\(|\)/', $column) ||
+            (empty($joins = $this->join + $this->leftJoin + $this->innerJoin)) ||
+            (substr_count(implode('', $joins), $joined[0]) > 0);
     }
 
     /** @return string */
@@ -999,13 +1229,4 @@ final class Builder implements IBuilder {
         return $label;
     }
 
-    /** @return bool */
-    private function validate($column) {
-        return 1  == sizeof($joined = explode('.', (string) $column)) ||
-            preg_match('/\(|\)/', $column) ||
-            empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin) ||
-            (substr_count(implode('', $this->join), $joined[0]) +
-                substr_count(implode('', $this->leftJoin), $joined[0]) +
-                substr_count(implode('', $this->innerJoin), $joined[0]) > 0);
-    }
 }

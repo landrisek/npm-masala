@@ -39,14 +39,14 @@ final class MockRepository extends BaseRepository implements IMock {
     }
 
     /** @return IRow */
-    public function getTestRow($table, array $columns = [], $select = null) {
+    public function getTestRow($table, array $columns = [], $select = null, $order = null) {
         $resource = $this->database->table($table);
         empty($select) ?  null : $resource->select($select);
         foreach ($columns as $column => $value) {
             is_bool($value) ? $resource->where($column) : $resource->where($column, $value);
         }
-        return $resource->order('RAND()')
-                        ->fetch();
+        empty($order) ? $resource->order('RAND()') : $resource->order($order);
+        return $resource->fetch();
     }
 
     /** @return array */

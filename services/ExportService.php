@@ -2,7 +2,7 @@
 
 namespace Masala;
 
-use Nette\Database\Table\ActiveRow,
+use Nette\Database\Table\IRow,
     Nette\Http\IRequest,
     Nette\Localization\ITranslator;
 
@@ -11,10 +11,7 @@ final class ExportService implements IProcess {
     /** @var string */
     private $link;
 
-    /** IRequest */
-    private $request;
-
-    /** @var ActiveRow */
+    /** @var IRow */
     private $setting;
 
     /** @var string */
@@ -25,8 +22,7 @@ final class ExportService implements IProcess {
 
     public function __construct($tempDir, IRequest $request, ITranslator $translatorModel) {
         $this->tempDir = $tempDir;
-        $this->request = $request;
-        $url = $this->request->getUrl();
+        $url = $request->getUrl();
         $this->link = $url->scheme . '://' . $url->host . $url->scriptPath;
         $this->translatorModel = $translatorModel;
     }
@@ -34,20 +30,19 @@ final class ExportService implements IProcess {
     /** @return void */
     public function attached(IReactFormFactory $form) { }
 
+    /** @return array */
+    public function done(array $response, IMasalaFactory $masala) {
+        return ['label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['file']];
+    }
+
     /** @return string */
     public function getFile() {
         return $this->tempDir;
     }
 
-    /** @return ActiveRow */
+    /** @return IRow */
     public function getSetting() {
         return $this->setting;
-    }
-
-    /** @return IProcess */
-    public function setSetting(ActiveRow $setting) {
-        $this->setting = $setting;
-        return $this;
     }
 
     /** @return array */
@@ -60,9 +55,14 @@ final class ExportService implements IProcess {
         return $response;
     }
 
-    /** @return array */
-    public function done(array $response, IMasalaFactory $masala) {
-        return ['label' => $this->translatorModel->translate('Click here to download your file.'),'href' => $this->link . 'temp/' . $response['file']];
+    /** @return IProcess */
+    public function setSetting(IRow $setting) {
+        $this->setting = $setting;
+        return $this;
     }
 
+    /** @return int */
+    public function speed($speed) {
+        return $speed;
+    }
 }

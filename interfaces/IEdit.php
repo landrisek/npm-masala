@@ -5,9 +5,9 @@ namespace Masala;
 interface IEdit {
 
     /** @return IReactFormFactory */
-    function after(IReactFormFactory $form, IRow $row);
+    public function after(IReactFormFactory $form, IRow $row);
 
     /** @return array */
-    function submit(array $response);
+    public function submit(array $primary, array $response);
 
 }

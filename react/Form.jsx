@@ -1,9 +1,12 @@
 import axios from 'axios'
+import Datetime from 'react-datetime'
+import Dropzone from 'react-dropzone'
 import React, {Component} from 'react'
 import request from 'sync-request'
-import Dropzone from 'react-dropzone'
 
 var LINKS = {}
+var ROW = 'row'
+var VALIDATORS = 'validators'
 
 export default class Form extends Component {
     constructor(props){
@@ -14,147 +17,160 @@ export default class Form extends Component {
     }
     attached() {
         var body = [];
-        for (var key in this.state) {
-            var closure = this[this.state[key].Method]
+        for (var key in this.state[ROW]) {
+            var closure = this[this.state[ROW][key].Method]
             if('function' == typeof(closure)) {
-                body.push(this[this.state[key].Method](key))
+                body.push(this[this.state[ROW][key].Method](key))
             }
         }
         return body;
     }
     addAction(key) {
         return <a key={key}
-                  href={this.state[key].Attributes.href}
-                  style={this.state[key].Attributes.style}
-                  className={this.state[key].Attributes.class}
-                  onClick={this.bind(this.state[key].Attributes.onClick)}>{this.state[key].Label}</a>
+                  href={this.state[ROW][key].Attributes.href}
+                  style={this.state[ROW][key].Attributes.style}
+                  className={this.state[ROW][key].Attributes.className}
+                  onClick={this.bind(this.state[ROW][key].Attributes.onClick)}>{this.state[ROW][key].Label}</a>
     }
     addButton(key) {
         console.log('Add button method is suppose to be overloaded by children component.')
     }
     addCheckbox(key) {
-        return <div key={key} style={this.state[key].Attributes.style}>
-                    <input checked={this.state[key].Attributes.checked}
+        return <div key={key} style={this.state[ROW][key].Attributes.style}>
+                    <input checked={this.state[ROW][key].Attributes.checked}
                            id={key}
-                           onChange={this.onChange.bind(this)}
+                           onChange={this.change.bind(this)}
                            type='checkbox'
-                           value={this.state[key].Attributes.value}  />
-                    <label style={{marginLeft:'10px'}}>{this.state[key].Label}</label>
+                           value={this.state[ROW][key].Attributes.value}  />
+                    <label style={{marginLeft:'10px'}}>{this.state[ROW][key].Label}</label>
         </div>
     }
+    addDateTime(key) {
+        return <Datetime locale={this.state[ROW][key].Attributes.locale}
+                         onChange={this.datetime.bind(this, key)}
+                         value={this.state[ROW][key].Attributes.value}
+            />
+    }
+    datetime(key, event) {
+        var state = []
+        state[key] = this.state[ROW][key]
+        state[key].Attributes.value = event.format(this.state[ROW][key].Attributes.format.toUpperCase())
+        this.setState(state)
+    }
     addHidden(key) {
-        return <input type='hidden' />
+        return <input key={key} type='hidden' />
     }
     addMessage(key) {
         return <div key={key} 
                     className='alert alert-success'
                     role='alert'
-                    style={this.state[key].Attributes.style}>
-                    {this.state[key].Label}</div>
+                    style={this.state[ROW][key].Attributes.style}>
+                    {this.state[ROW][key].Label}</div>
     }
     addMultiSelect(key) {
-        return <select key={key} multiple style={this.state[key].Attributes.style}
-                                                    onChange={this.onChange.bind(this)}
-                                                    className={columns[key].Attributes.class}
-                                                    id={columns[key].Attributes.id}>{this.getOptions(key)}>
-        </select>
+        return <div key={key}><label>{this.state[ROW][key].Label}</label>
+            <select className={this.state[ROW][key].Attributes.className}
+                       id={this.state[ROW][key].Attributes.id}
+                       multiple
+                       style={this.state[ROW][key].Attributes.style}
+                       onChange={this.change.bind(this)}>{this.getOptions(key)}>
+        </select></div>
     }
     addProgressBar(key) {
         return <div key={key}
-            style={this.state[key].Attributes.style}
+            style={this.state[ROW][key].Attributes.style}
             className='progress'><div
             className='progress-bar'
-            style={{width:this.state[key].Attributes.width+'%'}}></div></div>
+            style={{width:this.state[ROW][key].Attributes.width+'%'}}></div></div>
     }
     addRadioList(key) {
         var container = [];
-        var options = this.state[key].Attributes.data;
+        var options = this.state[ROW][key].Attributes.data;
         container.push(<div>{this.addValidator(key)}</div>);
         for (var value in options) {
             container.push(<div key={value}><input name={key} 
-                                    onClick={this.bind(this.state[key].Attributes.onClick)}
+                                    onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
                                     type='radio'
                                     value={value} />
-                                    <label>{this.state[key].Attributes.data[value]}</label></div>);
+                                    <label>{this.state[ROW][key].Attributes.data[value]}</label></div>);
         }
         return container;
     }
     addSelect(key) {
-        return <select style={this.state[key].Attributes.style}
-                                   onChange={this.onChange.bind(this)}
-                                   className={this.state[key].Attributes.class}
-                                   id={key}>{this.getOptions(key)}
-                     </select>
+        return <div key={key}>
+                <label>{this.state[ROW][key].Label}</label>
+                <select className={this.state[ROW][key].Attributes.className}
+                                      defaultValue={this.state[ROW][key].Attributes.value}
+                                      id={key}
+                                      style={this.state[ROW][key].Attributes.style}
+                                      onChange={this.change.bind(this)}>{this.getOptions(key)}
+                </select>
+                {this.addValidator(key)}
+        </div>
     }
     addSubmit(key) {
         return <input
-            className={this.state[key].Attributes.class}
-            data={this.state[key].Attributes.data}
+            className={this.state[ROW][key].Attributes.className}
+            data={this.state[ROW][key].Attributes.data}
             id={key}
             key={key}
-            onClick={this.bind(this.state[key].Attributes.onClick)}
-            style={this.state[key].Attributes.style}
+            onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
+            style={this.state[ROW][key].Attributes.style}
             type='submit'
-            value={this.state[key].Label} />
+            value={this.state[ROW][key].Label} />
     }
     addUpload(key) {
         var files = []
-        for(var file in this.state[key].Attributes.value) {
+        for(var file in this.state[ROW][key].Attributes.value) {
             var id = key + file
-            files.push(<li key={id} className='list-group-item'>{this.state[key].Attributes.value[file]}</li>)
+            files.push(<li key={id} className='list-group-item'>{this.state[ROW][key].Attributes.value[file]}</li>)
         }
-        return <div key={key} style={this.state[key].Attributes.style}>
+        return <div key={key} style={this.state[ROW][key].Attributes.style}>
                 <Dropzone onDrop={this.onDrop.bind(this, key)}
                           multiple={false}
                           style={{height:'200px',borderWidth:'2px',borderColor:'rgb(102, 102, 102)',borderStyle:'dashed',borderRadius:'5px'}}>
-                    <center>{this.state[key].Label}</center>
+                    <center>{this.state[ROW][key].Label}</center>
                 </Dropzone>
                 <ul className='list-group'>{files}</ul>
                 {this.addValidator(key)}
             </div>
     }
     addValidator(key) {
-        var container = [];
-        var validators = this.state[key].Validators;
-        for (var validator in validators) {
-            var id = key + '_' + validator;
-            container.push(<div key={id}
-                    className='bg-danger'
-                    style={this.state[key].Validators[validator].style}>
-                    {this.state[key].Validators[validator].value}</div>)
+        if(undefined != this.state[VALIDATORS][key]) {
+            //return <div key={'validator-' + key} className='bg-danger'>{this.state[VALIDATORS][key]}</div>
         }
-        return container;
     }
     addText(key) {
         return <div key={key} className='input-group'>
+            <label>{this.state[ROW][key].Label}</label>
             <input 
             id={key}
-            className='form-control' 
-            data={this.state[key].Attributes.data}
-            onBlur={this.bind(this.state[key].Attributes.onBlur)}
-            onClick={this.bind(this.state[key].Attributes.onClick)} 
-            onChange={this.onChange.bind(this)}
-            readOnly={this.state[key].Attributes.readonly}
-            style={this.state[key].Attributes.style}
-            type={this.state[key].Attributes.type}
-            value={this.state[key].Attributes.value} />
+            className={this.state[ROW][key].Attributes.className}
+            data={this.state[ROW][key].Attributes.data}
+            onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
+            onClick={this.bind(this.state[ROW][key].Attributes.onClick)} 
+            onChange={this.change.bind(this)}
+            readOnly={this.state[ROW][key].Attributes.readonly}
+            style={this.state[ROW][key].Attributes.style}
+            type={this.state[ROW][key].Attributes.type}
+            value={this.state[ROW][key].Attributes.value} />
             <div>{this.addValidator(key)}</div></div>
     }
     addTextArea(key) {
         return <div key={key} className='input-group'>
             <textarea
                 id={key}
-                className={this.state[key].Attributes.class}
-                data={this.state[key].Attributes.data}
-                onBlur={this.bind(this.state[key].Attributes.onBlur)}
-                onClick={this.bind(this.state[key].Attributes.onClick)}
-                onChange={this.onChange.bind(this)}
-                style={this.state[key].Attributes.style}>
-                {this.state[key].Attributes.value}</textarea>
+                className={this.state[ROW][key].Attributes.className}
+                data={this.state[ROW][key].Attributes.data}
+                onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
+                onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
+                onChange={this.change.bind(this)}
+                style={this.state[ROW][key].Attributes.style}>
+                {this.state[ROW][key].Attributes.value}</textarea>
             <div>{this.addValidator(key)}</div></div>
     }
     addTitle(key) {
-        return <h1 key={key} className={this.state[key].Attributes.class}>{this.state[key].Attributes.value}</h1>
+        return <h1 key={key} className={this.state[ROW][key].Attributes.className}>{this.state[ROW][key].Attributes.value}</h1>
     }
     bind(method) {
         if(undefined === method) {
@@ -165,11 +181,28 @@ export default class Form extends Component {
             return this[closure].bind(this)
         }
     }
+    change(event) {
+        if('checkbox' == event.target.type && 1 == event.target.value) {
+            var element = this.state[ROW][event.target.id]
+            element.Attributes.value = 0
+            element.Attributes.checked = null
+        } else if('checkbox' == event.target.type) {
+            var element = this.state[ROW][event.target.id]
+            element.Attributes.value = 1
+            element.Attributes.checked = 'checked'
+        } else {
+            var element = this.state[ROW][event.target.id]
+            element.Attributes.value = event.target.value
+        }
+        var state = []
+        state[event.target.id] = element
+        this.setState(state)
+    }
     done(payload) {
         var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
         for (var key in this.state) {
-            var element = this.state[key]
+            var element = this.state[ROW][key]
             element.Attributes.style = {display:'none'}
             state[key] = element
         }
@@ -178,12 +211,12 @@ export default class Form extends Component {
     }
     getOptions(key) {
         var container = []
-        var options = this.state[key].Attributes.data
+        var options = this.state[ROW][key].Attributes.data
         for (var value in options) {
-            if(this.state[key].Attributes.value == value) {
-                container.push(<option selected key={value} value={value}>{this.state[key].Attributes.data[value]}</option>)
+            if(this.state[ROW][key].Attributes.value == value) {
+                container.push(<option selected key={value} value={value}>{this.state[ROW][key].Attributes.data[value]}</option>)
             } else {
-                container.push(<option key={value} value={value}>{this.state[key].Attributes.data[value]}</option>)
+                container.push(<option key={value} value={value}>{this.state[ROW][key].Attributes.data[value]}</option>)
             }
         }
         return container
@@ -217,9 +250,9 @@ export default class Form extends Component {
         }
     }
     onDrop(key, files) {
-        var element = this.state[key]
+        var element = this.state[ROW][key]
         for(var file in files) {
-            for(var validator in this.state[key].Validators) {
+            for(var validator in this.state[ROW][key].Validators) {
                 var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
                 if('function' == typeof(closure) && false == closure(files[file])) {
                     element.Validators[validator].style = { display : 'block' }
@@ -233,34 +266,19 @@ export default class Form extends Component {
         state[key] = element
         this.setState(state)
     }
-    onChange(event) {
-        var element = this.state[event.target.id]
-        if('checkbox' == event.target.type && 1 == event.target.value) {
-            element.Attributes.value = 0
-            element.Attributes.checked = null
-        } else if('checkbox' == event.target.type) {
-            element.Attributes.value = 1
-            element.Attributes.checked = 'checked'
-        } else {
-            element.Attributes.value = event.target.value
-        }
-        var state = []
-        state[event.target.id]
-        this.setState(state)
-    }
     save(key, file) {
-        var upload = this.state[key]
+        var upload = this.state[ROW][key]
         if(undefined == upload.Attributes.value) {
             upload.Attributes.value = []
         }
         var save = this.state.save
-        save.Attributes.class = 'btn btn-success disabled'
+        save.Attributes.className = 'btn btn-success disabled'
         axios.get(file.preview).then(response => {
             var data = new Object()
             data.file = response.data
             axios.post(LINKS['save'] + '&file=' + file.name + '.' + file.type, data).then(response => {
                 upload.Attributes.value[response.data] = file.name
-                save.Attributes.class = 'btn btn-success'
+                save.Attributes.className = 'btn btn-success'
                 var state = {'save':save}
                 state[key] = upload
                 this.setState(state)
@@ -275,10 +293,16 @@ export default class Form extends Component {
     }
     submit() {
         var data = new Object()
-        for(var key in this.state) {
-            data[key] = this.state[key].Attributes.value
+        for(var key in this.state[ROW]) {
+            data[key] = this.state[ROW][key].Attributes.value
         }
-        request('POST', LINKS['submit'], { json: data })
+        var state = []
+        state[VALIDATORS] = JSON.parse(request('POST', LINKS.validate, {json: {row:data}}).getBody('utf8'))
+        for (var validator in state[VALIDATORS]) {
+            this.setState(state)
+            return
+        }
+        request('POST', LINKS.submit, { json: {row:data} })
     }
     run(payload, progress) {
         if(parseInt(payload.stop) > parseInt(payload.offset)) {
@@ -295,23 +319,23 @@ export default class Form extends Component {
     validate() {
         var validated = true;
         for (var key in this.state) {
-            for(var validator in this.state[key].Validators) {
+            for(var validator in this.state[ROW][key].Validators) {
                 var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
-                if(undefined == this.state[key].Attributes.value) {
-                    var validate = this.state[key].value
+                if(undefined == this.state[ROW][key].Attributes.value) {
+                    var validate = this.state[ROW][key].value
                 } else {
-                    var validate = this.state[key].Attributes.value
+                    var validate = this.state[ROW][key].Attributes.value
                 }
                 if('function' == typeof(closure) && false == closure(validate, key, this.state)) {
                     var state = [];
-                    var element = this.state[key];
+                    var element = this.state[ROW][key];
                     element.Validators[validator].style = { display : 'block' }
                     state[key] = element
                     this.setState(state)
                     validated = false
                 } else {
                     var state = [];
-                    var element = this.state[key];
+                    var element = this.state[ROW][key];
                     element.Validators[validator].style = { display : 'none' }
                     state[key] = element
                     this.setState(state)

@@ -59,7 +59,7 @@ final class RowTest extends TestCase {
         $before = [];
         Assert::false(empty($row = $this->class->getData()), 'Test row is empty.');
         foreach($row as $column => $value) {
-            if(!isset($this->primary[$this->class->getTable() . '.' .$column]) && null != $value) {
+            if(!isset($this->primary[$this->class->getTable() . '.' .$column]) && !is_null($value) && !is_numeric($value)) {
                 Assert::false(empty($before[$column] = 'test'), 'Assign value failed.');
                 echo $value;
                 Assert::false(empty($after[$column] = $value), 'Assign value failed.');

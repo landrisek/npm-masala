@@ -5,9 +5,9 @@ namespace Masala;
 interface IFilter {
 
     /** @return array */
-    function getList($alias);
+    public function getList($alias);
 
     /** @return array */
-    function filter(array $filters);
+    public function filter(array $filters);
 
 }

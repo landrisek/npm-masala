@@ -40,12 +40,9 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
                 [], ['required' => $this->translatorModel->translate('There is no file to upload.'),
                     'text' => $this->translatorModel->translate('Uploaded file is not valid text type.')]);
             $this->addSubmit('save', ucfirst($label = $this->translatorModel->translate('upload file')),
-                    ['class' => 'btn btn-success',
-                    'onClick'=>'submit']);
+                    ['className' => 'btn btn-success', 'onClick'=>'submit']);
             $this->addSubmit('prepare', ucfirst($this->translatorModel->translate('start upload')),
-                ['class' => 'btn btn-success',
-                    'onClick' => 'prepare',
-                    'style' => ['display' => 'none']]);
+                ['className' => 'btn btn-success', 'onClick' => 'prepare', 'style' => ['display' => 'none']]);
             $this->addMessage('done', $this->translatorModel->translate('Your file has been uploaded.'));
         }
     }

@@ -103,14 +103,14 @@ final class EditFormTest extends TestCase {
         $presenter->addComponent($this->class, 'EditForm');
         Assert::true(is_object($this->class->setRow($this->row)), 'Setter does not return class.');
         Assert::true(is_array($serialize = (array) $this->class), 'Serialization of ' . $this->class->getName() . ' failed.');
-        Assert::true(is_array($variables = array_slice($serialize, 3, 1)), 'Extract IRow for testing failed');
+        Assert::true(is_array($variables = array_slice($serialize, 4, 1)), 'Extract IRow for testing failed');
         Assert::true(is_object($row = reset($variables)), 'IRow is not set as third position variable.');
         Assert::true($row instanceof IRow, 'IRow is not set.');
         Assert::false(empty($attached = $row->getColumns()), 'Columns for EditForm are not set.');
         Assert::false(empty($columns = $this->row->getColumns()), 'Injected IRow has no data.');
         Assert::false(empty($source = $this->row->getTable()), 'Source tables is empty.');
         Assert::same($columns, $attached, 'DI attached different data.');
-        Assert::true(is_object($row =  $this->mockService->getPrivateProperty($this->class, 3)), 'IRow is not set.');
+        Assert::true(is_object($row =  $this->mockService->getPrivateProperty($this->class, 4)), 'IRow is not set.');
         echo $source . "\n";
         echo $key . "\n";
         Assert::false(empty($columns = $row->getColumns()),'Columns are empty.');

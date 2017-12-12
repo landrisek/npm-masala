@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Moment from 'moment'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import Form from './Form.jsx'
@@ -18,6 +19,7 @@ export default class ImportForm extends Form {
         this.setState({'done':element})
     }
     prepare(event) {
+        this.run(this.state[event.target.id].Attributes.data, event.target.id + '-progress')
         var data = this.state[event.target.id].Attributes.data
         if(undefined != data.header && 'string' == typeof(data.header)) {
             document.getElementById('masala-message-modal-body').insertAdjacentHTML('afterbegin', '<p>' + data.header + '</p>')
@@ -37,11 +39,11 @@ export default class ImportForm extends Form {
             file.Attributes.style = {display:'none'}
             this.setState({'save':save,'file':file})
             var prepare = this.state['prepare']
-            prepare.Attributes.class = 'btn btn-success disabled'
+            prepare.Attributes.className = 'btn btn-success disabled'
             prepare.Attributes.style = {display:'block'}
             axios.post(LINKS['import'], data).then(response => {
                 prepare.Attributes.data = response.data
-                prepare.Attributes.class = 'btn btn-success'
+                prepare.Attributes.className = 'btn btn-success'
                 this.setState({'prepare':prepare})
             })
             this.setState({'prepare':prepare})

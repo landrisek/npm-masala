@@ -298,7 +298,6 @@ final class MockService {
             Assert::false(empty($password = $this->config['mockService']['testUser']['password']), 'Assign credentials failed.');
             Assert::false(empty($id = $this->config['mockService']['testUser']['id']), 'Assign credentials failed.');
             Assert::true(is_object($user = $this->usersModel->getUser($id)), 'Test user was not found.');
-            echo $user->$username;
             Assert::same(null,  $this->user->login($user->$username, $password), 'Mock login method succeed but it does return something. Do you wish to modify test?');
             Assert::true($this->user->isLoggedIn(), 'Test user is not loggged');
         }

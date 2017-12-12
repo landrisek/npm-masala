@@ -1,9 +1,6 @@
 {block assets}
 	<div rel=manifest data="{$basePath}/{$assets}/js/manifest.json">
-    <link rel="stylesheet" href="{$basePath}/{$npm}/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
-	<script type="text/javascript" src="{$basePath}/{$npm}/moment/min/moment.min.js"></script>
-	<script type="text/javascript" src="{$basePath}/{$npm}/moment/locale/{$locale}.js"></script>
-	<script type="text/javascript" src="{$basePath}/{$npm}/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"></script>
+    <link rel="stylesheet" href="{$basePath}/{$npm}/react-datetime/css/react-datetime.css" />
 	{var rand = rand(1, 15)}
     <style>
         .modal {
@@ -153,6 +150,9 @@
         li.list-group-item:hover {
             background-color: rgb(51, 122, 183);
             color: white;
+        }
+        .rdtPicker {
+            top: 40px;
         }
     </style>
 {/block}

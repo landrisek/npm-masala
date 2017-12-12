@@ -9,18 +9,17 @@ use Exception,
 final class MasalaExtension extends CompilerExtension {
 
     private $defaults = ['assets' => 'assets/masala',
-        'exportSpeed' => 20,
-        'importSpeed' => 100,
         'feeds' => 'feeds',
-        'format' => ['date' => ['edit' => 'Y-m-d', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")', 'text' => 'd.m.Y'],
-                    'time' => ['edit' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")', 'text' => 'd.m.Y H:i:s']],
+        'format' => ['date' => ['edit' => 'd.m.Y', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")'],
+                    'time' => ['edit' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")']],
         'help' => 'help',
         'npm' => 'bower',
         'keywords' => 'keywords',
         'log' => 'log',
         'pagination' => 20,
-        'spice' => 'spice',
         'settings' => 'settings',
+        'speed' => 50,
+        'spice' => 'spice',
         'upload' => 10,
         'write' => 'write'];
 
@@ -43,8 +42,6 @@ final class MasalaExtension extends CompilerExtension {
                 ->setClass('Masala\MasalaExtension', []);
         $builder->addDefinition($this->prefix('contentForm'))
                 ->setClass('Masala\ContentForm', [$manifest['ContentForm.js']]);
-        $builder->addDefinition($this->prefix('editForm'))
-                ->setClass('Masala\EditForm', [$manifest['EditForm.js'], $parameters['masala']['upload']]);
         $builder->addDefinition($this->prefix('exportService'))
                 ->setClass('Masala\ExportService', [$builder->parameters['tempDir']]);
         $builder->addDefinition($this->prefix('emptyRow'))
@@ -65,8 +62,8 @@ final class MasalaExtension extends CompilerExtension {
                 ->setClass('Masala\MockRepository');
         $builder->addDefinition($this->prefix('mockService'))
                 ->setClass('Masala\MockService');
-        $builder->addDefinition($this->prefix('row'))
-                ->setClass('Masala\Row', [$parameters['masala']]);
+        $builder->addDefinition($this->prefix('rowForm'))
+                ->setClass('Masala\RowForm', [$manifest['RowForm.js']]);
         $builder->addDefinition($this->prefix('writeRepository'))
                 ->setClass('Masala\WriteRepository', [$parameters['masala']['write']]);
     }
