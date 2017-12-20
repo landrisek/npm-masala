@@ -1,9 +1,9 @@
 <div id="{$component}" data="{$data}"></div>
 <script src="{$js}"></script>
 <script type="text/javascript">
-    {foreach $triggers as $trigger}
-        if('done' != {$trigger}) {
-            $('#trigger-' + {$trigger}).attr('onclick', 'loader("#' + {$trigger} + '")')
+    {foreach $dialogs as $dialog}
+        if('done' != {$dialog}) {
+            $('#trigger-' + {$dialog}).attr('onclick', 'loader("#' + {$dialog} + '")')
         }
     {/foreach}
     function loader(id) {

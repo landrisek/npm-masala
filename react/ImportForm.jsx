@@ -1,9 +1,9 @@
 import axios from 'axios'
-import Moment from 'moment'
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import Form from './Form.jsx'
 
+var ROW = 'row'
 var LINKS = {}
 
 export default class ImportForm extends Form {
@@ -14,39 +14,45 @@ export default class ImportForm extends Form {
     }
     done(payload) {
         super.done(payload)
-        var element = this.state['done']
+        console.log(payload)
+        var element = this.state[ROW]._done
         element.Attributes.style = {display:'block'}
-        this.setState({'done':element})
+        var state = []
+        state[ROW] = this.state[ROW]
+        state[ROW]._done = element
+        this.setState(state)
     }
     prepare(event) {
-        this.run(this.state[event.target.id].Attributes.data, event.target.id + '-progress')
-        var data = this.state[event.target.id].Attributes.data
-        if(undefined != data.header && 'string' == typeof(data.header)) {
-            document.getElementById('masala-message-modal-body').insertAdjacentHTML('afterbegin', '<p>' + data.header + '</p>')
-            $('#trigger-message').trigger('click')
-            return
-        }
-        this.run(data, event.target.id + '-progress')
+        this.run(this.state[ROW][event.target.id].Attributes.data, event.target.id + '-progress')
     }
     submit() {
-        if(true == this.validate()) {
-            var save = this.state['save']
-            var file = this.state['file']
+        var data = this.validate()
+        if(null != data) {
+            var submit = this.state[ROW]._submit
+            var file = this.state[ROW]._file
             var data = new Object()
-            for (var upload in this.state['file'].Attributes.value) break;
-            data.file = upload
-            save.Attributes.style = {display:'none'}
+            var state = []
+            state[ROW] = this.state[ROW];
+            for (var upload in state[ROW]._file.Attributes.value) break;
+            data._file = upload
+            submit.Attributes.style = {display:'none'}
             file.Attributes.style = {display:'none'}
-            this.setState({'save':save,'file':file})
-            var prepare = this.state['prepare']
+            state[ROW]._submit = submit
+            state[ROW]._file = file
+            this.setState(state)
+            var prepare = this.state[ROW]._prepare
             prepare.Attributes.className = 'btn btn-success disabled'
             prepare.Attributes.style = {display:'block'}
             axios.post(LINKS['import'], data).then(response => {
                 prepare.Attributes.data = response.data
                 prepare.Attributes.className = 'btn btn-success'
-                this.setState({'prepare':prepare})
+                state[ROW] = this.state[ROW]
+                state[ROW]._prepare = prepare
+                this.setState(state)
             })
-            this.setState({'prepare':prepare})
+            state[ROW] = this.state[ROW]
+            state[ROW]._prepare = prepare
+            this.setState(state)
         }
     }
     render() {

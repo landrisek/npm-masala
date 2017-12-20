@@ -51,10 +51,10 @@ final class ReactFormTest extends TestCase {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
-        $builder = $this->container->getByType('Masala\IRow');
+        $builder = $this->container->getByType('Masala\IBuilder');
         foreach($this->container->parameters['tables'] as $table) {
             $builder->table($table);
-            foreach($builder->getDrivers() as $column) {
+            foreach($builder->getDrivers($table) as $column) {
                 if('DATETIME' == $column['nativetype']) {
                     Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
                     break;

@@ -83,7 +83,8 @@ final class MasalaTest extends TestCase {
             Assert::true(method_exists($class, $method), 'According to latte file should exist method ' . $method . ' in ' . $class . '.');
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
             Assert::true(is_object($presenter->grid->where('id IS NOT NULL')), 'Grid setter method does not return class itself.');
-            $this->class->setGrid($presenter->grid);
+            Assert::true(is_object($this->class->setGrid($presenter->grid)), 'IMasalaFactory::setGrid failed.');
+            Assert::true(is_object($this->class->setRow($presenter->grid->copy())), 'IMasalaFactory::setGrid failed.');
             $presenter->addComponent($this->class, 'IMasalaFactory');
             Assert::true(is_object($grid = $presenter->grid), 'Grid IBuilder is not set.');
             Assert::same($source, $presenter->grid->getTable(), 'Source ' . $source . ' for Masala IBuilder was not set.');
@@ -109,13 +110,11 @@ final class MasalaTest extends TestCase {
             Assert::false(empty($filterForm->getData()), 'No data for filterForm.');
             Assert::true(isset($_POST[$column]), 'Test $_POST data were unexpected overwrited.');
             $this->mockService->setPost($_POST);
-            Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
+            Assert::same(null, $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $_POST[$column] = 'false';
-            Assert::same('response succeed', $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
+            Assert::same(null, $gridFactory->handleSetting(), 'Grid::handleSetting failed.');
             $notShow = [];
             $overload = $presenter->grid->getColumns();
-            echo '@todo: solved overloading of hidden annotation';
-            dump($overload);
             foreach ($columns as $column) {
                 if (isset($overload[$column['name']]) && 0 == substr_count($column['vendor']['Comment'], '@hidden')) {
                 } else if (0 < substr_count($column['vendor']['Comment'], '@hidden')) {
@@ -153,7 +152,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testHandleRun() {
-        $row = $this->container->getByType('Masala\IRow');
+        $row = $this->container->getByType('Masala\IBuilder');
         Assert::false(empty($tables = $this->container->parameters['tables']), 'Test source was not set.');
         Assert::false(empty($excluded = $this->container->parameters['mockService']['excluded']), 'No tables to excluded. Do you wish to modify test?');
         foreach($excluded as $exclude) {
@@ -164,9 +163,9 @@ final class MasalaTest extends TestCase {
         Assert::false(empty($columns = $row->table($source)->getDrivers($source)), 'Columns of tables ' . $source . ' was not set.');
         Assert::false(empty($source = $this->container->parameters['tables']['help']), 'Test source for table help was not set.');
         Assert::false(empty($columns = $row->table($source)->getDrivers($source)), 'Columns of tables ' . $source . ' was not set.');
-        Assert::true(isset($columns[1]), 'Json column was not set');
-        Assert::same('json', $columns[1]['name'], 'Json column was not set');
-        Assert::false(empty($comment = $columns[1]['vendor']['Comment']), 'Json column comment should be not empty');
+        Assert::true(isset($columns['json']), 'Json column was not set');
+        Assert::same('json', $columns['json']['name'], 'Json column was not set');
+        Assert::false(empty($comment = $columns['json']['vendor']['Comment']), 'Json column comment should be not empty');
         Assert::same(1, substr_count($comment, '@hidden'), $source . '.json should have disabled comment via annotation @hidden.');
     }
 
@@ -174,7 +173,6 @@ final class MasalaTest extends TestCase {
         $latte = $this->container->parameters['appDir'] . '/Masala/templates/grid.latte';
         Assert::true(is_file($latte), 'Latte file for grid is not set.');
         Assert::false(empty($grid = file_get_contents($latte)), 'Latte file is empty.');
-        Assert::true(0 < substr_count($grid, '$(this).datetimepicker({ format: $(this).attr(\'data\'), locale: {$locale} })'), 'It seems that datatimepicker in javascript has unintended format. Did you manipulated just with space?');
         Assert::true(0 < substr_count($grid, '<script src="{$js}"></script>'), 'It seems that react component is not included.');
     }
 

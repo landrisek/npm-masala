@@ -4,10 +4,11 @@ namespace Masala;
 
 use Iterator,
     Nette\Database\Table\GroupedSelection,
+    Nette\Database\Table\IRow,
     Nette\Database\Table\Selection;
 
 /** @author Lubomir Andrisek */
-class EmptyRow implements Iterator, \Nette\Database\Table\IRow {
+class EmptyRow implements Iterator, IRow {
 
     public function setTable(Selection $name) {}
 

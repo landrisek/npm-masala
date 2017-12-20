@@ -4,12 +4,10 @@ import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import request from 'sync-request'
 
-var ACTIONS = 'actions'
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
-var DIALOGS = 'dialogs'
-var GRAPH = 'graph'
-var GRAPHS = 'graphs'
+var CHART = 'chart'
+var CHARTS = 'charts'
 var LISTENERS = 'listeners'
 var LISTS = 'lists'
 var ROW = 'row'
@@ -43,7 +41,7 @@ export default class Grid extends Component {
             data.row[row] = state[ROW].add[row].Attributes.value
         }
         state[ROWS][event.target.id] = rows
-        state[ROW].add = JSON.parse(request('POST', this.state[BUTTONS].dialogs.edit, { json: data }).getBody('utf8'))
+        state[ROW].add = JSON.parse(request('POST', this.state[BUTTONS].edit.Attributes.link, { json: data }).getBody('utf8'))
         this.setState(state)
     }
     addAction(key) {
@@ -59,32 +57,21 @@ export default class Grid extends Component {
                 onClick={this.bind(this.state[BUTTONS][key].onClick)}>{this.state[BUTTONS][key].label}</a>
             </div>
     }
-    addActions(row, key) {
+    addActions(action, key) {
         var container = []
-        for(var dialog in this.state[BUTTONS].dialogs) {
-            container.push(this.addModal(dialog, key, row))
-        }
-        for(var action in this.state[ACTIONS]) {
-            var id = 'action-' + key + '-' + action
-            var href = this.state[ACTIONS][action]['href']
-            if(undefined == this.state[ACTIONS][action].onClick) {
-                href += '?'
+        if(undefined == this.state[BUTTONS][action].length) {
+            if('chart' == action) {
+                var className = 'bar-chart'
             } else {
-                href += '&'
+                var className = action
             }
-            for(var parameterId in this.state[ACTIONS][action].parameters) {
-                href += parameterId + '=' + row[this.state[ACTIONS][action].parameters[parameterId]] + '&'
-            }
-            if(this.state[ACTIONS][action].url.length > 0) {
-                href = row[this.state[ACTIONS][action].url]
-            }
-            container.push(<div key={id} className='fa-hover col-md-1'><a
-                  className={this.state[ACTIONS][action].className}
-                  href={href}
-                  id={key}
-                  onClick={this.bind(this.state[ACTIONS][action].onClick)}
-                  target='_blank'
-                  title={this.state[ACTIONS][action].label}></a></div>)
+            container.push(<td key={'grid-col-' + key + '-actions'}><a
+                id={key}
+                className={'fa-hover fa fa-' + className}
+                data-target={'#masala-' + action}
+                data-toggle='modal'
+                onClick={this.bind(action)}
+                title={key}></a></td>)
         }
         return container
     }
@@ -106,8 +93,8 @@ export default class Grid extends Component {
         for(var key in rows) {
             var id = 'row-' + i++;
             body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
-            if('object' == typeof(this.state[GRAPHS][key])) {
-                body.push(<tr id={'row-graph-' + i} key={'row-graph-' + i} style={{height:'200px'}} ></tr>)
+            if('object' == typeof(this.state[CHARTS][key])) {
+                body.push(<tr id={'row-chart-' + i} key={'row-chart-' + i} style={{height:'200px'}} ></tr>)
             }
         }
         SIZE = i
@@ -157,11 +144,15 @@ export default class Grid extends Component {
     datetime(key, event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
-        state[COLUMNS][key].Attributes.value = event.format(state[COLUMNS][key].Attributes.format.toUpperCase())
+        if('string' == typeof(event)) {
+            state[COLUMNS][key].Attributes.value = event
+        } else {
+            state[COLUMNS][key].Attributes.value = event.format(state[COLUMNS][key].Attributes.format.toUpperCase())
+        }
         this.setState(state)
     }
     addDialog(key) {
-        if(undefined != this.state[DIALOGS][key]) {
+        if(undefined == this.state[BUTTONS][key].length) {
             var container = []
             var rows = this.state[ROW][key]
             for(var row in rows) {
@@ -182,6 +173,8 @@ export default class Grid extends Component {
                                                                       onClick={this.update.bind(this)}
                                                                       type='submit'
                                                                       /></div>)
+                } else if('_message' == row) {
+                    container.push(<div className={rows[row].Attributes.className} key={'dialogs-' + row} style={rows[row].Attributes.style}>{rows[row].Label}</div>)
                 } else if('select' == rows[row].Tag) {
                     var data = []
                     var options = rows[row].Attributes.data
@@ -223,7 +216,7 @@ export default class Grid extends Component {
                         <div className='modal-content'>
                             <div className='modal-header'>
                                 <button type='button' className='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
-                                <h4 className='modal-title' id={'masala-label-' + key}>{this.state[DIALOGS][key].label}</h4>
+                                <h4 className='modal-title' id={'masala-label-' + key}>{this.state[BUTTONS][key].Label}</h4>
                             </div>
                             <div className='modal-body' id={'masala-' + key + '-modal-body'}>{container}</div>
                         </div>
@@ -245,25 +238,27 @@ export default class Grid extends Component {
         }
         return body
     }
-    addHidden(key) {}
+    addHidden(key) {
+        return <th class={'grid-col-' + key} key={key}></th>
+    }
     addGraphs() {
-        var graphs = []
+        var charts = []
         var header = document.getElementById('masala-header')
         var margin = 0
         var summary = document.getElementById('masala-summary')
         var width = 50
         if(null != header) {
-            graphs.push(<tr key='graph-header' style={{height:header.offsetHeight,width:header.offsetWidth,visible:'hidden'}}></tr>)
-            graphs.push(<tr key='graph-summery' style={{height:summary.offsetHeight,width:summary.offsetWidth,visible:'hidden'}}></tr>)
+            charts.push(<tr key='chart-header' style={{height:header.offsetHeight,width:header.offsetWidth,visible:'hidden'}}></tr>)
+            charts.push(<tr key='chart-summery' style={{height:summary.offsetHeight,width:summary.offsetWidth,visible:'hidden'}}></tr>)
             var i = 0
-            for(var key in this.state[GRAPHS]) {
-                for(var graph in this.state[GRAPHS][key]) {
+            for(var key in this.state[CHARTS]) {
+                for(var chart in this.state[CHARTS][key]) {
                     i++
                 }
                 break
             }
             for(var key in this.state[COLUMNS]) {
-                if(key == this.state[GRAPH] || '' == this.state[GRAPH]) {
+                if(key == this.state[CHART] || '' == this.state[CHART]) {
                     break
                 } else if(null != document.getElementById('grid-col-' + key)) {
                     margin += document.getElementById('grid-col-' + key).offsetWidth
@@ -275,38 +270,28 @@ export default class Grid extends Component {
             }
         }
         for(var key in this.state[ROWS]) {
-            if(undefined != this.state[GRAPHS][key]) {
+            if(undefined != this.state[CHARTS][key]) {
                 var row = document.getElementById('row-' + key)
                 var container = []
-                graphs.push(<tr key={'graph-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
-                container.push(<th key='graph-fill' width={margin + ' px'}></th>)
-                for(var graph in this.state[GRAPHS][key]) {
+                charts.push(<tr key={'chart-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
+                container.push(<th key='chart-fill' width={margin + ' px'}></th>)
+                for(var chart in this.state[CHARTS][key]) {
                     var value = ''
-                    if(this.state[GRAPHS][key][graph].value > 0) {
-                        value = this.state[GRAPHS][key][graph].value
+                    if(this.state[CHARTS][key][chart].value > 0) {
+                        value = this.state[CHARTS][key][chart].value
                     }
-                    container.push(<th className='chart' key={'chart-' + graph} style={{width:width + 'px'}}><span key={'graph-' + graph} style={{height:'100%'}}>
-                        <span style={{background:'rgba(209, 236, 250, 0.75)',height:this.state[GRAPHS][key][graph].percent + '%'}}>{value}</span>
-                    </span><span>{graph}</span></th>)
+                    container.push(<th className='chart' key={'chart-' + chart} style={{width:width + 'px'}}><span key={'chart-' + chart} style={{height:'100%'}}>
+                        <span style={{background:'rgba(209, 236, 250, 0.75)',height:this.state[CHARTS][key][chart].percent + '%'}}>{value}</span>
+                    </span><span>{chart}</span></th>)
                 }
-                graphs.push(<tr id={'row-fix-' + key} key={'row-fix-' + key}>{container}</tr>)
+                charts.push(<tr id={'row-fix-' + key} key={'row-fix-' + key}>{container}</tr>)
             }
-            if(undefined == this.state[GRAPHS][key] && this.state[GRAPHS].length > 0) {
+            if(undefined == this.state[CHARTS][key] && this.state[CHARTS].length > 0) {
                 var row = document.getElementById('row-' + key)
-                graphs.push(<tr key={'graph-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
+                charts.push(<tr key={'chart-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
             }
         }
-        return graphs
-    }
-    addModal(dialog, key) {
-        var id = 'dialog-' + dialog + '-' + key
-        return <div key={id} className='fa-hover col-md-1'><a
-            id={key}
-            className={'fa-hover fa fa-' + dialog}
-            data-target={'#masala-' + dialog}
-            data-toggle='modal'
-            onClick={this.bind(dialog)}
-            title={dialog}></a></div>
+        return charts
     }
     addMultiSelect(key) {
         var values = new Object()
@@ -448,9 +433,7 @@ export default class Grid extends Component {
     }
     addRow(rows, key) {
         var container = []
-        var hide = true
         for(var row in rows) {
-            hide = false
             if(undefined != this.state[COLUMNS][row] && true != this.state[COLUMNS][row].Attributes.unrender) {
                 if('object' == typeof(rows[row]) && null !== rows[row]) {
                     rows[row].Attributes.id = row
@@ -464,11 +447,18 @@ export default class Grid extends Component {
                 } else {
                     container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{rows[row]}</td>)
                 }
+            } else if('_actions' == row) {
+                var actions = []
+                for(var action in rows[row]) {
+                    var element = React.createElement(rows[row][action].Tag, rows[row][action].Attributes, rows[row][action].Label)
+                    actions.push(<span key={'_actions' + action} style={{marginRight:'10px'}}>{element}</span>)
+                }
+                container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{actions}</td>)
             }
         }
-        if(false == hide) {
-            container.push(<td key={'grid-col-' + key + '-actions'}>{this.addActions(rows, key)}</td>)
-        }
+        container.push(this.addActions('edit', key))
+        container.push(this.addActions('chart', key))
+        container.push(this.addActions('remove', key))
         return container
     }
     addSelect(key) {
@@ -543,6 +533,26 @@ export default class Grid extends Component {
         }
         this.setState(state)
     }
+    chart(event) {
+        var response = JSON.parse(request('POST', this.state[BUTTONS].chart.Attributes.link, { json: {spice:this.getSpice(),row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
+        console.log(response)
+        var state = []
+        if(undefined != response.chart && undefined == this.state[CHARTS][event.target.id]) {
+            state[CHART] = response.chart
+            state[CHARTS] = this.state[CHARTS]
+            state[CHARTS][event.target.id] = response.data
+            this.setState(state)
+        } else if(undefined != response.chart) {
+            state[CHARTS] = this.state[CHARTS]
+            delete state[CHARTS][event.target.id]
+            this.setState(state)
+        }
+    }
+    charts(event) {
+        for(var row in this.state[ROWS]) {
+            this.chart({target:{id:row}})
+        }
+    }
     click(event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
@@ -599,11 +609,11 @@ export default class Grid extends Component {
             }
         }
         state[ROW] = this.state[ROW]
-        state[ROW].edit = JSON.parse(request('POST', this.state[BUTTONS].dialogs.edit, { json: data }).getBody('utf8'))
+        state[ROW].edit = JSON.parse(request('POST', this.state[BUTTONS].edit.Attributes.link, { json: data }).getBody('utf8'))
         this.setState(state)
     }
     filter() {
-        return JSON.parse(request('POST', this.state[BUTTONS]['filter'], { json: this.getSpice() }).getBody('utf8'))
+        return JSON.parse(request('POST', this.state[BUTTONS].filter, { json: this.getSpice() }).getBody('utf8'))
     }
     getOptions(key) {
         var container = []
@@ -658,13 +668,6 @@ export default class Grid extends Component {
         data.offset = this.state[BUTTONS].page
         return data
     }
-    graphs(event) {
-        for(var row in this.state[ROWS]) {
-            var mock = {target:{id:row,href:this.state[COLUMNS][event.target.id].Attributes.link}}
-            mock.preventDefault = function(){}
-            this.signal(mock)
-        }
-    }
     hide() {
         var update = false
         for(var list in this.state[LISTS]) {
@@ -690,7 +693,9 @@ export default class Grid extends Component {
             this.setState(state)
             return
         }
-        state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[DIALOGS].add.link, { json: {row:this.state[ROWS][event.target.name]} }).getBody('utf8'))
+        state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].add.Attributes.link, { json: {row:this.state[ROWS][event.target.name]} }).getBody('utf8'))
+        state[ROW] = this.state[ROW]
+        state[ROW].add._message.Attributes.style = {display:'block'}
         this.setState(state)
         this.submit()
     }
@@ -778,24 +783,21 @@ export default class Grid extends Component {
     }
     render() {
         var dialogs = []
-        for(var dialog in this.state[DIALOGS]) {
-            if('edit' != dialog) {
-                dialogs.push(<a className='btn btn-success'
-                                data-link={this.state[DIALOGS][dialog].link}
-                                data-target={'#masala-' + dialog}
-                                data-toggle='modal'
-                                id={this.state[DIALOGS][dialog].id}
-                                key={'dialog-' + dialog}
-                                onClick={this.bind(this.state[DIALOGS][dialog].onClick)}
-                                style = {{marginRight: '10px'}}
-                                title='edit'
-                                type='button'
-                >{this.state[DIALOGS][dialog].label}</a>)
-            }
+        if(undefined == this.state[BUTTONS].add.length) {
+            dialogs.push(<a className='btn btn-success'
+                             data-link={this.state[BUTTONS].add.Attributes.link}
+                             data-target={'#masala-add'}
+                             data-toggle='modal'
+                             id={this.state[BUTTONS].add.Attributes.id}
+                             key={'dialog-add'}
+                             onClick={this.bind(this.state[BUTTONS].add.Attributes.onClick)}
+                             style={{marginRight: '10px'}}
+                             title='add'
+                             type='button'
+            >{this.state[BUTTONS].add.Label}</a>)
         }
-        var triggers = []
-        for(var trigger in this.state[BUTTONS].triggers) {
-            triggers.push(this.addAction(this.state[BUTTONS].triggers[trigger]))
+        for(var dialog in this.state[BUTTONS].dialogs) {
+            dialogs.push(this.addAction(this.state[BUTTONS].dialogs[dialog]))
         }
         document.getElementById('grid').style.display = 'block'
         var loader = document.getElementById('loader')
@@ -806,7 +808,7 @@ export default class Grid extends Component {
             <ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table style={{width:'100%'}}><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
-                <tr><td style={{paddingTop:'10px'}}>{dialogs}{triggers}</td></tr>
+                <tr><td style={{paddingTop:'10px'}}>{dialogs}</td></tr>
             </tbody></table>
             {this.addSettings()}
             <table className='table table-striped table-hover' style={{position:'relative'}}>
@@ -857,7 +859,7 @@ export default class Grid extends Component {
         if(false === confirm(this.state[BUTTONS].proceed)) {
             return
         }
-        this.signal({target:{id:event.target.id,href:this.state[BUTTONS].remove},preventDefault(){}})
+        this.signal({target:{id:event.target.id,href:this.state[BUTTONS].remove.Attributes.link},preventDefault(){}})
     }
     run(payload, key) {
         if(parseInt(payload.stop) > parseInt(payload.offset)) {
@@ -869,7 +871,7 @@ export default class Grid extends Component {
                 if('service' == response.data.status && 'object' == typeof(response.data.row) && SIZE > payload.offset) {
                     state[ROWS] = this.state[ROWS]
                     for(var row in response.data.row) {
-                        state[ROWS][row] = response.data.row[row]
+                        state[ROWS][payload.offset] = response.data.row[row]
                     }
                 }
                 this.setState(state)
@@ -926,15 +928,6 @@ export default class Grid extends Component {
             this.setState(state)
         } else if(true === response.submit) {
             this.submit()
-        } else if(undefined != response.graph && undefined == this.state[GRAPHS][event.target.id]) {
-            state[GRAPH] = response.graph
-            state[GRAPHS] = this.state[GRAPHS]
-            state[GRAPHS][event.target.id] = response.data
-            this.setState(state)
-        } else if(undefined != response.graph) {
-            state[GRAPHS] = this.state[GRAPHS]
-            delete state[GRAPHS][event.target.id]
-            this.setState(state)
         }
         this.forceUpdate()
     }
@@ -973,8 +966,8 @@ export default class Grid extends Component {
         var columns = this.state[COLUMNS]
         for (var key in columns) {
             if(true == columns[key].Attributes.unrender || false === columns[key].Attributes.summary) { } else {
-                data['summary'] = key
-                columns[key].Attributes.summary = JSON.parse(request('POST', this.state[BUTTONS]['summary'], { json: data }).getBody('utf8'))
+                data.summary = key
+                columns[key].Attributes.summary = JSON.parse(request('POST', this.state[BUTTONS].summary, { json: data }).getBody('utf8'))
             }
         }
         var state = []
@@ -994,7 +987,7 @@ export default class Grid extends Component {
         var state = []
         state[key] = element
         state[BUTTONS] = this.state[BUTTONS]
-        state[BUTTONS]['page'] = 1
+        state[BUTTONS].page = 1
         this.setState(state)
         this.submit()
     }
@@ -1028,11 +1021,16 @@ export default class Grid extends Component {
         if('checkbox' == event.target.type && 1 == event.target.value) {
             state[ROW][id][event.target.id].Attributes.value = 0
             delete state[ROW][id][event.target.id].Attributes.checked
-            state[ROWS][event.target.name][event.target.id] = 0
+            if(undefined != state[ROWS][event.target.name]) {
+                state[ROWS][event.target.name][event.target.id] = 0
+            }
         } else if('checkbox' == event.target.type && 0 == event.target.value) {
             state[ROW][id][event.target.id].Attributes.value = 1
             state[ROW][id][event.target.id].Attributes.checked = 'checked'
-            state[ROWS][event.target.name][event.target.id] = 1
+            if(undefined != state[ROWS][event.target.name]) {
+                state[ROWS][event.target.name][event.target.id] = 1
+            }
+        } else if(undefined == state[ROWS][event.target.name]) {
         } else if(null != state[ROWS][event.target.name][event.target.id] && null != state[ROWS][event.target.name][event.target.id].Label) {
             state[ROWS][event.target.name][event.target.id].Label = event.target.value
         } else {
@@ -1061,8 +1059,20 @@ export default class Grid extends Component {
             state[ROWS][event.target.name][event.target.id].Attributes.value = event.target.value
         }
         data.row = state[ROWS][event.target.name]
+        for(var row in this.state[ROW].edit) {
+            if(undefined != this.state[ROW].edit[row].Attributes.value) {
+                data.row[row] = this.state[ROW].edit[row].Attributes.value
+            }
+        }
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))
         this.setState(state)
+        if(true == data.submit) {
+            this.edit({target:{id:event.target.name}})
+            state = []
+            state[ROW] = this.state[ROW]
+            state[ROW].edit._message.Attributes.style = {display:'block'}
+            this.setState(state)
+        }
     }
 
 }

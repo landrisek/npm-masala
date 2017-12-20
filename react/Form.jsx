@@ -201,7 +201,7 @@ export default class Form extends Component {
     done(payload) {
         var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
-        for (var key in this.state) {
+        for (var key in this.state[ROW]) {
             var element = this.state[ROW][key]
             element.Attributes.style = {display:'none'}
             state[key] = element
@@ -271,19 +271,20 @@ export default class Form extends Component {
         if(undefined == upload.Attributes.value) {
             upload.Attributes.value = []
         }
-        var save = this.state.save
+        var save = this.state[ROW]._submit
         save.Attributes.className = 'btn btn-success disabled'
         axios.get(file.preview).then(response => {
             var data = new Object()
-            data.file = response.data
+            data._file = response.data
             axios.post(LINKS['save'] + '&file=' + file.name + '.' + file.type, data).then(response => {
                 upload.Attributes.value[response.data] = file.name
                 save.Attributes.className = 'btn btn-success'
-                var state = {'save':save}
-                state[key] = upload
+                var state = []
+                state[ROW] = this.state[ROW]
+                state[ROW]._submit = save
+                state[ROW][key] = upload
                 this.setState(state)
             })
-
         })
         this.setState({'save':save})
     }
@@ -292,6 +293,25 @@ export default class Form extends Component {
         this.run(response, event.target.id + '-progress')
     }
     submit() {
+        var data = this.validate()
+        if(null != data) {
+            request('POST', LINKS.submit, { json: {row:data} })
+        }
+    }
+    run(payload, progress) {
+        if(parseInt(payload.stop) > parseInt(payload.offset)) {
+            axios.post(LINKS['run'], payload).then(response => {  this.run(response.data, progress) })
+            var element = this.state[ROW][progress]
+            element.Attributes.width = payload.offset / (payload.stop / 100)
+            var state = []
+            state[ROW] = this.state[ROW]
+            state[ROW][progress] = element
+            this.setState(state)
+        } else {
+            this.done(payload)
+        }
+    }
+    validate() {
         var data = new Object()
         for(var key in this.state[ROW]) {
             data[key] = this.state[ROW][key].Attributes.value
@@ -300,48 +320,8 @@ export default class Form extends Component {
         state[VALIDATORS] = JSON.parse(request('POST', LINKS.validate, {json: {row:data}}).getBody('utf8'))
         for (var validator in state[VALIDATORS]) {
             this.setState(state)
-            return
+            return null
         }
-        request('POST', LINKS.submit, { json: {row:data} })
-    }
-    run(payload, progress) {
-        if(parseInt(payload.stop) > parseInt(payload.offset)) {
-            axios.post(LINKS['run'], payload).then(response => {  this.run(response.data, progress) })
-            var element = this.state[progress]
-            element.Attributes.width = payload.offset / (payload.stop / 100)
-            var state = []
-            state[progress] = element
-            this.setState(state)
-        } else {
-            this.done(payload)
-        }
-    }
-    validate() {
-        var validated = true;
-        for (var key in this.state) {
-            for(var validator in this.state[ROW][key].Validators) {
-                var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
-                if(undefined == this.state[ROW][key].Attributes.value) {
-                    var validate = this.state[ROW][key].value
-                } else {
-                    var validate = this.state[ROW][key].Attributes.value
-                }
-                if('function' == typeof(closure) && false == closure(validate, key, this.state)) {
-                    var state = [];
-                    var element = this.state[ROW][key];
-                    element.Validators[validator].style = { display : 'block' }
-                    state[key] = element
-                    this.setState(state)
-                    validated = false
-                } else {
-                    var state = [];
-                    var element = this.state[ROW][key];
-                    element.Validators[validator].style = { display : 'none' }
-                    state[key] = element
-                    this.setState(state)
-                }
-            }
-        }
-        return validated
+        return data
     }
 }

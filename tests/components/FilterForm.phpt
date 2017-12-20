@@ -47,14 +47,14 @@ final class FilterFormTest extends TestCase {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
-        $builder = $this->container->getByType('Masala\IRow');
+        $builder = $this->container->getByType('Masala\IBuilder');
         foreach($this->container->parameters['tables'] as $table) {
             $builder->table($table);
-                foreach($builder->getDrivers() as $column) {
-                    if('DATETIME' == $column['nativetype']) {
-                        Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
-                        break;
-                    }
+            foreach($builder->getDrivers($table) as $column) {
+                if('DATETIME' == $column['nativetype']) {
+                    Assert::false(empty($date = $table . '.' . $column['name']), 'Datetime column is not set.');
+                    break;
+                }
             }
         }
         Assert::true(isset($date), 'No datetime column to test for');
@@ -69,6 +69,7 @@ final class FilterFormTest extends TestCase {
                                             ), 'Table of grid was not set.');
             Assert::true(is_object($masala = $this->container->getByType('Masala\Masala')), 'Masala is not set.');
             Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
+            Assert::true(is_object($masala->setRow($presenter->row)), 'Masala::setRow does not return class itself.');
             Assert::true(is_object($presenter->addComponent($masala, 'masala')), 'Attached Masala failed.');
             Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
             Assert::true(is_object($grid = $this->container->getByType('Masala\IGridFactory')), 'IGridFactory is not set.');

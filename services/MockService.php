@@ -86,7 +86,7 @@ final class MockService {
         $urlScript->setPath($root . $presenter . '/' . $action);
         $this->httpRequest = new Http\Request($urlScript);
         $exportService = $this->container->getByType('Masala\ExportService');
-        $builder = new Builder($config['masala'], $exportService, $context, $cacheStorage, $this->httpRequest, $this->translatorModel);
+        $builder = new Builder($config['masala'], $exportService, $context, $cacheStorage, $this->container->getByType('Masala\IRowFormFactory'), $this->translatorModel);
         return $builder;
     }
 
@@ -132,12 +132,12 @@ final class MockService {
         $mocks = empty($_POST) ? $class . '[getName,redirect]' : $class . '[getName,redirect,sendResponse]';
         $presenter = Mockery::mock($mocks, ['__get']);
         $action = preg_replace('/(.*)\/|\.latte/', '', $latteFile);
-        if (property_exists($presenter, 'row')) {
-            $presenter->row = new Row($this->container->parameters, $this->context, $this->cacheStorage);
-        }
         if (property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
         }
+        /*if (property_exists($presenter, 'row')) {
+            $presenter->row = $presenter->grid;
+        }*/
         foreach ($this->services as $serviceId => $method) {
             if (isset($this->config['mockService'][$serviceId]) and property_exists($class, $serviceId)) {
                 $service = $this->container->$method();

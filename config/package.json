@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "masala",
   "version": "1.0.0",
   "dependencies": {
@@ -7,7 +7,9 @@
     "babel-loader": "^6.4.1",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
+    "moment": "^2.19.2",
     "react": "^15.5.4",
+    "react-datetime": "^2.11.0",
     "react-dom": "^15.5.4",
     "react-dropzone": "^3.13.1",
     "sync-request": "^4.0.2",

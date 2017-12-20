@@ -62,6 +62,7 @@ final class ImportFormTest extends TestCase {
             $presenter = $this->mockService->getPresenter($class, $this->presenters[$class]);
             Assert::true(is_object($masala = $presenter->context->getByType('Masala\Masala')), 'Masala is not set.');
             Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
+            Assert::true(is_object($masala->setRow($presenter->grid->copy())), 'Masala:setGrid does not return class itself.');
             Assert::true(is_object($presenter->addComponent($this->container->getByType('Masala\Masala'), 'masala')), 'Attached Masala failed.');                        
             Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
             Assert::same(null, $masala->attached($presenter), 'Masala:attached succeed but method return something. Do you wish to modify test?');
@@ -109,13 +110,13 @@ final class ImportFormTest extends TestCase {
             Assert::true(is_object($this->class), 'ImportForm was not set.');
             Assert::true($this->class instanceof IImportFormFactory, 'ImportForm has wrong instantion.');
             Assert::same(null, $this->class->getData(), 'Data has been attached too early.');
-            Assert::true(property_exists($this->class, 'translatorModel'), 'Translator model was not set');
+            Assert::true(property_exists($this->class, 'translatorRepository'), 'Translator repository was not set');
             Assert::true(is_object($this->class->setService($this->service)), 'IProcess was not set.');
             $csv = __DIR__ . '/' . Strings::webalize(preg_replace('/App|Module|Presenter|action/', '', $class . '-' . $method)) . '.csv';
             Assert::true(is_file($csv), 'Test upload file ' . $csv . ' is not set.');
             $presenter->addComponent($this->class, 'importForm');
             Assert::false(empty($data = $this->class->getData()), 'Data are empty.');
-            Assert::true(isset($data['prepare-progress']), 'Prepare button is missing.');
+            Assert::true(isset($data['_prepare-progress']), 'Prepare button is missing.');
             $presenter->removeComponent($this->class);
             $this->setUp();
         }

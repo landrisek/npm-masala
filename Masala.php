@@ -80,8 +80,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @return IRowFormFactory */
     protected function createComponentRowForm() {
-        $offsets = $this->row->limit(1)->prepare()->getOffsets();
-        
+        $offsets = $this->row->limit(1)->prepare()->getOffsets();        
         return $this->row->row(0, reset($offsets));
     }
 
@@ -141,7 +140,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @return array */
     private function getResponse() {
-        $response = ['file' => $this->grid->getPost('file'),
+        $response = ['_file' => $this->grid->getPost('_file'),
             'data' => $this->grid->getPost('data'),
             'divider' => $this->grid->getPost('divider'),
             'header' => $this->grid->getPost('header'),
@@ -156,18 +155,14 @@ final class Masala extends Control implements IMasalaFactory {
         return $response;
     }
 
-    public function getRow() {
-
-    }
-
-    /** @return JsonResponse */
+    /** @return void */
     public function handleDone() {
         $this->grid->log('done');
         $service = 'get' . ucfirst($this->grid->getPost('status'));
-        return $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
+        $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
     }
 
-    /** @return JsonResponse */
+    /** @return void */
     public function handleExport() {
         $folder = $this->grid->getExport()->getFile();
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
@@ -180,16 +175,16 @@ final class Masala extends Control implements IMasalaFactory {
         $file = $this->grid->getId('export') . '.csv';
         file_put_contents($folder . '/' . $file, $header);
         $response = new JsonResponse($this->grid->getExport()->prepare([
-                'file' => $file,
+                '_file' => $file,
                 'filters' => $this->grid->getPost('filters'),
                 'offset' => 0,
                 'sort' => $this->grid->getPost('sort'),
                 'status' => 'export',
                 'stop' => $this->grid->getSum()], $this));
-        return $this->presenter->sendResponse($response);
+        $this->presenter->sendResponse($response);
     }
 
-    /** @return JsonResponse */
+    /** @return void */
     public function handleExcel() {
         $excel = new PHPExcel();
         $folder = $this->grid->getExport()->getFile();
@@ -215,16 +210,16 @@ final class Masala extends Control implements IMasalaFactory {
         $writer = new PHPExcel_Writer_Excel2007($excel);
         $writer->save($folder . '/' .$file);
         $response = new JsonResponse($this->grid->getExport()->prepare([
-            'file' => $file,
+            '_file' => $file,
             'filters' => $this->grid->getPost('filters'),
             'offset' => 0,
             'sort' => $this->grid->getPost('sort'),
             'status' => 'excel',
             'stop' => $this->grid->getSum()], $this));
-        return $this->presenter->sendResponse($response);
+        $this->presenter->sendResponse($response);
     }
 
-    /** @return JsonResponse */
+    /** @return void */
     public function handleImport() {
         $path = $this->grid->getImport()->getFile();
         $setting = $this->grid->getImport()->getSetting();
@@ -243,15 +238,15 @@ final class Masala extends Control implements IMasalaFactory {
         }
         $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
                                     'header'=>$this->header,
-                                    'file'=> $this->grid->getPost('file'),
+                                    '_file'=> $this->grid->getPost('_file'),
                                     'link'=> $this->link('run'),
                                     'offset'=> $offset,
                                     'status'=>'import',
                                     'stop' => filesize($path)], $this));
-        return $this->presenter->sendResponse($response);
+        $this->presenter->sendResponse($response);
     }
 
-    /** @return JsonResponse */
+    /** @return void */
     public function handlePrepare() {
         $this->grid->log('prepare');
         $data = ['filters' => $this->grid->getPost('filters'),
@@ -260,10 +255,10 @@ final class Masala extends Control implements IMasalaFactory {
             'status' => 'service',
             'stop' => $this->grid->prepare()->getSum()];
         $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
-        return $this->presenter->sendResponse($response);
+        $this->presenter->sendResponse($response);
     }
 
-    /** @return JsonResponse */
+    /** @return void */
     public function handleRun() {
         $response = $this->getResponse();
         if ('import' == $response['status']) {
@@ -292,7 +287,7 @@ final class Masala extends Control implements IMasalaFactory {
         /** export */
         } elseif(in_array($response['status'], ['export', 'excel'])) {
             $service = $this->grid->getExport();
-            $path = $service->getFile() . '/' . $response['file'];
+            $path = $service->getFile() . '/' . $response['_file'];
             $response['limit'] = $service->speed($this->config['speed']);
             $response['row'] = $this->grid->prepare()->getOffsets();
             $response['sort'] = $this->grid->getPost('sort');
@@ -348,12 +343,12 @@ final class Masala extends Control implements IMasalaFactory {
             eval('function call($response["row"]) {' . $sanitize . '}');
             $response['row'] = call($response['row']);
         }
-        return $this->presenter->sendResponse(new JsonResponse($response));
+        $this->presenter->sendResponse(new JsonResponse($response));
     }
 
     /** @return void */
     public function handleSave($file) {
-        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->grid->getPost('file'));
+        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->grid->getPost('_file'));
         $this->presenter->sendResponse(new TextResponse($id));
     }
 

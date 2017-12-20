@@ -3,7 +3,6 @@
 namespace Test;
 
 use Masala\IBuilder,
-    Masala\IRow,
     Masala\Masala,
     Masala\MockService,
     Nette\Application\UI\Presenter,
@@ -23,9 +22,6 @@ final class BuilderTest extends TestCase {
     /** @var IBuilder */
     private $class;
 
-    /** @var IRow */
-    private $row;
-
     /** @var Masala */
     private $masala;
     
@@ -36,10 +32,10 @@ final class BuilderTest extends TestCase {
         $this->container = $container;
     }
 
+    /** @return void */
     protected function setUp() {
         $this->mockService = $this->container->getByType('Masala\MockService');
         $this->class = $this->mockService->getBuilder();
-        $this->row = $this->container->getByType('Masala\IRow');
         $this->masala = $this->container->getByType('Masala\Masala');
     }
 
@@ -48,10 +44,29 @@ final class BuilderTest extends TestCase {
         stream_wrapper_restore('php');
     }
 
-    public function testTable() {
-        Assert::same($this->class, $this->class->table('test'), 'Table setter failed.');
+    /** @return void */
+    public function testConfig() {
+        Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
+        Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set.');
+        Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
+        Assert::true(isset($this->container->parameters['mockService']['testUser']), 'Test user is not set.');
+        Assert::true(isset($this->container->parameters['masala']['users']), 'Table of users is not set.');
+        Assert::true(isset($configuration['masala']['settings']), 'Column for setting of user is not set.');
+        Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users is not set.');
+        Assert::false(empty($column = $configuration['masala']['settings']), 'Column for settings of user is not set.');
+        Assert::true(is_object($user = $mockRepository->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
+        Assert::true(is_object(json_decode($user->$column)) || "[]" == $user->$column, 'Setting of user ' . $user->$column . ' is not valid json.');
     }
 
+    /** @return void */
+    public function testGetQuery() {
+        Assert::same($this->class, $this->class->table($this->container->parameters['tables']['help']), 'Builder:table does not return class itself.');
+        Assert::same($this->class, $this->class->group(['id ASC']), 'Builder:group does not return class itself.');
+        Assert::same($this->class, $this->class->limit(10), 'Builder:limit does not return class itself.');
+        Assert::same($this->container->parameters['tables']['help'], $this->class->getTable(), 'Assign table for help failed.');
+    }
+
+    /** @return void */
     public function testPrepare() {
         $presenters = $this->mockService->getPresenters('IMasalaFactory');
         $this->mockService->setPost(['offset'=>1]);
@@ -82,14 +97,34 @@ final class BuilderTest extends TestCase {
             Assert::false(isset($this->leftJoin), 'Left join in Builder should be private.');
             Assert::false(isset($this->innerJoin), 'Inner join in Builder should be private.');
             Assert::same($this->class, $this->class->table($source), 'Builder:table does not return class itself.');
-            Assert::true(is_array($columns = $this->row->table($source)->getDrivers($source)), 'Table columns are not defined.');
+            Assert::true(is_object($presenter->grid = $this->class->table($source)), 'IBuilder in presenter is not set.');
+            Assert::true(is_object($presenter->row = $this->class->copy()), 'IBuilder in presenter is not set.');
+            Assert::true(is_array($columns = $this->class->table($source)->getDrivers($source)), 'Table columns are not defined.');
             Assert::true($presenter instanceof Presenter, 'Presenter is not set.');
             Assert::true(is_object($this->masala->setGrid($this->class)), 'Masala:setGrid failed.');
+            Assert::true(is_object($this->masala->setRow($this->class->copy())), 'Masala:setRow failed.');
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
             Assert::same(null, $this->masala->attached($presenter), 'Masala:attached method succeed but it does return something. Do you wish modify test?');
             Assert::same(null, $this->class->attached($this->masala), 'Builder:attached method succed but it does return something. Do you wish modify test?');
             Assert::same($this->class->getId('test'), md5($this->masala->getName() . ':' . $presenter->getName() . ':' . $presenter->getAction()  . ':test:' . $presenter->getUser()->getId()), 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
             Assert::false(empty($this->class->prepare()), 'Offset rows for grid were not set.');
+            Assert::false(empty($rows = $this->class->getOffsets()), 'Test row is empty.');
+            Assert::false(empty($row = reset($rows)), 'Test row is not set.');
+            $testRow = [];
+            foreach($columns as $column) {
+                $testRow[$column['name']] = 'test';
+            }
+            Assert::same(null, $this->mockService->setPost(['row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
+            Assert::same(reset($row), 'test');
+            $testRow = [];
+            foreach($columns as $column) {
+                $testRow[$column['name']] = '_test';
+            }
+            Assert::same(null, $this->mockService->setPost(['row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
+            Assert::notSame(reset($row), '_test', 'Data was not deconcated.');
+            Assert::false(empty($row = $this->class->row(1, ['test'=>'_test'])->getData()), 'IRowFormFactory::getData return empty array.');
             $this->setUp();
         }
         Assert::false(isset($this->class->table), 'Builder table variable should be private.');
@@ -100,24 +135,22 @@ final class BuilderTest extends TestCase {
         }
     }
 
-    public function testGetQuery() {
-        Assert::same($this->class, $this->class->table($this->container->parameters['tables']['help']), 'Builder:table does not return class itself.');
-        Assert::same($this->class, $this->class->group(['id ASC']), 'Builder:group does not return class itself.');
-        Assert::same($this->class, $this->class->limit(10), 'Builder:limit does not return class itself.');
-        Assert::same($this->container->parameters['tables']['help'], $this->class->getTable(), 'Assign table for help failed.');
+    /** @return void */
+    public function testRow() {
+        Assert::false(empty($tables = $this->container->parameters['tables']), 'Test tables are not set.');
+        Assert::true(shuffle($tables), 'Test table is not set.');
+        Assert::false(empty($table = reset($tables)), 'Test table is not set.');
+        Assert::false(empty($drivers = $this->class->getDrivers($table)), 'Drivers are not set for table ' . $table);
+        foreach($drivers as $driver) {
+            if(true == $driver['primary']) {
+                Assert::same(0, preg_match('/\@unedit/', $driver['vendor']['Comment']), 'Primary keys should be not unedit.');
+            }
+        }
     }
 
-    public function testConfig() {
-        Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
-        Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set.');
-        Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
-        Assert::true(isset($this->container->parameters['mockService']['testUser']), 'Test user is not set.');
-        Assert::true(isset($this->container->parameters['masala']['users']), 'Table of users is not set.');
-        Assert::true(isset($configuration['masala']['settings']), 'Column for setting of user is not set.');
-        Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users is not set.');
-        Assert::false(empty($column = $configuration['masala']['settings']), 'Column for settings of user is not set.');
-        Assert::true(is_object($user = $mockRepository->getTestRow($table, [$column . ' IS NOT NULL'=>true])), 'There is no user with define setting');
-        Assert::true(is_object(json_decode($user->$column)) || "[]" == $user->$column, 'Setting of user ' . $user->$column . ' is not valid json.');
+    /** @return void */
+    public function testTable() {
+        Assert::same($this->class, $this->class->table('test'), 'Table setter failed.');
     }
 
 }

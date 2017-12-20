@@ -16,14 +16,14 @@ final class Grid extends Control implements IGridFactory {
     /** @var string */
     private $appDir;
 
+    /** @var IBuilder */
+    private $builder;
+
     /** @var string */
     private $config;
 
     /** @var IReactFormFactory */
     private $filterForm;
-
-    /** @var IBuilder */
-    private $builder;
 
     /** @var string */
     private $jsDir;
@@ -58,6 +58,13 @@ final class Grid extends Control implements IGridFactory {
         $this->translatorModel = $translatorModel;
         $this->user = $user;
         $this->usersModel = $usersModel;
+    }
+
+    /** @return array */
+    private function action($key) {
+        return ['Attributes' => ['className' => 'fa-hover fa fa-' . Types::string($key), 'link' => $this->link($key)],
+            'Tag' => 'a',
+            'Label' => $this->translatorModel->translate($key)];
     }
 
     private function addDate($name, $label, $attributes) {
@@ -167,47 +174,6 @@ final class Grid extends Control implements IGridFactory {
         return $this;
     }
 
-    /** @return array */
-    private function getActions() {
-        $template = $this->appDir . '/' . preg_replace('/\:/', 'Module/templates/', $this->presenter->getName()) . '/';
-        if (is_file($json = $template . 'actions.' . $this->presenter->getAction() . '.json') && is_object($rows = json_decode(file_get_contents($json)))) {
-        } elseif (is_file($json = $template . 'actions.json') && is_object($rows = json_decode(file_get_contents($json)))) {
-        } else  {
-            $rows = [];
-        }
-        $actions = [];
-        foreach($rows as $rowId => $row) {
-            if(isset($row->signal) && isset($row->presenter)) {
-                $actions[$rowId]['onClick'] = 'signal';
-                $actions[$rowId]['href'] = $this->getPresenter()->link('this', ['do' => $row->signal]);
-            } else if(isset($row->signal)) {
-                    $actions[$rowId]['onClick'] = $row->signal;
-                    $actions[$rowId]['href'] = $this->link('this', ['do' => $row->signal]);
-            } else if(!isset($row->presenter) and !isset($row->action)) {
-                $actions[$rowId]['href'] = $this->getPresenter()->link('this');
-            } elseif(!isset($row->presenter)) {
-                $actions[$rowId]['href'] = $this->getPresenter()->link(':' . $this->getPresenter()->getName() . ':' . $row->action);
-            } elseif(!isset($row->action)) {
-                $actions[$rowId]['href'] = $this->getPresenter()->link(':' . $row->presenter . ':' . $this->getPresenter()->getAction());
-            } else {
-                $actions[$rowId]['href'] = $this->getPresenter()->link(':' . $row->presenter . ':' . $row->action);
-            }
-            $actions[$rowId]['label'] = isset($row->label) ? $this->translatorModel->translate($row->label) : '';
-            $actions[$rowId]['className'] = isset($row->class)? $row->class : 'hide';
-            $actions[$rowId]['parameters'] = isset($row->parameters) ? $row->parameters : [];
-            $actions[$rowId]['url'] = isset($row->url) ? $row->url : '';
-        }
-        if($this->builder->getGraph() instanceof IGraph) {
-            $size = sizeof($actions);
-            $actions[$size]['onClick'] = 'signal';
-            $actions[$size]['label'] = ucfirst($this->translatorModel->translate('graph'));
-            $actions[$size]['className'] = 'fa-hover fa fa-bar-chart';
-            $actions[$size]['url'] = '';
-            $actions[$size]['href'] = $this->link('graph');
-        }
-        return $actions;
-    }
-
     /** @return array | string */
     private function getSpice($column) {
         if(isset($this->spice[$column])) {
@@ -222,7 +188,11 @@ final class Grid extends Control implements IGridFactory {
 
     /** @return void */
     public function handleEdit() {
-        $this->presenter->sendResponse(new JsonResponse($this->builder->row($this->builder->getPost('id'), $this->builder->getPost('row'))->getData()));
+        $row = $this->builder->row($this->builder->getPost('id'), $this->builder->getPost('row'));
+        if($this->builder->isEdit()) {
+            $this->builder->getEdit()->after($row);
+        }
+        $this->presenter->sendResponse(new JsonResponse($row->getData()));
     }
 
     /** @return void */
@@ -233,11 +203,11 @@ final class Grid extends Control implements IGridFactory {
     }
 
     /** @return void */
-    public function handleGraph() {
+    public function handleChart() {
         $data = [];
-        $graph = $this->builder->getGraph()->graph($this->builder->getPost('spice'), $this->builder->getPost('row'));
-        $percent = max($graph) / 100;
-        foreach($graph as $key => $value) {
+        $chart = $this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('row'));
+        $percent = max($chart) / 100;
+        foreach($chart as $key => $value) {
             if('position' == $key) {
             } else if($percent > 0) {
                 $data[$key] = ['percent' => $value / $percent, 'value' => $value];
@@ -245,7 +215,7 @@ final class Grid extends Control implements IGridFactory {
                 $data[$key] = ['percent' => 0, 'value' => $value];
             }
         }
-        $this->presenter->sendResponse(new JsonResponse(['graph'=>isset($graph['position']) ? $graph['position'] : '','data'=>$data]));
+        $this->presenter->sendResponse(new JsonResponse(['chart'=>isset($chart['position']) ? $chart['position'] : '','data'=>$data]));
     }
 
     /** @return JsonResponse */
@@ -271,11 +241,6 @@ final class Grid extends Control implements IGridFactory {
     /** @return void */
     public function handleRemove() {
         $this->presenter->sendResponse(new JsonResponse($this->builder->delete()));
-    }
-
-    /** @return void */
-    public function handleRow() {
-
     }
 
     /** @return void */
@@ -337,9 +302,9 @@ final class Grid extends Control implements IGridFactory {
         }
         $link .= $spice . '=';
         $columns = $this->filterForm->getData();
-        if($this->builder->getGraph() instanceof IGraph) {
-            $columns['graphs'] = ['Label'=> $this->translatorModel->translate('graphs'),'Method'=>'addButton','Attributes'=>
-                ['className'=>'fa-hover fa fa-bar-chart','filter'=> false,'link' => $this->link('graph'),'onClick'=>'graphs','summary' => false,'unrender' => false, 'unfilter' => false,'unsort'=>true]];
+        if($this->builder->getChart() instanceof IChart) {
+            $columns['charts'] = ['Label'=> $this->translatorModel->translate('charts'), 'Method'=>'addButton','Attributes'=>
+                ['className'=>'fa-hover fa fa-bar-chart','filter'=> false,'link' => $this->link('chart'),'onClick'=>'charts','summary' => false,'unrender' => false, 'unfilter' => false,'unsort'=>true]];
         }
         $export = ['style' => ['marginRight'=>'10px','float'=>'left']];
         $excel = ['style' => ['marginRight'=>'10px','float'=>'left']];
@@ -355,32 +320,26 @@ final class Grid extends Control implements IGridFactory {
             $export['onClick'] = 'prepare';
             $export['width'] = 0;
         }
-        $dialogs = [];
-        foreach($this->builder->getDialogs() as $key) {
-            $id = $key == 'add' ? -1 : $key;
-            $dialogs[$key] = ['className'=>'btn btn-warning',
-                'id' => $id,
-                'label'=>$this->translatorModel->translate('dialog:' . $key),
-                'link' => $this->link($key),
-                'onClick'=>$key];
-        }
-        $modals = [];
-        foreach($this->builder->getActions() as $key) {
-            $modals[$key] = $this->link($key);
-        }
-        $this->template->triggers = ['setting','reset','send','excel','export','process','done'];
+        $this->template->dialogs = ['setting','reset','send','excel','export','process','done','add'];
         if($this->builder->getButton() instanceof IButton) {
             foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
-                $this->template->triggers[] = $buttonId;
+                $this->template->dialogs[] = $buttonId;
             }
         }
-        $data = ['actions' => $this->getActions(),
-                'buttons' => [
-                    'done' => ['class' => 'alert alert-success',
+        $data = ['buttons' => [
+                    'add' => $this->builder->isEdit() ? ['Attributes' => ['className'=>'btn btn-warning',
+                        'id' => -1,
+                        'label'=> $this->translatorModel->translate('add item'),
+                        'link' => $this->link('add'),
+                        'onClick'=> 'add'],
+                        'Label' => $this->translatorModel->translate('add item')] : [],
+                    'chart' => $this->builder->isChart() ? $this->action('chart') : [],
+                    'dialogs' => $this->template->dialogs,
+                    'done' => ['className' => 'alert alert-success',
                         'label' => $this->translatorModel->translate('Click here to download your file.'),
                         'link' => $this->getParent()->link('done'),
                         'style' => ['display'=>'none', 'float' => 'left', 'marginRight' => '10px']],
-                    'dialogs' => $modals,
+                    'edit' => $this->builder->isEdit() ? $this->action('edit') : [],
                     'export' => $export,
                     'excel' => $excel,
                     'filter' => $this->link('filter'),
@@ -392,7 +351,7 @@ final class Grid extends Control implements IGridFactory {
                     'process' => [],
                     'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
                     'push' => $this->link('push'),
-                    'remove' => $this->link('remove'),
+                    'remove' => $this->builder->isRemove() ? $this->action('remove') : [],
                     'reset' => ['label' =>$this->translatorModel->translate('reset form'),
                         'className' => 'btn btn-warning',
                         'onClick' => 'reset',
@@ -409,13 +368,11 @@ final class Grid extends Control implements IGridFactory {
                         'onClick' => 'setting',
                         'style' => ['marginRight'=>'10px','float'=>'left']] : false,
                     'summary' => $this->link('summary'),
-                    'triggers' => $this->template->triggers,
                     'update' => $this->link('update'),
                     'validate' => $this->link('validate')],
                 'columns' => $columns,
-                'dialogs' => $dialogs,
                 'edit' => [],
-                'graphs' => [],
+                'charts' => [],
                 'listeners' => [],
                 'lists' => $this->lists,
                 'row' => ['add' => $this->builder->row(-1, $this->row)->getData(), 'edit' => []],
@@ -434,7 +391,7 @@ final class Grid extends Control implements IGridFactory {
             $process = $this->translatorModel->translate('process');
         }
         if($this->builder->getService() instanceof IProcess) {
-            $data['buttons']['process'] = ['class' => 'btn btn-success',
+            $data['buttons']['process'] = ['className' => 'btn btn-success',
                 'label' => $process,
                 'link' => $this->getParent()->link('prepare'),
                 'style' => ['marginRight'=>'10px','float'=>'left'],

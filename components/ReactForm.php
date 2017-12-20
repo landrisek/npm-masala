@@ -169,9 +169,9 @@ class ReactForm extends Control implements IReactFormFactory {
         return $this->add($key, $label,__FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IRequest */
-    public function getRequest() {
-        return $this->request;
+    /** @return array */
+    public function getComponent($key) {
+        return $this->data[$key];
     }
 
     /** @return array */
@@ -179,11 +179,22 @@ class ReactForm extends Control implements IReactFormFactory {
         return $this->data;
     }
 
+    /** @return IRequest */
+    public function getRequest() {
+        return $this->request;
+    }
+
     /** @return bool */
     public function isSignalled() {
         return !empty($this->request->getUrl()->getQueryParameter('do'));
     }
 
+    /** @return void */
+    public function unsetOffset($key) {
+        unset($this->data[$key]);
+    }
+
+    /** @return void */
     public function render(...$args) {
         $this->template->component = $this->getName();
         $this->template->data = json_encode(['row' => $this->data, 'validators' => []]);

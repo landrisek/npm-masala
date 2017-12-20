@@ -32,7 +32,7 @@ final class ExportService implements IProcess {
 
     /** @return array */
     public function done(array $response, IMasalaFactory $masala) {
-        return ['label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['file']];
+        return ['label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['_file']];
     }
 
     /** @return string */
