@@ -5,9 +5,9 @@ namespace Masala;
 interface IFetch {
 
     /** @return array */
-    function fetch(IBuilder $builder);
+    public function fetch(IBuilder $builder);
 
     /** @return int */
-    function sum(IBuilder $builder);
+    public function sum(IBuilder $builder);
 
 }

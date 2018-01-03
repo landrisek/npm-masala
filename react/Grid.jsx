@@ -1,3 +1,4 @@
+import {AreaChart} from 'react-easy-chart';
 import axios from 'axios'
 import Datetime from 'react-datetime'
 import React, {Component} from 'react'
@@ -6,7 +7,6 @@ import request from 'sync-request'
 
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
-var CHART = 'chart'
 var CHARTS = 'charts'
 var LISTENERS = 'listeners'
 var LISTS = 'lists'
@@ -94,7 +94,21 @@ export default class Grid extends Component {
             var id = 'row-' + i++;
             body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
             if('object' == typeof(this.state[CHARTS][key])) {
-                body.push(<tr id={'row-chart-' + i} key={'row-chart-' + i} style={{height:'200px'}} ></tr>)
+                body.push(<AreaChart
+                    xType={'text'}
+                    axes
+                    data={this.state[CHARTS][key]}
+                    xTicks={5}
+                    yTicks={3}
+                    dataPoints
+                    key={'chart-' + key}
+                    grid
+                    noAreaGradient
+                    tickTimeDisplayFormat={'%d %m'}
+                    interpolate={'cardinal'}
+                    width={document.getElementById('row-' + key).offsetWidth * 0.98}
+                    height={200}
+                />)
             }
         }
         SIZE = i
@@ -241,58 +255,6 @@ export default class Grid extends Component {
     addHidden(key) {
         return <th class={'grid-col-' + key} key={key}></th>
     }
-    addGraphs() {
-        var charts = []
-        var header = document.getElementById('masala-header')
-        var margin = 0
-        var summary = document.getElementById('masala-summary')
-        var width = 50
-        if(null != header) {
-            charts.push(<tr key='chart-header' style={{height:header.offsetHeight,width:header.offsetWidth,visible:'hidden'}}></tr>)
-            charts.push(<tr key='chart-summery' style={{height:summary.offsetHeight,width:summary.offsetWidth,visible:'hidden'}}></tr>)
-            var i = 0
-            for(var key in this.state[CHARTS]) {
-                for(var chart in this.state[CHARTS][key]) {
-                    i++
-                }
-                break
-            }
-            for(var key in this.state[COLUMNS]) {
-                if(key == this.state[CHART] || '' == this.state[CHART]) {
-                    break
-                } else if(null != document.getElementById('grid-col-' + key)) {
-                    margin += document.getElementById('grid-col-' + key).offsetWidth
-                }
-            }
-            width = (header.offsetWidth - margin) / i
-            if(width > 60) {
-                width = 60
-            }
-        }
-        for(var key in this.state[ROWS]) {
-            if(undefined != this.state[CHARTS][key]) {
-                var row = document.getElementById('row-' + key)
-                var container = []
-                charts.push(<tr key={'chart-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
-                container.push(<th key='chart-fill' width={margin + ' px'}></th>)
-                for(var chart in this.state[CHARTS][key]) {
-                    var value = ''
-                    if(this.state[CHARTS][key][chart].value > 0) {
-                        value = this.state[CHARTS][key][chart].value
-                    }
-                    container.push(<th className='chart' key={'chart-' + chart} style={{width:width + 'px'}}><span key={'chart-' + chart} style={{height:'100%'}}>
-                        <span style={{background:'rgba(209, 236, 250, 0.75)',height:this.state[CHARTS][key][chart].percent + '%'}}>{value}</span>
-                    </span><span>{chart}</span></th>)
-                }
-                charts.push(<tr id={'row-fix-' + key} key={'row-fix-' + key}>{container}</tr>)
-            }
-            if(undefined == this.state[CHARTS][key] && this.state[CHARTS].length > 0) {
-                var row = document.getElementById('row-' + key)
-                charts.push(<tr key={'chart-row-' + key} style={{height:row.offsetHeight,width:row.offsetWidth}}></tr>)
-            }
-        }
-        return charts
-    }
     addMultiSelect(key) {
         var values = new Object()
         var selected = false
@@ -433,7 +395,9 @@ export default class Grid extends Component {
     }
     addRow(rows, key) {
         var container = []
+        var actions = false
         for(var row in rows) {
+            actions = true
             if(undefined != this.state[COLUMNS][row] && true != this.state[COLUMNS][row].Attributes.unrender) {
                 if('object' == typeof(rows[row]) && null !== rows[row]) {
                     rows[row].Attributes.id = row
@@ -456,9 +420,11 @@ export default class Grid extends Component {
                 container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{actions}</td>)
             }
         }
-        container.push(this.addActions('edit', key))
-        container.push(this.addActions('chart', key))
-        container.push(this.addActions('remove', key))
+        if(true == actions) {
+            container.push(this.addActions('edit', key))
+            container.push(this.addActions('chart', key))
+            container.push(this.addActions('remove', key))
+        }
         return container
     }
     addSelect(key) {
@@ -535,14 +501,12 @@ export default class Grid extends Component {
     }
     chart(event) {
         var response = JSON.parse(request('POST', this.state[BUTTONS].chart.Attributes.link, { json: {spice:this.getSpice(),row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
-        console.log(response)
         var state = []
-        if(undefined != response.chart && undefined == this.state[CHARTS][event.target.id]) {
-            state[CHART] = response.chart
+        if(undefined == this.state[CHARTS][event.target.id]) {
             state[CHARTS] = this.state[CHARTS]
-            state[CHARTS][event.target.id] = response.data
+            state[CHARTS][event.target.id] = response
             this.setState(state)
-        } else if(undefined != response.chart) {
+        } else {
             state[CHARTS] = this.state[CHARTS]
             delete state[CHARTS][event.target.id]
             this.setState(state)
@@ -817,7 +781,6 @@ export default class Grid extends Component {
                     <tr className='grid-columns'>{this.addColumns()}</tr>
                 </thead>
                 <tbody>{this.addBody()}</tbody>
-                <tbody className='chart' style={{backgroundImage:'none',position:'absolute',top:'0px'}}>{this.addGraphs()}</tbody>
             </table>
             <ul key='down-paginator' id='down-paginator' className='pagination'>{this.addPaginator()}</ul>
             {this.addDialog('add')}{this.addDialog('edit')}
@@ -871,7 +834,7 @@ export default class Grid extends Component {
                 if('service' == response.data.status && 'object' == typeof(response.data.row) && SIZE > payload.offset) {
                     state[ROWS] = this.state[ROWS]
                     for(var row in response.data.row) {
-                        state[ROWS][payload.offset] = response.data.row[row]
+                        state[ROWS][parseInt(row) + parseInt(payload.offset)] = response.data.row[row]
                     }
                 }
                 this.setState(state)

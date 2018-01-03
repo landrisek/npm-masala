@@ -1,11 +1,10 @@
 <?php
-
 namespace Masala;
 
 use Nette\Application\UI\Control,
     Nette\Application\IPresenter,
     Nette\Application\Responses\JsonResponse,
-    Nette\Database\Table\ActiveRow,
+    Nette\Database\Table\IRow,
     Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
@@ -28,9 +27,6 @@ final class ContentForm extends Control implements IContentFormFactory {
 
     /** @var IPresenter */
     private $presenter;
-
-    /** @var IRow */
-    private $row;
 
     /** @var array */
     private $source;

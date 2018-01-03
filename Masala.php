@@ -221,7 +221,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     /** @return void */
     public function handleImport() {
-        $path = $this->grid->getImport()->getFile();
+        $path = $this->grid->getImport()->getFile() . $this->grid->getPost('_name');
         $setting = $this->grid->getImport()->getSetting();
         $header = json_decode($setting->mapper);
         $divider = $this->getDivider($path);
@@ -238,7 +238,7 @@ final class Masala extends Control implements IMasalaFactory {
         }
         $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
                                     'header'=>$this->header,
-                                    '_file'=> $this->grid->getPost('_file'),
+                                    '_file'=> $this->grid->getPost('_name'),
                                     'link'=> $this->link('run'),
                                     'offset'=> $offset,
                                     'status'=>'import',
@@ -263,7 +263,7 @@ final class Masala extends Control implements IMasalaFactory {
         $response = $this->getResponse();
         if ('import' == $response['status']) {
             $service = $this->grid->getImport();
-            $path = $this->grid->getImport()->getFile();
+            $path = $this->grid->getImport()->getFile() . $this->grid->getPost('_file');
             $handle = fopen($path, 'r');
             for($i = 0; $i < $speed = $service->speed($this->config['speed']); $i++) {
                 fseek($handle, $response['offset']);
@@ -347,9 +347,13 @@ final class Masala extends Control implements IMasalaFactory {
     }
 
     /** @return void */
-    public function handleSave($file) {
-        $this->getGrid()->getImport()->save($id = $this->grid->getId($file), $this->grid->getPost('_file'));
-        $this->presenter->sendResponse(new TextResponse($id));
+    public function handleSave() {
+        if($this->grid->isImport())  {
+            $this->grid->getImport()->save($this->grid->getPost(''));
+        } else {
+            $this->row->getImport()->save($this->row->getPost(''));
+        }
+        $this->presenter->sendResponse(new TextResponse($this->row->getPost('_name')));
     }
 
     /** @return void */

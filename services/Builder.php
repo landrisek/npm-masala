@@ -11,6 +11,7 @@ use Nette\Application\IPresenter,
     Nette\InvalidStateException,
     Nette\Localization\ITranslator,
     Nette\Utils\Validators;
+use Nette\DateTime;
 
 /** @author Lubomir Andrisek */
 final class Builder implements IBuilder {
@@ -323,10 +324,10 @@ final class Builder implements IBuilder {
 
     /** @return IBuilder */
     public function edit($edit) {
-        if(true == $edit) {
-            $this->edit = new Edit();
-        } else {
+        if($edit instanceof IEdit) {
             $this->edit = $edit;
+        } else {
+            $this->edit = new Edit();
         }
         $this->actions['add'] = 'add';
         $this->actions['edit'] = 'edit';
@@ -337,6 +338,16 @@ final class Builder implements IBuilder {
     public function fetch(IFetch $fetch) {
         $this->fetch = $fetch;
         return $this;
+    }
+
+    /** @return array */
+    private function format(array $row) {
+        foreach($row as $key => $format) {
+            if($format instanceof DateTime) {
+                $row[$key] = $format instanceof DateTime ? date($this->config['format']['date']['build'], strtotime($format->__toString())) : $row[$key];
+            }
+        }
+        return $row;
     }
 
     /** @return IBuilder */
@@ -574,14 +585,14 @@ final class Builder implements IBuilder {
                     ->fetchAll();
                 $data = [];
                 foreach($resource as $row) {
-                    $data[] = $this->build instanceof IBuild ? $this->build->build($row->toArray()) : $row->toArray();
+                    $data[] = $this->build instanceof IBuild ? $this->build->build($this->format($row->toArray())) : $this->format($row->toArray());
                 }
             } else {
                 $arguments = array_values($this->arguments);
                 $resource = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments);
                 $data = [];
                 foreach($resource as $row) {
-                    $data[] = $this->build instanceof IBuild ? $this->build->build((array) $row) : (array) $row;
+                    $data[] = $this->build instanceof IBuild ? $this->build->build($this->format((array) $row)) : $this->format((array) $row);
                 }
             }
             /** if(!empty($data)) {
@@ -909,14 +920,14 @@ final class Builder implements IBuilder {
                 $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
-                $attributes['format'] = $this->config['format']['time']['edit'];
+                $attributes['format'] = $this->config['format']['time']['build'];
                 $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-                $attributes['value'] = is_null($value) ? null : date($this->config['format']['time']['edit'], strtotime($value));
+                $attributes['value'] = is_null($value) ? null : date($this->config['format']['time']['build'], strtotime($value));
                 $this->row->addDateTime($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['date'])) {
-                $attributes['format'] = $this->config['format']['date']['edit'];
+                $attributes['format'] = $this->config['format']['date']['build'];
                 $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-                $attributes['value'] = is_null($value) ? null : date($this->config['format']['date']['edit'], strtotime($value));
+                $attributes['value'] = is_null($value) ? null : date($this->config['format']['date']['build'], strtotime($value));
                 $this->row->addDateTime($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, 'tinyint') && 1 == $value) {
                 $attributes['checked'] = 'checked';
@@ -1217,6 +1228,7 @@ final class Builder implements IBuilder {
             $this->offset = ($offset - 1) * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
         } else {
+            $this->offset = $offset;
             if(in_array($status, ['excel', 'export'])) {
                 $this->limit = $this->export->speed($this->config['speed']);
             } else if('import' == $status) {
@@ -1224,10 +1236,11 @@ final class Builder implements IBuilder {
             } else {
                 $this->limit = $this->service->speed($this->config['speed']);
             }
-            $this->offset = $offset;
-            $this->sort = '';
-            foreach($this->keys as $primary => $value) {
-                $this->sort .= $primary . ' ASC, ';
+            if(in_array($status, ['import', 'excel', 'export'])) {
+                $this->sort = '';
+                foreach($this->keys as $primary => $value) {
+                    $this->sort .= $primary . ' ASC, ';
+                }
             }
         }
         /** sort */

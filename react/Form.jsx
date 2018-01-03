@@ -267,26 +267,28 @@ export default class Form extends Component {
         this.setState(state)
     }
     save(key, file) {
-        var upload = this.state[ROW][key]
-        if(undefined == upload.Attributes.value) {
-            upload.Attributes.value = []
+        var state = []
+        state[ROW] = this.state[ROW]
+        if(undefined == state[ROW][key].Attributes.value) {
+            state[ROW][key].Attributes.value = []
         }
-        var save = this.state[ROW]._submit
-        save.Attributes.className = 'btn btn-success disabled'
+        state[ROW]._submit
+        state[ROW]._submit.Attributes.className = 'btn btn-success disabled'
         axios.get(file.preview).then(response => {
-            var data = new Object()
+            var data = this.state[ROW]
             data._file = response.data
-            axios.post(LINKS['save'] + '&file=' + file.name + '.' + file.type, data).then(response => {
-                upload.Attributes.value[response.data] = file.name
-                save.Attributes.className = 'btn btn-success'
-                var state = []
-                state[ROW] = this.state[ROW]
-                state[ROW]._submit = save
-                state[ROW][key] = upload
+            data._name = file.name
+            data._key = key
+            axios.post(LINKS.save, data).then(response => {
+                delete state[ROW]._file
+                delete state[ROW]._name
+                delete state[ROW]._key
+                state[ROW][key].Attributes.value[response.data] = file.name
+                state[ROW]._submit.Attributes.className = 'btn btn-success'
                 this.setState(state)
             })
         })
-        this.setState({'save':save})
+        this.setState(state)
     }
     prepare(event) {
         var response = JSON.parse(request('POST', LINKS.prepare, { json: this.state }).getBody('utf8'))

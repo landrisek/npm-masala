@@ -72,15 +72,15 @@ final class Grid extends Control implements IGridFactory {
         $attributes['class'] = 'form-control';
         $attributes['filter'] = true;
         $attributes['unfilter'] = true;
-        $attributes['format'] = $this->config['format']['date']['edit'];
+        $attributes['format'] = $this->config['format']['date']['build'];
         $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
         foreach($operators as $operator => $sign) {
             if(!empty($value = preg_replace('/\s(.*)/', '', $this->builder->getFilter($this->builder->getColumn($name) . ' ' . $operator)))
                 && null == $spice = $this->getSpice($name . ' ' . $operator)) {
-                $attributes['value'] = date($this->config['format']['date']['edit'], strtotime($value));
+                $attributes['value'] = date($this->config['format']['date']['build'], strtotime($value));
                 $this->filterForm->addDateTime($name . ' ' . $operator, $label . ' ' . $this->translatorModel->translate($sign), $attributes);
             } else if (!empty($value)) {
-                $attributes['value'] = date($this->config['format']['date']['edit'], strtotime($spice));
+                $attributes['value'] = date($this->config['format']['date']['build'], strtotime($spice));
                 $this->filterForm->addDateTime($name . ' ' . $operator, $label . ' ' . $this->translatorModel->translate($sign), $attributes);
             }
         }
@@ -119,12 +119,12 @@ final class Grid extends Control implements IGridFactory {
                 } elseif (true == $this->builder->getAnnotation($name, 'addCheckbox')) {
                     $this->filterForm->addCheckbox($name, $label, $attributes);
                 } elseif (true == $this->builder->getAnnotation($name, 'addDateTime')) {
-                    $attributes['format'] = $this->config['format']['time']['edit'];
+                    $attributes['format'] = $this->config['format']['time']['build'];
                     $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
                     $attributes['value'] = is_null($attributes['value']) ? $attributes['value'] : date($attributes['format'], strtotime($attributes['value']));
                     $this->filterForm->addDateTime($name, $label, $attributes);
                 } elseif (true == $this->builder->getAnnotation($name, 'addDate')) {
-                    $attributes['format'] = $this->config['format']['date']['edit'];
+                    $attributes['format'] = $this->config['format']['date']['build'];
                     $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
                     $attributes['value'] = is_null($attributes['value']) ? $attributes['value'] : date($attributes['format'], strtotime($attributes['value']));
                     $this->filterForm->addDateTime($name, $label, $attributes);
@@ -204,18 +204,7 @@ final class Grid extends Control implements IGridFactory {
 
     /** @return void */
     public function handleChart() {
-        $data = [];
-        $chart = $this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('row'));
-        $percent = max($chart) / 100;
-        foreach($chart as $key => $value) {
-            if('position' == $key) {
-            } else if($percent > 0) {
-                $data[$key] = ['percent' => $value / $percent, 'value' => $value];
-            } else {
-                $data[$key] = ['percent' => 0, 'value' => $value];
-            }
-        }
-        $this->presenter->sendResponse(new JsonResponse(['chart'=>isset($chart['position']) ? $chart['position'] : '','data'=>$data]));
+        $this->presenter->sendResponse(new JsonResponse($this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('row'))));
     }
 
     /** @return JsonResponse */

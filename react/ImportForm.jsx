@@ -14,7 +14,6 @@ export default class ImportForm extends Form {
     }
     done(payload) {
         super.done(payload)
-        console.log(payload)
         var element = this.state[ROW]._done
         element.Attributes.style = {display:'block'}
         var state = []
@@ -28,30 +27,21 @@ export default class ImportForm extends Form {
     submit() {
         var data = this.validate()
         if(null != data) {
-            var submit = this.state[ROW]._submit
-            var file = this.state[ROW]._file
-            var data = new Object()
             var state = []
-            state[ROW] = this.state[ROW];
-            for (var upload in state[ROW]._file.Attributes.value) break;
-            data._file = upload
-            submit.Attributes.style = {display:'none'}
-            file.Attributes.style = {display:'none'}
-            state[ROW]._submit = submit
-            state[ROW]._file = file
-            this.setState(state)
-            var prepare = this.state[ROW]._prepare
-            prepare.Attributes.className = 'btn btn-success disabled'
-            prepare.Attributes.style = {display:'block'}
-            axios.post(LINKS['import'], data).then(response => {
-                prepare.Attributes.data = response.data
-                prepare.Attributes.className = 'btn btn-success'
-                state[ROW] = this.state[ROW]
-                state[ROW]._prepare = prepare
-                this.setState(state)
-            })
             state[ROW] = this.state[ROW]
-            state[ROW]._prepare = prepare
+            for(var file in state[ROW]._import.Attributes.value) { break; }
+            state[ROW]._name = file
+            state[ROW]._submit.Attributes.style = {display:'none'}
+            state[ROW]._import.Attributes.style = {display:'none'}
+            this.setState(state)
+            state[ROW]._prepare.Attributes.style = {display:'block'}
+            axios.post(LINKS.import, state[ROW]).then(response => {
+                state[ROW]._prepare.Attributes.data = response.data
+                state[ROW]._prepare.Attributes.className = 'btn btn-success'
+                delete state[ROW]._name
+                this.setState(state)
+                this.prepare({target:{id:'_prepare'}})
+            })
             this.setState(state)
         }
     }

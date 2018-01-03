@@ -7,27 +7,27 @@ use Nette\Database\Table\IRow;
 interface IProcess {
 
     /** @return void */
-    function attached(IReactFormFactory $form);
+    public function attached(IReactFormFactory $form);
 
     /** @return array */
-    function done(array $data, IMasalaFactory $masala);
+    public function done(array $data, IMasalaFactory $masala);
 
     /** @return string */
-    function getFile();
+    public function getFile();
 
     /** @return IRow */
-    function getSetting();
+    public function getSetting();
 
     /** @return array */
-    function prepare(array $response, IMasalaFactory $masala);
+    public function prepare(array $response, IMasalaFactory $masala);
 
     /** @return array */
-    function run(array $response, IMasalaFactory $masala);
+    public function run(array $response, IMasalaFactory $masala);
 
     /** @return IProcess */
-    function setSetting(IRow $setting);
+    public function setSetting(IRow $setting);
 
     /** @return int */
-    function speed($speed);
+    public function speed($speed);
 
 }
