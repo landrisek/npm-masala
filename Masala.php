@@ -42,16 +42,16 @@ final class Masala extends Control implements IMasalaFactory {
     private $row;
 
     /** @var ITranslator */
-    private $translatorModel;
+    private $translatorRepository;
 
-    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IRequest $request, ITranslator $translatorModel) {
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IRequest $request, ITranslator $translatorRepository) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
         $this->helpRepository = $helpRepository;
         $this->importFormFactory = $importFormFactory;
         $this->request = $request;
-        $this->translatorModel = $translatorModel;
+        $this->translatorRepository = $translatorRepository;
     }
 
     /** @return void */
@@ -75,19 +75,23 @@ final class Masala extends Control implements IMasalaFactory {
     /** @return IGridFactory */
     protected function createComponentGrid() {
         return $this->gridFactory->create()
-            ->setGrid($this->grid);
+                    ->setGrid($this->grid);
     }
 
     /** @return IRowFormFactory */
     protected function createComponentRowForm() {
-        $offsets = $this->row->limit(1)->prepare()->getOffsets();        
-        return $this->row->row(0, reset($offsets));
+        $offsets = $this->row->limit(1)->prepare()->getOffsets();
+        $form = $this->row->row(0, reset($offsets));
+        if($this->row->isEdit()) {
+            $this->row->getEdit()->after($form);
+        }
+        return $form;
     }
 
     /** @return IImportFormFactory */
     protected function createComponentImportForm() {
         return $this->importFormFactory->create()
-            ->setService($this->grid->getImport());
+                    ->setService($this->grid->getImport());
     }
 
     /** @return IBuilder */
@@ -119,7 +123,7 @@ final class Masala extends Control implements IMasalaFactory {
         if (!empty($this->header)) {
             foreach (json_decode($this->grid->getImport()->getSetting()->validator) as $validator => $value) {
                 if (!isset($this->header[$validator])) {
-                    return $this->header = $this->translatorModel->translate('Header does not contains validator') . ' ' . $this->translatorModel->translate($validator) . '.';
+                    return $this->header = $this->translatorRepository->translate('Header does not contains validator') . ' ' . $this->translatorRepository->translate($validator) . '.';
                 }
             }
         }
@@ -200,7 +204,7 @@ final class Masala extends Control implements IMasalaFactory {
         $letter = 'a';
         foreach($this->grid->prepare()->getOffset(0) as $column => $value) {
             if($value instanceof DateTime || false == $this->grid->getAnnotation($column, ['unrender', 'hidden', 'unexport'])) {
-                $sheet->setCellValue($letter . '1', ucfirst($this->translatorModel->translate($column)));
+                $sheet->setCellValue($letter . '1', ucfirst($this->translatorRepository->translate($column)));
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
                 $letter++;
@@ -370,21 +374,25 @@ final class Masala extends Control implements IMasalaFactory {
     public function render() {
         $this->template->assets = $this->config['assets'];
         $this->template->npm = $this->config['npm'];
-        $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
+        $this->template->locale = preg_replace('/(\_.*)/', '', $this->translatorRepository->getLocale());
         $this->template->dialogs = ['help', 'import', 'message'];
         $this->template->grid = $this->grid;
         $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $columns = $this->grid->getColumns();
         $this->template->order = reset($columns);
         $this->template->setFile(__DIR__ . '/templates/@layout.latte');
-        $this->template->setTranslator($this->translatorModel);
+        $this->template->setTranslator($this->translatorRepository);
         $this->template->settings = json_decode($this->presenter->getUser()->getIdentity()->__get('settings'));
         $this->template->render();
     }
 
     /** @return void */
     public function renderRow() {
+        $this->template->dialogs = ['help' => 1102.0, 'import' => 1101.0, ];
+        $this->template->grid = $this->row;
+        $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
         $this->template->setFile(__DIR__ . '/templates/row.latte');
+        $this->template->setTranslator($this->translatorRepository);
         $this->template->render();
     }
 

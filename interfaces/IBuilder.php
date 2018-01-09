@@ -5,12 +5,12 @@ namespace Masala;
 interface IBuilder {
 
     /** @return IBuilder */
-    function getOffsets();
+    public function getOffsets();
 
     /** @return IBuilder */
-    function getSum();
+    public function getSum();
 
     /** @return IBuilder */
-    function prepare();
+    public function prepare();
 
 }

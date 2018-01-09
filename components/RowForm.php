@@ -30,5 +30,5 @@ final class RowForm extends ReactForm implements IRowFormFactory {
 interface IRowFormFactory {
 
     /** @return RowForm */
-    function create();
+    public function create();
 }

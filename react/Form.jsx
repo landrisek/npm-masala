@@ -2,6 +2,7 @@ import axios from 'axios'
 import Datetime from 'react-datetime'
 import Dropzone from 'react-dropzone'
 import React, {Component} from 'react'
+import ReactCrop from 'react-image-crop';
 import request from 'sync-request'
 
 var LINKS = {}
@@ -112,7 +113,7 @@ export default class Form extends Component {
         return <input
             className={this.state[ROW][key].Attributes.className}
             data={this.state[ROW][key].Attributes.data}
-            id={key}
+            id={key}we
             key={key}
             onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
             style={this.state[ROW][key].Attributes.style}
@@ -126,8 +127,9 @@ export default class Form extends Component {
             files.push(<li key={id} className='list-group-item'>{this.state[ROW][key].Attributes.value[file]}</li>)
         }
         return <div key={key} style={this.state[ROW][key].Attributes.style}>
-                <Dropzone onDrop={this.onDrop.bind(this, key)}
-                          multiple={false}
+                <img src={this.state[ROW][key].Attributes.content} alt={this.state[ROW][key].Attributes.alt} />
+                <Dropzone multiple={false}
+                          onDrop={this.onDrop.bind(this, key)}
                           style={{height:'200px',borderWidth:'2px',borderColor:'rgb(102, 102, 102)',borderStyle:'dashed',borderRadius:'5px'}}>
                     <center>{this.state[ROW][key].Label}</center>
                 </Dropzone>
@@ -258,6 +260,7 @@ export default class Form extends Component {
                     element.Validators[validator].style = { display : 'block' }
                 } else {
                     element.Validators[validator].style = { display : 'none' }
+                    element.Attributes.content = files[file].preview
                     this.save(key, files[file])
                 }
             }
@@ -267,27 +270,39 @@ export default class Form extends Component {
         this.setState(state)
     }
     save(key, file) {
+        var self = this
+        if(null == file.type.match('image')) {
+            axios.get(file.preview).then(response => { self.load(key, response.data, file.name) })
+        } else {
+            var reader = new FileReader()
+            reader.onload = function() {
+                var reader = new FileReader()
+                self.load(key, reader.result, file.name)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+    load(key, file, name) {
         var state = []
         state[ROW] = this.state[ROW]
+        var self = this
         if(undefined == state[ROW][key].Attributes.value) {
             state[ROW][key].Attributes.value = []
         }
+        var data = new Object()
+        for(var row in state[ROW]) {
+            data[key] = state[ROW][row]
+        }
+        data._file = file
+        data._name = name
+        data._key = key
+        axios.post(LINKS.save, data).then(response => {
+            state[ROW][key].Attributes.value[response.data] = name
+            state[ROW]._submit.Attributes.className = 'btn btn-success'
+            self.setState(state)
+        })
         state[ROW]._submit
         state[ROW]._submit.Attributes.className = 'btn btn-success disabled'
-        axios.get(file.preview).then(response => {
-            var data = this.state[ROW]
-            data._file = response.data
-            data._name = file.name
-            data._key = key
-            axios.post(LINKS.save, data).then(response => {
-                delete state[ROW]._file
-                delete state[ROW]._name
-                delete state[ROW]._key
-                state[ROW][key].Attributes.value[response.data] = file.name
-                state[ROW]._submit.Attributes.className = 'btn btn-success'
-                this.setState(state)
-            })
-        })
         this.setState(state)
     }
     prepare(event) {

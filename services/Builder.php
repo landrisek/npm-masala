@@ -713,8 +713,8 @@ final class Builder implements IBuilder {
 
     /** @return int */
     public function getSum() {
-        if($this->service instanceof IFetch) {
-            return $this->service->sum($this);
+        if($this->fetch instanceof IFetch) {
+            return $this->fetch->sum($this);
         } else if(empty($this->where)) {
             return $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
         } elseif (empty($this->join) && empty($this->leftJoin) && empty($this->innerJoin)) {

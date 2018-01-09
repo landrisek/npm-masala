@@ -94,6 +94,7 @@ export default class Grid extends Component {
             var id = 'row-' + i++;
             body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
             if('object' == typeof(this.state[CHARTS][key])) {
+                var clone = document.getElementById('row-' + key)
                 body.push(<AreaChart
                     xType={'text'}
                     axes
@@ -103,12 +104,14 @@ export default class Grid extends Component {
                     dataPoints
                     key={'chart-' + key}
                     grid
+                    height={200}
                     noAreaGradient
                     tickTimeDisplayFormat={'%d %m'}
                     interpolate={'cardinal'}
-                    width={document.getElementById('row-' + key).offsetWidth * 0.98}
-                    height={200}
+                    style={{position:'absolute'}}
+                    width={clone.offsetWidth}
                 />)
+                body.push(<tr height={200} width={clone.offsetWidth}></tr>)
             }
         }
         SIZE = i
@@ -707,6 +710,7 @@ export default class Grid extends Component {
         var state = []
         state[BUTTONS] = this.state[BUTTONS]
         state[BUTTONS].pages = response
+        state[CHARTS] = []
         this.setState(state)
         return data
     }

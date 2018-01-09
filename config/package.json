@@ -12,6 +12,8 @@
     "react-datetime": "^2.11.0",
     "react-dom": "^15.5.4",
     "react-dropzone": "^3.13.1",
+    "react-easy-chart": "^1.0.0",
+    "react-image-crop": "^3.0.8",
     "sync-request": "^4.0.2",
     "webpack": "^2.5.1",
     "webpack-dev-server": "^2.4.5",
