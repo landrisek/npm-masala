@@ -5,6 +5,6 @@ namespace Masala;
 interface IUpdate {
 
     /** @return array */
-    function update($row, array $data);
+    public function update($key, array $data);
 
 }

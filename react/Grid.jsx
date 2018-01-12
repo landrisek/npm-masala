@@ -150,6 +150,14 @@ export default class Grid extends Component {
         }
         return body
     }
+    addDateRow(key, data) {
+        data.Attributes.key = key
+        return <Datetime locale={data.Attributes.locale}
+                         id={data.Attributes.id}
+                         name={data.Attributes.name}
+                         onChange={this.date.bind(this, {target:data.Attributes})}
+                         value={data.Attributes.value} />
+    }
     addDateTime(key) {
         return <th className={'grid-col-' + key} id={key} key={key} style={this.state[COLUMNS][key].Attributes.style}>
             {this.addLabel(key)}
@@ -209,15 +217,8 @@ export default class Grid extends Component {
                                            name={rows[row].Attributes.name}
                                            onChange={this.type.bind(this)}>{data}></select>)
                 } else if ('addDateTime' == rows[row].Method) {
-                    var attributes = rows[row].Attributes
-                    attributes.key = key
                     container.push(<div key={'labels-' + row}><label>{rows[row].Label}</label></div>)
-                    container.push(<Datetime locale={rows[row].Attributes.locale}
-                                             id={rows[row].Attributes.id}
-                                             key={'dialogs-' + row}
-                                             name={rows[row].Attributes.name}
-                                             onChange={this.date.bind(this, {target:attributes})}
-                                             value={rows[row].Attributes.value} />)
+                    container.push(<div key={'dialogs-' + row}>{this.addDateRow(key, rows[row])}</div>)
                 } else {
                     rows[row].Attributes.onChange = this.type.bind(this)
                     container.push(<div key={'labels-' + row}><label>{rows[row].Label}</label></div>)
@@ -409,7 +410,11 @@ export default class Grid extends Component {
                     if(null == rows[row].Attributes.value) {
                         rows[row].Attributes.value = ''
                     }
-                    var element = React.createElement(rows[row].Tag, rows[row].Attributes, rows[row].Label)
+                    if('function' == typeof(this[rows[row].Method])) {
+                        var element = this[rows[row].Method]('edit', rows[row])
+                    } else {
+                        var element = React.createElement(rows[row].Tag, rows[row].Attributes, rows[row].Label)
+                    }
                     container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row} style={rows[row].Attributes.style}>{element}</td>)
                 } else {
                     container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{rows[row]}</td>)
@@ -970,10 +975,27 @@ export default class Grid extends Component {
     }
     date(event, time) {
         var state = []
-        state[ROW] = this.state[ROW]
+        var data = {id:event.target.id,row:{},submit:false}
+        for(var row in this.state[ROW].edit) {
+            if(undefined != this.state[ROW].edit[row].Attributes.value) {
+                data.row[row] = this.state[ROW].edit[row].Attributes.value
+            }
+        }
         state[ROWS] = this.state[ROWS]
+        if(0 === this.state[ROW][event.target.key].length) {
+            this.edit({target:{id:event.target.name}})
+            state[ROW] = this.state[ROW]
+        } else {
+            state[ROW] = this.state[ROW]
+        }
         state[ROW][event.target.key][event.target.id].Attributes.value = time.format(state[ROW][event.target.key][event.target.id].Attributes.format.toUpperCase())
-        state[ROWS][event.target.name][event.target.id] = state[ROW][event.target.key][event.target.id].Attributes.value
+        if('object' == typeof(state[ROWS][event.target.name][event.target.id])) {
+            state[ROWS][event.target.name][event.target.id].Attributes.value = state[ROW][event.target.key][event.target.id].Attributes.value
+        } else {
+            state[ROWS][event.target.name][event.target.id] = state[ROW][event.target.key][event.target.id].Attributes.value
+        }
+        data.row = state[ROWS][event.target.name]
+        state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))
         this.setState(state)
     }
     type(event) {

@@ -660,10 +660,16 @@ final class Builder implements IBuilder {
                 unset($row[$column]);
             } else if(is_array($value) && isset($value['Label'])) {
                 $row[$column] = $value['Label'];
+            } else if (is_array($value) && isset($value['Attributes']) && empty(ltrim($value['Attributes']['value'], '_'))) {
+                unset($row[$column]);
             } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['int', 'tinyint'])) {
                 $row[$column] = intval($value['Attributes']['value']);
             } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['decimal', 'float'])) {
                 $row[$column] = floatval($value['Attributes']['value']);
+            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['datetime'])) {
+                $row[$column] = date($this->config['format']['time']['query'], strtotime($value['Attributes']['value']));
+            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['date'])) {
+                $row[$column] = date($this->config['format']['date']['query'], strtotime($value['Attributes']['value']));
             } else if (is_array($value) && isset($value['Attributes'])) {
                 $row[$column] = $value['Attributes']['value'];
             } else if($this->getAnnotation($column, 'pri') && null == $value) {
@@ -1179,8 +1185,6 @@ final class Builder implements IBuilder {
             } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $converted);
             } elseif (is_numeric($value)) {
-
-
                 $this->where[$this->columns[$column]] = $value;
             } else {
                 $this->where[$this->columns[$column] . ' LIKE'] = '%' . $value . '%';

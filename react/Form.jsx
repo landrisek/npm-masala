@@ -251,6 +251,29 @@ export default class Form extends Component {
             }
         }
     }
+    load(key, file, name) {
+        var state = []
+        state[ROW] = this.state[ROW]
+        var self = this
+        if(undefined == state[ROW][key].Attributes.value) {
+            state[ROW][key].Attributes.value = []
+        }
+        var data = new Object()
+        for(var row in state[ROW]) {
+            data[key] = state[ROW][row]
+        }
+        data._file = file
+        data._name = name
+        data._key = key
+        axios.post(LINKS.save, data).then(response => {
+            state[ROW][key].Attributes.value[response.data] = name
+            state[ROW]._submit.Attributes.className = 'btn btn-success'
+            self.setState(state)
+        })
+        state[ROW]._submit
+        state[ROW]._submit.Attributes.className = 'btn btn-success disabled'
+        this.setState(state)
+    }
     onDrop(key, files) {
         var element = this.state[ROW][key]
         for(var file in files) {
@@ -281,29 +304,6 @@ export default class Form extends Component {
             }
             reader.readAsDataURL(file)
         }
-    }
-    load(key, file, name) {
-        var state = []
-        state[ROW] = this.state[ROW]
-        var self = this
-        if(undefined == state[ROW][key].Attributes.value) {
-            state[ROW][key].Attributes.value = []
-        }
-        var data = new Object()
-        for(var row in state[ROW]) {
-            data[key] = state[ROW][row]
-        }
-        data._file = file
-        data._name = name
-        data._key = key
-        axios.post(LINKS.save, data).then(response => {
-            state[ROW][key].Attributes.value[response.data] = name
-            state[ROW]._submit.Attributes.className = 'btn btn-success'
-            self.setState(state)
-        })
-        state[ROW]._submit
-        state[ROW]._submit.Attributes.className = 'btn btn-success disabled'
-        this.setState(state)
     }
     prepare(event) {
         var response = JSON.parse(request('POST', LINKS.prepare, { json: this.state }).getBody('utf8'))
