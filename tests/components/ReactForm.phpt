@@ -63,7 +63,6 @@ final class ReactFormTest extends TestCase {
         }
         Assert::true(isset($date), 'No datetime column to test.');
         foreach ($this->presenters as $class => $latte) {
-            echo $class . "\n";
             $presenter = $this->mockService->getPresenter($class, $latte);
             Assert::true(is_object($presenter), 'Presenter was not set.');
             Assert::true(is_object($presenter->grid = $this->container->getByType('Masala\IBuilder')), 'Presenter grid was not set.');

@@ -4,13 +4,10 @@ namespace Masala;
 
 final class Edit implements IEdit {
 
-    /** @return IReactFormFactory */
-    public function after(IReactFormFactory $form) {
-    	return $form;
+    public function after(IReactFormFactory $form): void {
     }
 
-    /** @return array */
-    public function submit(array $primary, array $response) {
+    public function submit(array $primary, array $response): array {
     	return $response;
     }
 

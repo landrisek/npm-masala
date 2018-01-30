@@ -204,7 +204,7 @@ export default class Grid extends Component {
                     var data = []
                     var options = rows[row].Attributes.data
                     for(var value in options) {
-                        if(value == '_' + rows[row].Attributes.value) {
+                        if(value == rows[row].Attributes.value) {
                             data.push(<option key={row + '-' + value} selected='selected' value={value}>{options[value]}</option>)
                         } else {
                             data.push(<option key={row + '-' + value} value={value}>{options[value]}</option>)
@@ -570,7 +570,6 @@ export default class Grid extends Component {
     edit(event) {
         var data = {id:event.target.id,row:{}}
         var rows = this.state[ROWS][event.target.id]
-        var state = []
         for(var row in rows) {
             if(null != rows[row] && null != rows[row].Label) {
                 data.row[row] = rows[row].Label
@@ -580,6 +579,7 @@ export default class Grid extends Component {
                 data.row[row] = rows[row]
             }
         }
+        var state = []
         state[ROW] = this.state[ROW]
         state[ROW].edit = JSON.parse(request('POST', this.state[BUTTONS].edit.Attributes.link, { json: data }).getBody('utf8'))
         this.setState(state)
@@ -1054,6 +1054,11 @@ export default class Grid extends Component {
             }
         }
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))
+        for(var row in this.state[ROW].edit) {
+            if(undefined != this.state[ROW].edit[row].Attributes.data && undefined != this.state[ROW].edit[row].Attributes.value) {
+                state[ROWS][event.target.name][row] = this.state[ROW].edit[row].Attributes.data[this.state[ROW].edit[row].Attributes.value]
+            }
+        }
         this.setState(state)
         if(true == data.submit) {
             this.edit({target:{id:event.target.name}})

@@ -3,15 +3,18 @@
 namespace Masala;
 
 use Nette\Application\IPresenter,
+    Nette\Application\UI\ISignalReceiver,
     Nette\Caching\IStorage,
     Nette\Caching\Cache,
     Nette\Database\Context,
     Nette\Database\Table\ActiveRow,
+    Nette\Database\Table\IRow,
     Nette\Database\Table\Selection,
+    Nette\Utils\DateTime,
     Nette\InvalidStateException,
     Nette\Localization\ITranslator,
+    Nette\Security\IIdentity,
     Nette\Utils\Validators;
-use Nette\DateTime;
 
 /** @author Lubomir Andrisek */
 final class Builder implements IBuilder {
@@ -81,6 +84,9 @@ final class Builder implements IBuilder {
 
     /** @var string */
     private $having;
+
+    /** @var IIdentity */
+    private $identity;
 
     /** @var IProcess */
     private $import;
@@ -164,32 +170,34 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
-    /** @return array */
-    public function add() {
+    public function add(): array {
         $data = $this->getRow();
         if($this->add instanceof IAdd) {
             return $this->add->insert($data);
         }
         return $this->database->table($this->table)->insert($data)->toArray();
     }
-
-    /** @return void */
-    public function attached(Masala $masala) {
+    
+    public function attached(ISignalReceiver $masala): void {
         $this->presenter = $masala->getPresenter();
+        $this->identity = $this->presenter->identity;
         $this->control = $masala->getName();
         /** import */
-        if ($this->import instanceof IProcess and ( $setting = $this->getSetting('import')) instanceof ActiveRow) {
+        $setting = $this->getSetting('import');
+        if ($this->import instanceof IProcess && $setting instanceof ActiveRow) {
             $this->import->setSetting($setting);
         } elseif ($this->import instanceof IProcess) {
             throw new InvalidStateException('Missing definition of import setting in table ' . $this->config['feeds'] . ' in call ' .
                 $this->presenter->getName() . ':' . $this->presenter->getAction());
         }
         /** export */
-        if ($this->export instanceof IProcess and false != $setting = $this->getSetting('export')) {
+        $setting = $this->getSetting('export');
+        if ($this->export instanceof IProcess && $setting instanceof ActiveRow) {
             $this->export->setSetting($setting);
         }
         /** process */
-        if (false != $setting = $this->getSetting('process')) {
+        $setting = $this->getSetting('process');
+        if ($setting instanceof ActiveRow) {
             $this->service->setSetting($setting);
         }
         $this->setKeys();
@@ -209,9 +217,7 @@ final class Builder implements IBuilder {
                 isset($this->defaults[$driver['name']]) ? $this->columns[$driver['name']] = $this->table . '.' . $driver['name'] : null;
             }
         }
-        if(isset($this->config['settings']) &&
-            $this->presenter->getUser()->isLoggedIn() &&
-            is_object($setting = json_decode($this->presenter->getUser()->getIdentity()->getData()[$this->config['settings']]))) {
+        if(isset($this->config['settings']) && is_object($setting = json_decode($this->identity->getData()[$this->config['settings']]))) {
             foreach($setting as $source => $annotations) {
                 if($this->presenter->getName() . ':' . $this->presenter->getAction() == $source) {
                     foreach($annotations as $annotationId => $annotation) {
@@ -263,28 +269,30 @@ final class Builder implements IBuilder {
         $this->sum .= $from;
     }
 
-    /** @return IBuilder */
-    public function build(IBuild $build) {
+    public function build(IBuild $build): IBuilder {
         $this->build = $build;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function button(IButton $button) {
+    public function button(IButton $button): IBuilder {
         $this->button = $button;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function copy() {
+    public function chart(IChart $chart): IBuilder {
+        $this->chart = $chart;
+        return $this;
+    }
+
+    public function copy(): IBuilder {
         return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->row, $this->translatorModel);
     }
     
-    private function column($column) {
-        if (true == $this->getAnnotation($column, 'hidden')) {
-        } elseif (true == $this->getAnnotation($column, ['addSelect', 'addMultiSelect'])) {
+    private function column(string $column): IBuilder {
+        if (!empty($this->getAnnotation($column, 'hidden'))) {
+        } elseif (!empty($this->getAnnotation($column, ['addSelect', 'addMultiSelect']))) {
             $this->defaults[$column] = $this->getList($column);
-        } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and false == $this->getAnnotation($column, 'unfilter')) {
+        } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and empty($this->getAnnotation($column, 'unfilter'))) {
             $this->defaults[$column] = $enum;
         } else {
             $this->defaults[$column] = '';
@@ -292,14 +300,12 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    /** @return IBuilder */
-    public function dialogs(array $dialogs) {
+    public function dialogs(array $dialogs): IBuilder {
         $this->dialogs = $dialogs;
         return $this;
     }
 
-    /** @return array */
-    public function delete() {
+    public function delete(): array {
         $data = $this->getRow();
         if(empty($this->primary)) {
             throw new InvalidStateException('Primary keys were not set.');
@@ -316,14 +322,12 @@ final class Builder implements IBuilder {
         return ['remove' => true];
     }
 
-    /** @return IBuilder */
-    public function export($export) {
+    public function export($export): IBuilder {
         $this->export = ($export instanceof IProcess) ? $export : $this->exportService;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function edit($edit) {
+    public function edit($edit): IBuilder {
         if($edit instanceof IEdit) {
             $this->edit = $edit;
         } else {
@@ -333,15 +337,13 @@ final class Builder implements IBuilder {
         $this->actions['edit'] = 'edit';
         return $this;
     }
-
-    /** @return IBuilder */
-    public function fetch(IFetch $fetch) {
+    
+    public function fetch(IFetch $fetch): IBuilder {
         $this->fetch = $fetch;
         return $this;
     }
 
-    /** @return array */
-    private function format(array $row) {
+    private function format(array $row): array {
         foreach($row as $key => $format) {
             if($format instanceof DateTime) {
                 $row[$key] = $format instanceof DateTime ? date($this->config['format']['date']['build'], strtotime($format->__toString())) : $row[$key];
@@ -349,74 +351,69 @@ final class Builder implements IBuilder {
         }
         return $row;
     }
-
-    /** @return IBuilder */
-    public function filter(IFilter $filter) {
+    
+    public function filter(IFilter $filter): IBuilder {
         $this->filter = $filter;
         return $this;
     }
 
-    /** @return bool */
-    public function getAnnotation($column, $annotation) {
+    public function getAnnotation(string $column, $annotation): array {
         if (is_array($annotation)) {
             foreach ($annotation as $annotationId) {
                 if (isset($this->annotations[$column][$annotationId])) {
-                    return true;
+                    return $this->annotations;
                 }
             }
-            return false;
+            return [];
         } elseif (isset($this->annotations[$column][$annotation]) and is_array($this->annotations[$column][$annotation])) {
             return $this->annotations[$column][$annotation];
         } elseif (isset($this->annotations[$column][$annotation])) {
-            return true;
+            return [true=>true];
         } else {
-            return false;
+            return [];
         }
     }
 
-    /** @return array */
-    public function getActions() {
+    public function getActions(): array {
         return $this->actions;
     }
 
-    /** @return array */
-    public function getArguments() {
+    public function getArguments(): array {
         return $this->arguments;
     }
-
-    /** @return IButton */
-    public function getButton() {
+    
+    public function getButton(): IButton {
         return $this->button;
     }
 
-    /** @return string | Bool */
-    public function getColumn($key) {
+    public function getChart(): IChart {
+        return $this->chart;
+    }
+
+    /** @return string | bool */
+    public function getColumn(string $key) {
         if (isset($this->columns[$key])) {
             return $this->columns[$key];
         }
         return false;
     }
-
-    /** @return array */
-    public function getColumns() {
+    
+    public function getColumns(): array {
         return $this->columns;
     }
 
-    /** @return array */
-    public function getConfig($key) {
+    public function getConfig(string $key): array {
         if (isset($this->config[$key])) {
             return $this->config[$key];
         }
         return [];
     }
 
-    /** @return array */
-    public function getDefaults() {
+    public function getDefaults(): array {
         return $this->defaults;
     }
 
-    /** @retun array */
-    public function getDialogs() {
+    public function getDialogs(): array {
         if($this->edit instanceof IEdit || true == $this->edit) {
             $this->dialogs['add'] = 'add';
             $this->dialogs['edit'] = 'edit';
@@ -424,8 +421,7 @@ final class Builder implements IBuilder {
         return $this->dialogs;
     }
 
-    /** @return array */
-    public function getDrivers($table) {
+    public function getDrivers(string $table): array {
         $driverId = $this->getKey('attached', $table);
         if (null == $drivers = $this->cache->load($driverId)) {
             foreach($this->database->getConnection()->getSupplementalDriver()->getColumns($table) as $driver) {
@@ -436,36 +432,30 @@ final class Builder implements IBuilder {
         return $drivers;
     }
 
-    /** @return IEdit */
-    public function getEdit() {
+    public function getEdit(): IEdit {
         return $this->edit;
     }
 
-    /** @return IProcess */
-    public function getExcel() {
+    public function getExcel(): IProcess {
         return $this->export;
     }
 
-    /** @return IProcess */
-    public function getExport() {
+    public function getExport(): IProcess {
         return $this->export;
     }
 
-    /** @return string */
-    public function getFilter($key) {
+    public function getFilter(string $key): string {
         if (isset($this->where[trim($key)])) {
             return preg_replace('/\%/', '', $this->where[$key]);
         }
         return '';
     }
 
-    /** @return array */
-    public function getFilters() {
+    public function getFilters(): array {
         return $this->where;
     }
-
-    /** @return string */
-    public function getFormat($table, $column) {
+    
+    public function getFormat(string $table, string $column): string {
         $drivers = $this->getDrivers($table);
         if(!isset($drivers[$column])) {
             $select = 'NULL';
@@ -480,38 +470,27 @@ final class Builder implements IBuilder {
 
     }
 
-    /** @return IChart */
-    public function getChart() {
-        return $this->chart;
-    }
-
-    /** @return array */
-    public function getGroup() {
+    public function getGroup(): array {
         return $this->groups;
     }
 
-    /** @return string */
-    public function getId($status) {
-        return md5($this->control . ':' . $this->presenter->getName() . ':' . $this->presenter->getAction()  . ':' . $status . ':' . $this->presenter->getUser()->getId());
+    public function getId(string $status): string {
+        return md5($this->control . ':' . $this->presenter->getName() . ':' . $this->presenter->getAction()  . ':' . $status . ':' . $this->identity->getId());
     }
 
-    /** @return IProcess */
-    public function getImport() {
+    public function getImport(): IProcess {
         return $this->import;
     }
 
-    /** @return string */
-    private function getKey($method, $parameters) {
+    private function getKey(string $method, string $parameters): string {
         return str_replace('\\', ':', get_class($this)) . ':' . $method . ':' . $parameters;
     }
-
-    /** @return IListener */
-    public function getListener() {
+    
+    public function getListener(): IListener {
         return $this->listener;
     }
 
-    /** @return array */
-    public function getList($alias) {
+    public function getList(string $alias): array {
         if(!preg_match('/\(/', $this->columns[$alias]) && preg_match('/\./', $this->columns[$alias])) {
             $table = trim(preg_replace('/\.(.*)/', '', $this->columns[$alias]));
             $column = trim(preg_replace('/(.*)\./', '', $this->columns[$alias]));
@@ -547,8 +526,7 @@ final class Builder implements IBuilder {
         return $list;
     }
 
-    /** @return array */
-    public function getOffset($offset) {
+    public function getOffset(int $offset): array {
         if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
             $row = $this->getResource()
                 ->order($this->sort)
@@ -571,8 +549,7 @@ final class Builder implements IBuilder {
         }
     }
 
-    /** @return array */
-    public function getOffsets() {
+    public function getOffsets(): array {
         if($this->fetch instanceof IFetch) {
             $data = $this->fetch->fetch($this);
         } else if(null == $data = $this->cache->load($hash = md5(strtolower(preg_replace('/\s+| +/', '', trim($this->query . $this->offset)))))) {
@@ -602,14 +579,12 @@ final class Builder implements IBuilder {
         }
         return $data;
     }
-
-    /** @return int */
-    public function getPagination() {
+    
+    public function getPagination(): int {
         return $this->config['pagination'];
     }
 
-    /** @return array */
-    public function getPost($key) {
+    public function getPost(string $key) {
         if(empty($key) && empty($this->post)) {
             $this->post = json_decode(file_get_contents('php://input'), true);
             foreach($this->post as $column => $value) {
@@ -624,20 +599,20 @@ final class Builder implements IBuilder {
         if(isset($this->post[$key])) {
             return $this->post[$key];
         }
-        $this->post = json_decode(file_get_contents('php://input'), true);
+        if(null == $this->post = json_decode(file_get_contents('php://input'), true)) {
+            $this->post = $_POST;
+        }
         if(!isset($this->post[$key])) {
             return [];
         }
         return $this->post[$key];
     }
 
-    /** @return IRemove */
-    public function getRemove() {
+    public function getRemove(): IRemove {
         return $this->remove;
     }
-
-    /** @return Selection */
-    public function getResource() {
+    
+    public function getResource(): Selection {
         $dataSource = $this->database->table($this->table);
         (null == $this->select) ? null : $dataSource->select($this->select);
         foreach ($this->where as $column => $value) {
@@ -653,37 +628,38 @@ final class Builder implements IBuilder {
         return $dataSource;
     }
 
-    /** @return array */
-    public function getRow() {
+    public function getRow(): array {
         foreach($row = $this->getPost('row') as $column => $value) {
             if(!isset($this->columns[$column]) || empty($this->columns[$column]) || strlen($column) > strlen(ltrim($column, '_'))) {
                 unset($row[$column]);
             } else if(is_array($value) && isset($value['Label'])) {
                 $row[$column] = $value['Label'];
-            } else if (is_array($value) && isset($value['Attributes']) && empty(ltrim($value['Attributes']['value'], '_'))) {
+            } else if(is_array($value) && isset($value['Attributes']) && empty(ltrim($value['Attributes']['value'], '_'))) {
                 unset($row[$column]);
-            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['int', 'tinyint'])) {
+            } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['int', 'tinyint']))) {
                 $row[$column] = intval($value['Attributes']['value']);
-            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['decimal', 'float'])) {
+            } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['decimal', 'float']))) {
                 $row[$column] = floatval($value['Attributes']['value']);
-            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['datetime'])) {
+            } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['datetime']))) {
                 $row[$column] = date($this->config['format']['time']['query'], strtotime($value['Attributes']['value']));
-            } else if (is_array($value) && isset($value['Attributes']) && $this->getAnnotation($column, ['date'])) {
+            } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['date']))) {
                 $row[$column] = date($this->config['format']['date']['query'], strtotime($value['Attributes']['value']));
-            } else if (is_array($value) && isset($value['Attributes'])) {
+            } else if(is_array($value) && isset($value['Attributes'])) {
                 $row[$column] = $value['Attributes']['value'];
-            } else if($this->getAnnotation($column, 'pri') && null == $value) {
+            } else if(!empty($this->getAnnotation($column, 'pri') && null == $value)) {
                 unset($row[$column]);
-            } else if($this->getAnnotation($column, 'pri')) {
+            } else if(!empty($this->getAnnotation($column, 'pri'))) {
                 $this->primary[$column] = $value;
                 unset($row[$column]);
-            } else if($this->getAnnotation($column, 'unedit')) {
+            } else if(!empty($this->getAnnotation($column, 'unedit'))) {
                 unset($row[$column]);
-            } else if($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint']) && empty(ltrim($value, '_'))) {
+            } else if(!empty($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint']) && empty(ltrim($value, '_')))) {
                 unset($row[$column]);
-            } else if (is_float($value) || $this->getAnnotation($column, ['decimal', 'float'])) {
+            } else if(!empty($defaults = $this->getAnnotation($column,'enum')) && !isset($defaults[ltrim($value, '_')])) {
+                unset($row[$column]);
+            } else if(is_float($value) || !empty($this->getAnnotation($column, ['decimal', 'float']))) {
                 $row[$column] = floatval($value);
-            } else if ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
+            } else if((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $row[$column] = date($this->config['format']['date']['query'], $converted);
             } else if(is_string($value)) {
                 $row[$column] = ltrim($value, '_');
@@ -692,17 +668,15 @@ final class Builder implements IBuilder {
         return $row;
     }
 
-    /** @return IProcess */
-    public function getService() {
+    public function getService(): IProcess {
         return $this->service;
     }
 
-    public function getSort() {
+    public function getSort(): string {
         return $this->sort;
     }
 
-    /** @return array */
-    public function getSpice() {
+    public function getSpice(): array {
         $spices = (array) json_decode($this->presenter->request->getParameter(strtolower($this->control) . '-spice'));
         foreach($spices as $key => $spice) {
             if(is_array($spice)) {
@@ -717,8 +691,7 @@ final class Builder implements IBuilder {
         return $spices;
     }
 
-    /** @return int */
-    public function getSum() {
+    public function getSum(): int {
         if($this->fetch instanceof IFetch) {
             return $this->fetch->sum($this);
         } else if(empty($this->where)) {
@@ -730,71 +703,56 @@ final class Builder implements IBuilder {
             foreach ($this->arguments as $key => $argument) {
                 is_numeric($key) ? $arguments[] = $argument : null;
             }
-            if(null == $this->group && false == $this->database->query($this->sum, ...$arguments)->fetch()) {
-                return 1;
-            } else if(empty($this->groups)) {
-                return $this->database->query($this->sum, ...$arguments)->fetch()->sum;
+            if(empty($this->groups)) {
+                return intval($this->database->query($this->sum, ...$arguments)->fetch()->sum);
             } else {
                 return $this->database->query($this->sum, ...$arguments)->getRowCount();
             }
         }
     }
 
-    /** @return int */
-    public function getSummary() {
+    public function getSummary(): int {
         if(!preg_match('/SUM\(/', $summary = $this->columns[$this->getPost('summary')])) {
             $summary = 'SUM(' . $summary . ')';
         }
         $query = preg_replace('/SELECT(.*)FROM/', 'SELECT ' . $summary . ' AS sum FROM', $this->sum);
-        if(false == $row = $this->database->query($query, ...$this->arguments)->fetch()) {
-            return 0;
-        }
-        return $row->sum;
+        return intval($this->database->query($query, ...$this->arguments)->fetch()->sum);
     }
-
-    /** @return ActiveRow */
-    private function getSetting($type) {
-        return $this->database->table($this->config['feeds'])
+    
+    private function getSetting(string $type): IRow {
+        if(null == $row = $this->database->table($this->config['feeds'])
                         ->where('type', $type)
                         ->where('source', $this->presenter->getName() . ':' . $this->presenter->getAction())
-                        ->fetch();
+                        ->fetch()) {
+            return new EmptyRow();
+        }
+        return $row;
     }
 
-    /** @return string */
-    public function getTable() {
+    public function getTable(): string {
         return $this->table;
     }
 
-    /** @return string */
-    public function getQuery() {
+    public function getQuery(): string {
         return $this->query;
     }
-
-    /** @return IBuilder */
-    public function chart(IChart $chart) {
-        $this->chart = $chart;
-        return $this;
-    }
-
-    /** @return IBuilder */
-    public function group(array $groups) {
+    
+    public function group(array $groups): IBuilder {
         $this->groups = $groups;
         return $this;
     }
 
-    public function having($having) {
-        $this->having = (string) $having;
+    public function having(string $having): IBuilder {
+        $this->having = $having;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function import(IProcess $import) {
+    public function import(IProcess $import): IBuilder {
         $this->import = $import;
         return $this;
     }
 
-    /** @return void */
-    private function inject($annotation, $column) {
+    private function inject(string $annotation, string $column): void {
         $annotations = explode('@', $annotation);
         unset($annotations[0]);
         $this->annotations[$column] = isset($this->annotations[$column]) ? $this->annotations[$column] : [];
@@ -811,7 +769,7 @@ final class Builder implements IBuilder {
                 $this->annotations[$column][$annotationId] = true;
             }
         }
-        if(true == $this->getAnnotation($column, 'hidden')) {
+        if(!empty($this->getAnnotation($column, 'hidden'))) {
             unset($this->columns[$column]);
         } else {
             $this->columns[$column] = trim(preg_replace('/\@(.*)/', '', $annotation));
@@ -819,69 +777,74 @@ final class Builder implements IBuilder {
         $this->column($column);
     }
 
-    /** @return IBuilder */
-    public function insert(IAdd $add) {
+    public function insert(IAdd $add): IBuilder {
         $this->add = $add;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function innerJoin($innerJoin) {
-        $this->innerJoin[] = (string) trim($innerJoin);
+    public function innerJoin(string $innerJoin): IBuilder {
+        $this->innerJoin[] = trim($innerJoin);
         return $this;
     }
 
-    /** @return bool */
-    public function isEdit() {
-        return $this->edit instanceof IEdit;
+    public function isButton(): bool {
+        return $this->button instanceof IButton;
     }
 
-    /** @return bool */
-    public function isChart() {
+    public function isChart(): bool {
         return $this->chart instanceof IChart;
     }
 
-    /** @return bool */
-    public function isImport() {
+    public function isEdit(): bool {
+        return $this->edit instanceof IEdit;
+    }
+
+    public function isExport(): bool {
+        return $this->export instanceof IProcess;
+    }
+
+    public function isImport(): bool {
         return $this->import instanceof IProcess;
     }
 
-    /** @return bool */
-    public function isRemove() {
+    public function isListener(): bool {
+        return $this->listener instanceof IListener;
+    }
+
+    public function isProcess(): bool {
+        return $this->service instanceof IProcess;
+    }
+
+    public function isRemove(): bool {
         return $this->remove instanceof IRemove || true == $this->remove;
     }
 
-    /** @return IBuilder */
-    public function join($join) {
-        $this->join[] = (string) trim($join);
+    public function join(string $join): IBuilder {
+        $this->join[] = trim($join);
         return $this;
     }
 
-    /** @return IBuilder */
-    public function leftJoin($leftJoin) {
-        $this->leftJoin[] = (string) trim($leftJoin);
+    public function leftJoin(string $leftJoin): IBuilder {
+        $this->leftJoin[] = trim($leftJoin);
         return $this;
     }
 
-    /** @return IBuilder */
-    public function limit($limit) {
-        $this->limit = (int) $limit;
+    public function limit(int $limit): IBuilder {
+        $this->limit = $limit;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function listen(IListener $listener) {
+    public function listen(IListener $listener): IBuilder {
         $this->listener = $listener;
         return $this;
     }
 
-    /** @return ActiveRow */
-    private function logQuery($key) {
-        if (false == $this->database->table($this->config['spice'])
+    private function logQuery(string $key): void {
+        if (null == $this->database->table($this->config['spice'])
                         ->where('key', $key)
                         ->fetch()
         ) {
-            return $this->database->table($this->config['spice'])
+            $this->database->table($this->config['spice'])
                             ->insert(['key' => $key,
                                 'source' => $this->presenter->getName() . ':' . $this->presenter->getAction(),
                                 'query' => $this->query,
@@ -889,25 +852,22 @@ final class Builder implements IBuilder {
         }
     }
 
-    /** @return void */
-    public function log($handle) {
+    public function log(string $handle): void {
         if (isset($this->config['log'])) {
-            return $this->database->table($this->config['log'])->insert(['users_id' => $this->presenter->getUser()->getIdentity()->getId(),
+            $this->database->table($this->config['log'])->insert(['users_id' => $this->identity->getId(),
                         'source' => $this->presenter->getName() . ':' . $this->presenter->getAction(),
                         'handle' => $handle,
                         'date' => date('Y-m-d H:i:s', strtotime('now'))]);
         }
     }
 
-    /** @return IBuilder */
-    public function remove(IRemove $remove) {
+    public function remove(IRemove $remove): IBuilder {
         $this->actions['remove'] = 'remove';
         $this->remove = $remove;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function row($id, array $row) {
+    public function row($id, array $row): IRowFormFactory {
         foreach($row as $column => $status) {
             $value = $this->getPost('add') ? null : $status;
             $label = ucfirst($this->translatorModel->translate($this->table . '.' . $column));
@@ -920,9 +880,12 @@ final class Builder implements IBuilder {
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
                 foreach($default as $option => $status) {
-                    $attributes['data'][$option] = $this->translatorModel->translate($status);
+                    $translation = $this->translatorModel->translate($status);
+                    if($value == $translation || $value == $status) {
+                        $attributes['value'] = '_' . $option;
+                    }
+                    $attributes['data'][$option] = $translation;
                 }
-                $attributes['value'] = '_' . $value;
                 $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
@@ -976,21 +939,18 @@ final class Builder implements IBuilder {
                     ['className' => 'btn btn-success', 'id' => 'add', 'name' => intval($id), 'onClick' => 'submit']);
         return $this->row;
     }
-
-    /** @return IBuilder */
-    public function select(array $columns) {
+    
+    public function select(array $columns): IBuilder {
         $this->columns = $columns;
         return $this;
     }
 
-    /** @return IBuilder */
-    public function setConfig($key, $value) {
-        $this->config[(string) $key] = $value;
+    public function setConfig(string $key, $value): IBuilder {
+        $this->config[$key] = $value;
         return $this;
     }
 
-    /** @return void */
-    private function setKeys() {
+    private function setKeys(): void {
         if(is_array($keys = $this->database->table($this->table)->getPrimary())) {
             foreach($keys as $key) {
                 $this->keys[$this->table . '.'  . $key] = $key;
@@ -1000,14 +960,8 @@ final class Builder implements IBuilder {
         }
     }
 
-    /** @return array*/
-    public function submit($submit) {
+    public function submit(bool $submit): array {
         $row = $this->getRow();
-        if(true == $submit && $this->edit instanceof IEdit) {
-            $new = $this->edit->submit($this->primary, $this->getPost('row'));
-        } else if(false == $submit && $this->update instanceof IUpdate) {
-            $new = $this->update->update($this->getPost('id'), $this->getPost('row'));
-        }
         $resource = $this->database->table($this->table);
         if(empty($this->primary)) {
             throw new InvalidStateException('Primary keys were not set.');
@@ -1016,32 +970,34 @@ final class Builder implements IBuilder {
             $resource->where($column, $value);
         }
         $resource->update($row);
+        if(true == $submit && $this->edit instanceof IEdit) {
+            $new = $this->edit->submit($this->primary, $this->getPost('row'));
+        } else if(false == $submit && $this->update instanceof IUpdate) {
+            $new = $this->update->update($this->getPost('id'), $this->getPost('row'));
+        }
         foreach($this->where as $column => $value) {
-            $resource->where($column, $value);
+            is_numeric($column) ? $resource->where($value) : $resource->where($column, $value);
         }
         if(isset($new)) {
             return $new;
-        } else if(false == $resource->fetch()) {
+        } else if(null == $resource->fetch()) {
             return [];
         } else {
             return $this->getPost('row');
         }
     }
 
-    /** @return IBuilder */
-    public function table($table) {
-        $this->table = Types::string($table);
-        return $this;
-    }
-    
-    /** @return IBuilder */
-    public function update(IUpdate $update) {
-        $this->update = $update;
+    public function table(string $table): IBuilder {
+        $this->table = $table;
         return $this;
     }
 
-    /** @return array */
-    public function validate() {
+    public function update(IUpdate $update): IBuilder {
+        $this->update = $update;
+        return $this;
+    }
+    
+    public function validate(): array {
         $validators = [];
         $row = $this->getRow();
         foreach($row as $column => $value) {
@@ -1065,8 +1021,7 @@ final class Builder implements IBuilder {
         return $validators;
     }
 
-    /** @return IBuilder */
-    public function where($key, $column = null, $condition = null) {
+    public function where($key, $column = null, $condition = null): IBuilder {
         if(is_bool($condition) and false == $condition) {
         } elseif ('?' == $column and isset($this->where[$key])) {
             $this->arguments[$key] = $this->where[$key];
@@ -1089,9 +1044,8 @@ final class Builder implements IBuilder {
         }
         return $this;
     }
-
-    /** @return IBuilder */
-    public function order(array $order) {
+    
+    public function order(array $order): IBuilder {
         foreach($order as $column => $value) {
             if(!isset($this->columns[$column])) {
                 throw new InvalidStateException('You muse define order column ' . $column . ' in select method of Masala\IBuilder.');
@@ -1103,21 +1057,14 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    /** @return IBuilder */
-    public function setRow($primary, $data) {
+    public function setRow(array $primary, array $data): IBuilder {
         $this->database->table($this->table)
                 ->wherePrimary($primary)
                 ->update($data);
         return $this;
     }
 
-    /** @return IBuilder */
-    public function process(IProcess $service) {
-        $this->service = $service;
-        return $this;
-    }
-
-    public function prepare() {
+    public function prepare(): IBuilder {
         if(null == $filters = $this->getPost('filters')) {
             $filters = [];
         }
@@ -1129,7 +1076,7 @@ final class Builder implements IBuilder {
         }
         if(empty($sort = $this->getPost('sort')) && null == $this->order) {
             foreach($this->columns as $name => $column) {
-                if(false == $this->getAnnotation($name, 'unrender')) {
+                if(empty($this->getAnnotation($name, 'unrender'))) {
                     $sort = [$name => 'DESC'];
                     break;
                 }
@@ -1156,7 +1103,7 @@ final class Builder implements IBuilder {
                 continue;
             }
             $value = ltrim(preg_replace('/\;/', '', htmlspecialchars($value)), '_');
-            if(is_array($subfilters = $this->getAnnotation($column, 'filter'))) {
+            if(!empty($subfilters = $this->getAnnotation($column, 'where'))) {
                 foreach ($subfilters as $filter) {
                     $this->where[$filter . ' LIKE'] = '%' . $value . '%';
                 }
@@ -1240,7 +1187,7 @@ final class Builder implements IBuilder {
             } else {
                 $this->limit = $this->service->speed($this->config['speed']);
             }
-            if(in_array($status, ['import', 'excel', 'export'])) {
+            if(in_array($status, ['import', 'excel', 'export', 'service'])) {
                 $this->sort = '';
                 foreach($this->keys as $primary => $value) {
                     $this->sort .= $primary . ' ASC, ';
@@ -1255,16 +1202,19 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    /** @return bool */
-    private function sanitize($column) {
+    public function process(IProcess $service): IBuilder {
+        $this->service = $service;
+        return $this;
+    }
+
+    private function sanitize(string $column): bool {
         return 1  == sizeof($joined = explode('.', (string) $column)) ||
             preg_match('/\(|\)/', $column) ||
             (empty($joins = $this->join + $this->leftJoin + $this->innerJoin)) ||
             (substr_count(implode('', $joins), $joined[0]) > 0);
     }
 
-    /** @return string */
-    public function translate($name, $annotation) {
+    public function translate(string $name, string $annotation): string {
         if ($this->presenter->getName() . ':' . $this->presenter->getAction() . ':' . $name != $label = $this->translatorModel->translate($this->presenter->getName() . ':' . $this->presenter->getAction() . ':' . $name)) {
         } elseif ($this->presenter->getName() . ':' . $name != $label = $this->translatorModel->translate($this->presenter->getName() . ':' . $name)) {
         } elseif ($annotation != $label = $this->translatorModel->translate($annotation)) {

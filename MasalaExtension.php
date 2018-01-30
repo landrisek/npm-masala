@@ -37,35 +37,35 @@ final class MasalaExtension extends CompilerExtension {
         $parameters = $this->getConfiguration($builder->parameters);
         $manifest = (array) json_decode(file_get_contents($parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/js/manifest.json'));
         $builder->addDefinition($this->prefix('Builder'))
-                ->setClass('Masala\Builder', [$parameters['masala']]);
+                ->setFactory('Masala\Builder', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('masalaExtension'))
-                ->setClass('Masala\MasalaExtension', []);
+                ->setFactory('Masala\MasalaExtension', []);
         $builder->addDefinition($this->prefix('contentForm'))
-                ->setClass('Masala\ContentForm', [$manifest['ContentForm.js']]);
+                ->setFactory('Masala\ContentForm', [$manifest['ContentForm.js']]);
         $builder->addDefinition($this->prefix('exportService'))
-                ->setClass('Masala\ExportService', [$builder->parameters['tempDir']]);
+                ->setFactory('Masala\ExportService', [$builder->parameters['tempDir']]);
         $builder->addDefinition($this->prefix('emptyRow'))
-                ->setClass('Masala\EmptyRow');
+                ->setFactory('Masala\EmptyRow');
         $builder->addDefinition($this->prefix('grid'))
-                ->setClass('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js'], $parameters['masala']]);
+                ->setFactory('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js'], $parameters['masala']]);
         $builder->addDefinition($this->prefix('filterForm'))
-                ->setClass('Masala\FilterForm', ['']);
+                ->setFactory('Masala\FilterForm', ['']);
         $builder->addDefinition($this->prefix('importForm'))
-                ->setClass('Masala\ImportForm', [$manifest['ImportForm.js']]);
+                ->setFactory('Masala\ImportForm', [$manifest['ImportForm.js']]);
         $builder->addDefinition($this->prefix('helpRepository'))
-                ->setClass('Masala\HelpRepository', [$parameters['masala']['help']]);
+                ->setFactory('Masala\HelpRepository', [$parameters['masala']['help']]);
         $builder->addDefinition($this->prefix('keywordsRepository'))
-                ->setClass('Masala\KeywordsRepository', [$parameters['masala']['keywords']]);
+                ->setFactory('Masala\KeywordsRepository', [$parameters['masala']['keywords']]);
         $builder->addDefinition($this->prefix('masala'))
-                ->setClass('Masala\Masala', [$parameters['masala']]);
+                ->setFactory('Masala\Masala', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('mockRepository'))
-                ->setClass('Masala\MockRepository');
+                ->setFactory('Masala\MockRepository');
         $builder->addDefinition($this->prefix('mockService'))
-                ->setClass('Masala\MockService');
+                ->setFactory('Masala\MockService');
         $builder->addDefinition($this->prefix('rowForm'))
-                ->setClass('Masala\RowForm', [$manifest['RowForm.js']]);
+                ->setFactory('Masala\RowForm', [$manifest['RowForm.js']]);
         $builder->addDefinition($this->prefix('writeRepository'))
-                ->setClass('Masala\WriteRepository', [$parameters['masala']['write']]);
+                ->setFactory('Masala\WriteRepository', [$parameters['masala']['write']]);
     }
 
     public function beforeCompile() {

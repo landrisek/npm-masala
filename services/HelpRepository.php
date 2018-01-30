@@ -7,7 +7,7 @@ final class HelpRepository extends BaseRepository implements IHelp {
 
     /** @return array */
     public function getHelp($controller, $action, $parameters) {
-        if (false == $help = $this->database->table($this->source)
+        if (null == $help = $this->database->table($this->source)
                 ->select('*')
                 ->where('source IN', [$controller, $controller . ':' . $action, $controller . ':' . $action . ':' . $parameters])
                 ->fetch()) {

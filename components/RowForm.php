@@ -2,7 +2,8 @@
 
 namespace Masala;
 
-use Nette\Http\IRequest,
+use Nette\ComponentModel\IComponent,
+    Nette\Http\IRequest,
     Nette\Localization\ITranslator;
 
 /** @author Lubomir Andrisek */
@@ -11,17 +12,16 @@ final class RowForm extends ReactForm implements IRowFormFactory {
     /** @var string */
     private $jsDir;
 
-    public function __construct($jsDir, IRequest $request, ITranslator $translatorModel) {
-        parent::__construct(Types::string($jsDir), $request, $translatorModel);
-        $this->jsDir = Types::string($jsDir);
+    public function __construct(string $jsDir, IRequest $request, ITranslator $translatorModel) {
+        parent::__construct($jsDir, $request, $translatorModel);
+        $this->jsDir = $jsDir;
     }
 
-    /** @return IRowFormFactory */
-    public function create() {
+    public function create(): ReactForm {
         return $this;
     }
 
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
     }
 
@@ -29,6 +29,5 @@ final class RowForm extends ReactForm implements IRowFormFactory {
 
 interface IRowFormFactory {
 
-    /** @return RowForm */
-    public function create();
+    public function create(): ReactForm;
 }

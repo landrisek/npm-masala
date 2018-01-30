@@ -14,7 +14,7 @@ final class KeywordsRepository extends BaseRepository {
         foreach($used as $usage) {
             $resource->where('content NOT LIKE', '%' . strtolower($usage) . '%');
         }
-        if(false == $row = $resource->fetch()) {
+        if(null == $row = $resource->fetch()) {
             return new EmptyRow();
         }
         return $row;

@@ -27,42 +27,34 @@ final class ExportService implements IProcess {
         $this->translatorModel = $translatorModel;
     }
 
-    /** @return void */
-    public function attached(IReactFormFactory $form) { }
+    public function attached(IReactFormFactory $form): void { }
 
-    /** @return array */
-    public function done(array $response, IMasalaFactory $masala) {
+    public function done(array $response, IMasalaFactory $masala): array {
         return ['label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['_file']];
     }
-
-    /** @return string */
-    public function getFile() {
+    
+    public function getFile(): string {
         return $this->tempDir;
     }
 
-    /** @return IRow */
-    public function getSetting() {
+    public function getSetting(): IRow {
         return $this->setting;
     }
 
-    /** @return array */
-    public function prepare(array $response, IMasalaFactory $masala) {
+    public function prepare(array $response, IMasalaFactory $masala): array {
         return $response;
     }
 
-    /** @return array */
-    public function run(array $response, IMasalaFactory $masala) {
+    public function run(array $response, IMasalaFactory $masala): array {
         return $response;
     }
-
-    /** @return IProcess */
-    public function setSetting(IRow $setting) {
+    
+    public function setSetting(IRow $setting): IProcess {
         $this->setting = $setting;
         return $this;
     }
 
-    /** @return int */
-    public function speed($speed) {
+    public function speed(int $speed): int {
         return $speed;
     }
 }

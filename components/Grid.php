@@ -6,6 +6,7 @@ use Nette\Application\IPresenter,
     Nette\Application\Responses\JsonResponse,
     Nette\Application\Responses\TextResponse,
     Nette\Application\UI\Control,
+    Nette\ComponentModel\IComponent,
     Nette\Http\IRequest,
     Nette\Localization\ITranslator,
     Nette\Security\User;
@@ -49,9 +50,9 @@ final class Grid extends Control implements IGridFactory {
     /** @var IUser */
     private $usersModel;
 
-    public function __construct($appDir, $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request, ITranslator $translatorModel, IUser $usersModel, User $user) {
-        $this->appDir = Types::string($appDir);
-        $this->jsDir = Types::string($jsDir);
+    public function __construct(string $appDir, string $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request, ITranslator $translatorModel, IUser $usersModel, User $user) {
+        $this->appDir = $appDir;
+        $this->jsDir = $jsDir;
         $this->config = $config;
         $this->filterForm = $filterForm;
         $this->request = $request;
@@ -60,14 +61,13 @@ final class Grid extends Control implements IGridFactory {
         $this->usersModel = $usersModel;
     }
 
-    /** @return array */
-    private function action($key) {
-        return ['Attributes' => ['className' => 'fa-hover fa fa-' . Types::string($key), 'link' => $this->link($key)],
+    private function action(string $key): array {
+        return ['Attributes' => ['className' => 'fa-hover fa fa-' . $key, 'link' => $this->link($key)],
             'Tag' => 'a',
             'Label' => $this->translatorModel->translate($key)];
     }
 
-    private function addDate($name, $label, $attributes) {
+    private function addDate(string $name, string $label, array $attributes): void {
         $operators = ['>' => 'from', '<' => 'to', '>=' => 'from', '<=' => 'to'];
         $attributes['class'] = 'form-control';
         $attributes['filter'] = true;
@@ -86,7 +86,7 @@ final class Grid extends Control implements IGridFactory {
         }
     }
 
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter) {
             $data = $this->builder->getDefaults();
@@ -99,38 +99,36 @@ final class Grid extends Control implements IGridFactory {
                 $style = $this->builder->getAnnotation($name, 'style');
                 $attributes = ['className' =>'form-control',
                                 'data' => $data[$name],
-                                'filter' => $this->builder->getAnnotation($name, 'filter'),
+                                'filter' => !empty($this->builder->getAnnotation($name, 'filter')),
                                 'order' => $order,
-                                'summary' => $this->builder->getAnnotation($name, 'summary'),
+                                'summary' => !empty($this->builder->getAnnotation($name, 'summary')),
                                 'style' => is_array($style) ? $style : null,
-                                'unrender' => $this->builder->getAnnotation($name, 'unrender') || $this->builder->getAnnotation($name, 'pri'),
-                                'unfilter' => $this->builder->getAnnotation($name, 'unfilter'),
-                                'unsort' => $this->builder->getAnnotation($name, 'unsort'),
+                                'unrender' => !empty($this->builder->getAnnotation($name, 'unrender')) || !empty($this->builder->getAnnotation($name, 'pri')),
+                                'unfilter' => !empty($this->builder->getAnnotation($name, 'unfilter')),
+                                'unsort' => !empty($this->builder->getAnnotation($name, 'unsort')),
                                 'value' => $this->getSpice($name)];
-                if(is_array($overwrite = $this->builder->getAnnotation($name, 'attributes'))) {
-                    foreach($overwrite as $key => $attribute) {
-                        $attributes[$key] = $attribute;
-                    }
+                foreach($this->builder->getAnnotation($name, 'attributes') as $key => $attribute) {
+                    $attributes[$key] = $attribute;
                 }
-                if(true == $attributes['unfilter'] && true == $this->builder->getAnnotation($name, ['addCheckbox', 'addDate', 'addMultiSelect', 'addSelect', 'addText'])) {
+                if(true == $attributes['unfilter'] && !empty($this->builder->getAnnotation($name, ['addCheckbox', 'addDate', 'addMultiSelect', 'addSelect', 'addText']))) {
                     $attributes['filter'] = true;
                 }
-                if (true == $this->builder->getAnnotation($name, 'hidden')) {
-                } elseif (true == $this->builder->getAnnotation($name, 'addCheckbox')) {
+                if (!empty($this->builder->getAnnotation($name, 'hidden'))) {
+                } elseif (!empty($this->builder->getAnnotation($name, 'addCheckbox'))) {
                     $this->filterForm->addCheckbox($name, $label, $attributes);
-                } elseif (true == $this->builder->getAnnotation($name, 'addDateTime')) {
+                } elseif (!empty($this->builder->getAnnotation($name, 'addDateTime'))) {
                     $attributes['format'] = $this->config['format']['time']['build'];
                     $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
                     $attributes['value'] = is_null($attributes['value']) ? $attributes['value'] : date($attributes['format'], strtotime($attributes['value']));
                     $this->filterForm->addDateTime($name, $label, $attributes);
-                } elseif (true == $this->builder->getAnnotation($name, 'addDate')) {
+                } elseif (!empty($this->builder->getAnnotation($name, 'addDate'))) {
                     $attributes['format'] = $this->config['format']['date']['build'];
                     $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
                     $attributes['value'] = is_null($attributes['value']) ? $attributes['value'] : date($attributes['format'], strtotime($attributes['value']));
                     $this->filterForm->addDateTime($name, $label, $attributes);
-                } elseif (true == $this->builder->getAnnotation($name, 'addRange')) {
+                } elseif (!empty($this->builder->getAnnotation($name, 'addRange'))) {
                     $this->addDate($name, $label, $attributes);
-                } elseif(true == $this->builder->getAnnotation($name, 'addMultiSelect')) {
+                } elseif(!empty($this->builder->getAnnotation($name, 'addMultiSelect'))) {
                     $attributes['data'] = $this->translate($attributes['data']);
                     $attributes['autocomplete'] = '';
                     $attributes['min-width'] = '10px';
@@ -143,16 +141,16 @@ final class Grid extends Control implements IGridFactory {
                 } elseif (is_array($data[$name]) and ! empty($data[$name]) && false == $attributes['unrender']) {
                     $attributes['data'] = $this->translate($attributes['data']);
                     $this->filterForm->addSelect($name, $label, $attributes);
-                } elseif(true == $this->builder->getAnnotation($name, 'addText')) {
+                } elseif(!empty($this->builder->getAnnotation($name, 'addText'))) {
                     $this->filterForm->addText($name, $label, $attributes);
-                } elseif(true == $this->builder->getAnnotation($name, 'addSelect')) {
+                } elseif(!empty($this->builder->getAnnotation($name, 'addSelect'))) {
                     $attributes['data'] = $this->translate($attributes['data']);
                     $this->filterForm->addSelect($name, $label, $attributes);
                 } elseif(false == $attributes['unrender'] && true == $attributes['unfilter']) {
                     $this->filterForm->addEmpty($name, $label, $attributes);
-                } elseif(false == $this->builder->getAnnotation($name, 'unrender')) {
+                } elseif(empty($this->builder->getAnnotation($name, 'unrender'))) {
                     $this->filterForm->addText($name, $label, $attributes);
-                }  elseif(true == $this->builder->getAnnotation($name, 'unrender')) {
+                }  elseif(!empty($this->builder->getAnnotation($name, 'unrender'))) {
                     $this->filterForm->addHidden($name, $label, $attributes);
                 }
             }
@@ -169,25 +167,22 @@ final class Grid extends Control implements IGridFactory {
         }
     }
 
-    /** @return IGridFactory */
-    public function create() {
+    public function create(): Grid {
         return $this;
     }
 
     /** @return array | string */
-    private function getSpice($column) {
+    private function getSpice(string $column) {
         if(isset($this->spice[$column])) {
             return $this->spice[$column];
         }
     }
 
-    /** @return void */
-    public function handleAdd() {
+    public function handleAdd(): void {
         $this->presenter->sendResponse(new JsonResponse($this->builder->add()));
     }
 
-    /** @return void */
-    public function handleEdit() {
+    public function handleEdit(): void {
         $row = $this->builder->row($this->builder->getPost('id'), $this->builder->getPost('row'));
         if($this->builder->isEdit()) {
             $this->builder->getEdit()->after($row);
@@ -195,45 +190,38 @@ final class Grid extends Control implements IGridFactory {
         $this->presenter->sendResponse(new JsonResponse($row->getData()));
     }
 
-    /** @return void */
-    public function handleFilter() {
+    public function handleFilter(): void {
         $rows = $this->builder->prepare()->getOffsets();
         $response = new JsonResponse($rows);
         $this->presenter->sendResponse($response);
     }
 
-    /** @return void */
-    public function handleChart() {
+    public function handleChart(): void {
         $this->presenter->sendResponse(new JsonResponse($this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('row'))));
     }
 
-    /** @return JsonResponse */
-    public function handleListen() {
+    public function handleListen(): void {
         $response = new JsonResponse($this->builder->getListener()->listen($this->builder->getPost('')));
         $this->presenter->sendResponse($response);
     }
 
-    /** @return void */
-    public function handlePaginate() {
+    public function handlePaginate(): void {
         $sum = $this->builder->prepare()->getSum();
         $total = ($sum > $this->builder->getPagination()) ? intval(ceil($sum / $this->builder->getPagination())) : 1;
         $response = new TextResponse($total);
         $this->presenter->sendResponse($response);
     }
-
-    /** @return void */
-    public function handlePush() {
+    
+    public function handlePush(): void {
         $response = new JsonResponse($this->builder->getButton()->push($this->builder->getPost('')));
         $this->presenter->sendResponse($response);
     }
-
-    /** @return void */
-    public function handleRemove() {
+    
+    public function handleRemove(): void {
         $this->presenter->sendResponse(new JsonResponse($this->builder->delete()));
     }
 
-    /** @return void */
-    public function handleSetting() {
+    public function handleSetting(): void {
         $annotation = 'unrender';
         $path = $this->presenter->getName() . ':' . $this->presenter->getAction();
         $setting = (array) json_decode($this->user->getIdentity()->getData()[$this->config['settings']]);
@@ -256,24 +244,20 @@ final class Grid extends Control implements IGridFactory {
         $response = new TextResponse($this->usersModel->updateUser($this->user->getId(), [$this->config['settings'] => $user]));
         $this->presenter->sendResponse($response);
     }
-
-    /** @return void */
-    public function handleSummary() {
+    
+    public function handleSummary(): void {
         $this->presenter->sendResponse(new TextResponse($this->builder->prepare()->getSummary()));
     }
-
-    /** @return void */
-    public function handleUpdate() {
+    
+    public function handleUpdate(): void {
         $this->presenter->sendResponse(new JsonResponse($this->builder->submit($this->builder->getPost('submit'))));
     }
 
-    /** @return void */
-    public function handleValidate() {
+    public function handleValidate(): void {
         $this->presenter->sendResponse(new JsonResponse($this->builder->validate()));
     }
 
-    /** @return void */
-    public function render(...$args) {
+    public function render(...$args): void {
         $this->template->setFile(__DIR__ . '/../templates/grid.latte');
         $this->template->component = $this->getName();
         $url = $this->request->getUrl();
@@ -291,13 +275,13 @@ final class Grid extends Control implements IGridFactory {
         }
         $link .= $spice . '=';
         $columns = $this->filterForm->getData();
-        if($this->builder->getChart() instanceof IChart) {
+        if($this->builder->isChart()) {
             $columns['charts'] = ['Label'=> $this->translatorModel->translate('charts'), 'Method'=>'addButton','Attributes'=>
                 ['className'=>'fa-hover fa fa-bar-chart','filter'=> false,'link' => $this->link('chart'),'onClick'=>'charts','summary' => false,'unrender' => false, 'unfilter' => false,'unsort'=>true]];
         }
         $export = ['style' => ['marginRight'=>'10px','float'=>'left']];
         $excel = ['style' => ['marginRight'=>'10px','float'=>'left']];
-        if(is_object($this->getParent()->getGrid()->getExport())) {
+        if($this->getParent()->getGrid()->isExport()){
             $excel['className'] = 'btn btn-success';
             $excel['label'] = 'excel';
             $excel['link'] = $this->getParent()->link('excel');
@@ -310,7 +294,7 @@ final class Grid extends Control implements IGridFactory {
             $export['width'] = 0;
         }
         $this->template->dialogs = ['setting','reset','send','excel','export','process','done','add'];
-        if($this->builder->getButton() instanceof IButton) {
+        if($this->builder->isButton()) {
             foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
                 $this->template->dialogs[] = $buttonId;
             }
@@ -367,10 +351,10 @@ final class Grid extends Control implements IGridFactory {
                 'row' => ['add' => $this->builder->row(-1, $this->row)->getData(), 'edit' => []],
                 'rows' => [],
                 'validators' => []];
-        if($this->builder->getListener() instanceof IListener) {
+        if($this->builder->isListener()) {
             $data['listeners'] = $this->builder->getListener()->getKeys();
         }
-        if($this->builder->getButton() instanceof IButton) {
+        if($this->builder->isButton()) {
             foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
                 $data['buttons'][$buttonId] = $button;
                 $data['buttons'][$buttonId]['onClick'] = 'push';
@@ -379,7 +363,7 @@ final class Grid extends Control implements IGridFactory {
         if($this->presenter->getName()  . ':' . $this->presenter->getAction() . ':process' == $process = $this->translatorModel->translate($this->presenter->getName()  . ':' . $this->presenter->getAction() . ':process')) {
             $process = $this->translatorModel->translate('process');
         }
-        if($this->builder->getService() instanceof IProcess) {
+        if($this->builder->isProcess()) {
             $data['buttons']['process'] = ['className' => 'btn btn-success',
                 'label' => $process,
                 'link' => $this->getParent()->link('prepare'),
@@ -391,14 +375,12 @@ final class Grid extends Control implements IGridFactory {
         $this->template->render();
     }
 
-    /** @return IGridFactory */
-    public function setGrid(IBuilder $grid) {
+    public function setGrid(IBuilder $grid): IGridFactory {
         $this->builder = $grid;
         return $this;
     }
-
-    /** @return array */
-    private function translate(array $data) {
+    
+    private function translate(array $data): array {
         foreach($data as $key => $value) {
             $data[$key] = $this->translatorModel->translate($value);
         }
@@ -409,6 +391,5 @@ final class Grid extends Control implements IGridFactory {
 
 interface IGridFactory {
 
-    /** @return Grid */
-    function create();
+    public function create(): Grid;
 }

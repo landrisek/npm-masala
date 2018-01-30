@@ -12,20 +12,16 @@ class EmptyRow implements Iterator, IRow {
 
     public function setTable(Selection $name) {}
 
-	/** @return Selection */
-    public function getTable() {}
+    public function getTable(): Selection {}
 
 	/**@return mixed */
-    public function getPrimary($throw = true) {}
+    public function getPrimary(bool $throw = true) {}
 
-	/** @return string */
-    public function getSignature($throw = true) { return ''; }
+    public function getSignature(bool $throw = true): string { return ''; }
 
-	/** @return GroupedSelection */
-    public function related($key, $throughColumn = null) {}
+    public function related(string $key, ?string $throughColumn = null): GroupedSelection {}
 
-	/** @return IRow|null */
-    public function ref($key, $throughColumn = null) { }
+    public function ref(string $key, ?string $throughColumn = null): ?IRow { }
 
 	/** @return mixed */
     public function current() {}

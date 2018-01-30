@@ -12,16 +12,15 @@ final class FilterForm extends ReactForm implements IFilterFormFactory {
     private $request;
 
     /** @var ITranslator */
-    private $translatorModel;
+    private $translatorRepository;
     
-    public function __construct($jsDir, IRequest $request, ITranslator $translatorModel) {
-        parent::__construct($jsDir, $request, $translatorModel);
+    public function __construct(string $jsDir, IRequest $request, ITranslator $translatorRepository) {
+        parent::__construct($jsDir, $request, $translatorRepository);
         $this->request = $request;
-        $this->translatorModel = $translatorModel;
+        $this->translatorRepository = $translatorRepository;
     }
 
-    /** @return IFilterFormFactory */
-    public function create() {
+    public function create(): ReactForm {
         return $this;
     }
 
@@ -29,6 +28,5 @@ final class FilterForm extends ReactForm implements IFilterFormFactory {
 
 interface IFilterFormFactory {
 
-    /** @return FilterForm */
-    function create();
+    public function create(): ReactForm;
 }

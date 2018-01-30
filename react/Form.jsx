@@ -223,34 +223,6 @@ export default class Form extends Component {
         }
         return container
     }
-    isEmail(value) {
-        return /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(value);
-    }
-    isImage(value) {
-        if(value instanceof File) {
-            return ['bmp','gif','jpg','jpeg'].indexOf(value.type) > -1            
-        }
-        for(var file in value) {
-            if(-1 == ['.bmp','.gif','.jpg','jpeg'].indexOf(value[file].substr(-4, 5))) {
-                return false
-            }
-        }
-
-    }
-    isRequired(value) {
-        return (undefined !== value && '' !== value);
-    }
-    isText(value) {
-        if(value instanceof File) {
-            return ['application/csv','application/vnd.ms-excel','application/x-csv','text/csv','text/comma-separated-values','text/x-csv',
-                    'text/x-comma-separated-values','text/plain','text/tab-separated-values'].indexOf(value.type) > -1
-        }
-        for(var file in value) {
-            if(-1 == ['.csv','.txt','.xls','.xlsx'].indexOf(value[file].substr(-4, 5))) {
-                return false
-            }
-        }
-    }
     load(key, file, name) {
         var state = []
         state[ROW] = this.state[ROW]
@@ -277,16 +249,7 @@ export default class Form extends Component {
     onDrop(key, files) {
         var element = this.state[ROW][key]
         for(var file in files) {
-            for(var validator in this.state[ROW][key].Validators) {
-                var closure = this['is' + validator[0].toUpperCase() + validator.substring(1)];
-                if('function' == typeof(closure) && false == closure(files[file])) {
-                    element.Validators[validator].style = { display : 'block' }
-                } else {
-                    element.Validators[validator].style = { display : 'none' }
-                    element.Attributes.content = files[file].preview
-                    this.save(key, files[file])
-                }
-            }
+            this.save(key, files[file])
         }
         var state = []
         state[key] = element
@@ -299,7 +262,6 @@ export default class Form extends Component {
         } else {
             var reader = new FileReader()
             reader.onload = function() {
-                var reader = new FileReader()
                 self.load(key, reader.result, file.name)
             }
             reader.readAsDataURL(file)

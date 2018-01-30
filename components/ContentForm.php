@@ -4,6 +4,7 @@ namespace Masala;
 use Nette\Application\UI\Control,
     Nette\Application\IPresenter,
     Nette\Application\Responses\JsonResponse,
+    Nette\ComponentModel\IComponent,
     Nette\Database\Table\IRow,
     Nette\Localization\ITranslator;
 
@@ -40,7 +41,8 @@ final class ContentForm extends Control implements IContentFormFactory {
     /** @var WriteRepository */
     private $writeRepository;
 
-    public function __construct($jsDir, IContent $contentRepository, IBuilder $builder, ITranslator $translatorRepository, KeywordsRepository $keywordsRepository, WriteRepository $writeRepository) {
+    public function __construct($jsDir, IContent $contentRepository, IBuilder $builder, ITranslator $translatorRepository,
+        KeywordsRepository $keywordsRepository, WriteRepository $writeRepository) {
         $this->jsDir = $jsDir;
         $this->contentRepository = $contentRepository;
         $this->writeRepository = $writeRepository;
@@ -49,13 +51,7 @@ final class ContentForm extends Control implements IContentFormFactory {
         $this->translatorRepository = $translatorRepository;
     }
 
-    /** @return IContentFormFactory */
-    public function create() {
-        return $this;
-    }
-
-    /** @return void */
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
         if($presenter instanceof IPresenter) {
             $this->presenter = $presenter;
@@ -63,20 +59,21 @@ final class ContentForm extends Control implements IContentFormFactory {
         }
     }
 
-    /** @return void */
-    public function handleKeyword() {
+    public function create(): ContentForm {
+        return $this;
+    }
+
+    public function handleKeyword(): void {
         $response = new JsonResponse($this->wildcard($this->builder->getPost('keywords'), []));
         $this->presenter->sendResponse($response);
     }
 
-    /** @return void */
-    public function handleSubmit() {
+    public function handleSubmit(): void {
         $this->writeRepository->updateWrite($this->keyword, ['content' => $this->builder->getPost('content')]);
         $this->presenter->sendPayload();
     }
 
-    /** @return void */
-    public function handleWrite() {
+    public function handleWrite(): void {
         $keywords = $this->builder->getPost('keywords');
         $options = $this->builder->getPost('options');
         $wildcards = $this->builder->getPost('wildcards');
@@ -118,8 +115,7 @@ final class ContentForm extends Control implements IContentFormFactory {
         $this->presenter->sendResponse($response);
     }
 
-    /** @return void */
-    public function render(...$args) {
+    public function render(...$args): void {
         $this->template->component = $this->getName();
         $this->template->data =  json_encode(['content' => json_decode(trim($this->row->check()->content)),
                                             'current' => 0,
@@ -135,23 +131,20 @@ final class ContentForm extends Control implements IContentFormFactory {
         $this->template->render();
     }
 
-    /** @return IContentFormFactory */
-    public function setRow(IRow $row) {
+    public function setRow(IRow $row): IContentFormFactory {
         $this->row = $row;
         return $this;
     }
 
-    /** @return IContentFormFactory */
-    public function setSource(array $source) {
+    public function setSource(array $source): IContentFormFactory {
         $this->source = $source;
         return $this;
     }
 
-    /** @return array */
-    private function wildcard($option, array $wildcards) {
+    private function wildcard($option, array $wildcards): array {
         foreach (explode(' ', trim(preg_replace('/\s+|\.|\,/', ' ', $option))) as $wildcard) {
             $row = $this->keywordsRepository->getKeyword($wildcard, $this->used);
-            if ($row instanceof ActiveRow && !in_array($wildcard, $wildcards) && !empty($wildcard) && strlen($wildcard) > 2) {
+            if ($row instanceof IRow && !in_array($wildcard, $wildcards) && !empty($wildcard) && strlen($wildcard) > 2) {
                 foreach(json_decode($row->content) as $content) {
                     $wildcards[$wildcard][] = '% ' . $content . ' %';
                     $wildcards[$wildcard][] = '% ' . $content . '. %';
@@ -186,6 +179,5 @@ final class ContentForm extends Control implements IContentFormFactory {
 
 interface IContentFormFactory {
 
-    /** @return ContentForm */
-    function create();
+    public function create(): ContentForm;
 }

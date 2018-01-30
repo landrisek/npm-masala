@@ -37,8 +37,7 @@ final class ImportFormTest extends TestCase {
         $this->container = $container;
     }
 
-    /** @return void */
-    protected function setUp() {
+    protected function setUp(): void {
         Assert::true(is_object($this->mockService = $this->container->getByType('Masala\MockService')), 'MockService is not set.');
         Assert::false(empty($processes = $this->container->findByType('Masala\IProcess')), 'No Masala\IProcess found.');
         Assert::false(empty($service = $processes[rand(0, sizeof($processes) -1)]));
@@ -49,14 +48,12 @@ final class ImportFormTest extends TestCase {
             'IImportFormFactory is not set.');
         $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
     }
-
-    /** @return void */
+    
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    /** @return void */
-    public function testSetService() {
+    public function testSetService(): void {
         $mockRepository = $this->container->getByType('Masala\IMock');
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $this->presenters[$class]);
@@ -79,9 +76,8 @@ final class ImportFormTest extends TestCase {
             $presenter->removeComponent($masala);
         }
     }
-
-    /** @return void */
-    public function testAttached() {
+    
+    public function testAttached(): void {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
@@ -92,8 +88,7 @@ final class ImportFormTest extends TestCase {
         }
     }
 
-    /** @return void */
-    public function testSucceed() {
+    public function testSucceed(): void {
         $testParameters = ['id' => 1, 'feed' => 'laurasport', 'page' => 1, 'grid' => 'products'];
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $latte);
@@ -109,7 +104,7 @@ final class ImportFormTest extends TestCase {
             Assert::true(in_array('addComponent', get_class_methods($presenter)), 'Presenter has no method addComponent.');
             Assert::true(is_object($this->class), 'ImportForm was not set.');
             Assert::true($this->class instanceof IImportFormFactory, 'ImportForm has wrong instantion.');
-            Assert::same(null, $this->class->getData(), 'Data has been attached too early.');
+            Assert::true(empty($this->class->getData()), 'Data has been attached too early.');
             Assert::true(property_exists($this->class, 'translatorRepository'), 'Translator repository was not set');
             Assert::true(is_object($this->class->setService($this->service)), 'IProcess was not set.');
             $csv = __DIR__ . '/' . Strings::webalize(preg_replace('/App|Module|Presenter|action/', '', $class . '-' . $method)) . '.csv';

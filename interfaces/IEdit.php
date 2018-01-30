@@ -4,10 +4,8 @@ namespace Masala;
 
 interface IEdit {
 
-    /** @return IReactFormFactory */
-    public function after(IReactFormFactory $form);
+    public function after(IReactFormFactory $form): void;
 
-    /** @return array */
-    public function submit(array $primary, array $response);
+    public function submit(array $primary, array $response): array;
 
 }

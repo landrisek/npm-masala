@@ -59,7 +59,6 @@ final class FilterFormTest extends TestCase {
         }
         Assert::true(isset($date), 'No datetime column to test for');
         foreach ($this->presenters as $class => $latte) {
-            echo $class . "\n";
             $presenter = $this->mockService->getPresenter($class, $latte);
             Assert::true(is_object($presenter), 'Presenter was not set.');
             Assert::true(is_object($presenter->grid = $this->container->getByType('Masala\IBuilder')), 'Presenter grid was not set.');
@@ -94,7 +93,7 @@ final class FilterFormTest extends TestCase {
             Assert::true($this->class instanceof IReactFormFactory, 'FilterForm has wrong instantion.');
             Assert::false(empty($data = $filterForm->getData()), 'Form values are not set in class ' . $class . ' for source ' . $table);
             Assert::true(is_array($data), 'FilterForm values are not set.');
-            Assert::true(property_exists($this->class, 'translatorModel'), 'Translator model was not set');
+            Assert::true(property_exists($this->class, 'translatorRepository'), 'Translator repostitory was not set');
             $masala->attached($presenter);
             Assert::false(empty($methods = get_class_methods($filterForm)), 'Masala\IFilterFormFactory does not have any method.');
             Assert::false(isset($methods['succeeded']) or isset($methods['formSucceeded']) or isset($methods['submit']), 

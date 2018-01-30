@@ -2,7 +2,8 @@
 
 namespace Masala;
 
-use Latte\Engine,
+use Mockery,
+    Latte\Engine,
     Nette\DI\Container,
     Nette\Http,
     Nette\Application,
@@ -16,7 +17,7 @@ use Latte\Engine,
     Nette\Database\Structure,
     Nette\Localization\ITranslator,
     Nette\Security\User,
-    Mockery,
+    ReflectionClass,
     Tester\Assert;
 
 final class MockService {
@@ -71,8 +72,7 @@ final class MockService {
         $this->usersModel = $usersModel;
     }
 
-    /** @return IBuilder */
-    public function getBuilder($source = 'Sale:Billing', $action = 'default') {
+    public function getBuilder($source = 'Sale:Billing', $action = 'default'): IBuilder {
         $config = $this->extension->getConfiguration($this->config);
         $root = '/';
         $presenter = strtolower(preg_replace('/(.*)\:/', '', $source));
@@ -90,7 +90,7 @@ final class MockService {
         return $builder;
     }
 
-    public function getCall($class, $method, $parameters, $parent) {
+    public function getCall(string $class, string $method, string $parameters, object $parent) {
         $arguments = [];
         if (class_exists($class)) {
             $object = $this->container->getByType($class);
@@ -109,9 +109,7 @@ final class MockService {
         return call_user_func_array([$overload, $method], $arguments);
     }
 
-
-    /** @return string */
-    public function getConfig(array $keys) {
+    public function getConfig(array $keys): string {
         $config = $this->config;
         foreach ($keys as $key) {
             $config = $config[$key];
@@ -119,8 +117,7 @@ final class MockService {
         return $config;
     }
 
-    /** @return IPresenter */
-    public function getPresenter($class, $latteFile, $parameters = [], $injected = false) {
+    public function getPresenter($class, $latteFile, $parameters = [], $injected = false): IPresenter {
         Assert::true(class_exists($class), 'Class ' . $class . ' not found.');
         if (false == $injected) {
             $this->setPresenter();
@@ -190,13 +187,11 @@ final class MockService {
             /** $request = Mockery::mock('Nette\Application\Request[getPost]', [$presenterRequest, 'GET', array_merge(['action' => $presenterAction], $parameters)]);
             $request->shouldReceive('getPost')->andReturn($_POST); */
         }
-        echo 'testing name ' . $name . ':' . $presenterAction, "\n";
         $presenter->run($request);
         return $presenter;
     }
 
-    /** @return array */
-    public function getPresenters($component) {
+    public function getPresenters(string $component): array {
         $this->setPresenter();
         $this->setDependencies();
         $files = $this->getFiles(['php'], 'Presenter');
@@ -287,8 +282,7 @@ final class MockService {
         return $this->httpRequest;
     }
 
-    /** @return User */
-    public function getUser() {
+    public function getUser(): User {
         if (null == $this->user) {
             $this->user = $this->container->getByType('Nette\Security\User');
             Assert::true(isset($this->config['mockService']['testUser']), 'Test user is not set.');
@@ -328,7 +322,7 @@ final class MockService {
         return $files;
     }
 
-    public function getParameter($parameter, $parent) {
+    public function getParameter(string $parameter, object $parent) {
         if (0 < substr_count($parameter, '->')) {
             $variables = explode('->', $parameter);
             $call = array_shift($variables);
@@ -350,7 +344,7 @@ final class MockService {
         return $parameter;
     }
 
-    public function setDependencies($class = false) {
+    public function setDependencies($class = false): void {
         $services = isset($this->config['mockService']['services']) ? $this->config['mockService']['services'] : [];
         Assert::false(empty($services));
         foreach ($services as $serviceId => $service) {
@@ -365,8 +359,7 @@ final class MockService {
         }
     }
 
-    /** @retrun void */
-    public function setPost(array $post) {
+    public function setPost(array $post): void {
         file_put_contents('php://memory', 'PHP');
         stream_wrapper_unregister("php");
         stream_wrapper_register("php", "Masala\Stream");
@@ -375,7 +368,7 @@ final class MockService {
     }
 
     private function setProtectedProperty($object, $property, $value) {
-        $reflection = new \ReflectionClass($object);
+        $reflection = new ReflectionClass($object);
         $protected = $reflection->getProperty($property);
         $protected->setAccessible(true);
         $protected->setValue($object, $value);

@@ -4,10 +4,8 @@ namespace Masala;
 
 interface IFilter {
 
-    /** @return array */
-    public function getList($alias);
+    public function getList(string $alias): array;
 
-    /** @return array */
-    public function filter(array $filters);
+    public function filter(array $filters): array;
 
 }

@@ -2,7 +2,8 @@
 
 namespace Masala;
 
-use Nette\Application\UI\Presenter,
+use Nette\Application\IPresenter,
+    Nette\ComponentModel\IComponent,
     Nette\Http\IRequest,
     Nette\Localization\ITranslator;
 
@@ -20,19 +21,9 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
         $this->translatorRepository = $translatorRepository;
     }
 
-    /** @return IImportFormFactory */
-    public function create() {
-        return $this;
-    }
-
-    public function setService(IProcess $service) {
-        $this->service = $service;
-        return $this;
-    }
-
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
-        if ($presenter instanceof Presenter and false == $this->isSignalled()) {
+        if ($presenter instanceof IPresenter and false == $this->isSignalled()) {
             $this->addProgressBar('_prepare');
             $this->service->attached($this);
             $this->addUpload('_import',
@@ -46,10 +37,18 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
         }
     }
 
+    public function create(): ReactForm {
+        return $this;
+    }
+
+    public function setService(IProcess $service): IImportFormFactory {
+        $this->service = $service;
+        return $this;
+    }
+
 }
 
 interface IImportFormFactory {
 
-    /** @return ImportForm */
-    function create();
+    public function create(): ReactForm;
 }

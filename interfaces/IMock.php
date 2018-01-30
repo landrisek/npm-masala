@@ -6,10 +6,8 @@ use Nette\Database\Table\IRow;
 
 interface IMock {
 
-    /** @return IRow */
-    function getTestRow($table, array $clauses = []);
+    public function getTestRow(string $table, array $clauses = []): IRow;
 
-    /** @return array */
-    function getTestRows($table, array $clauses = [], $limit);
+    public function getTestRows(string $table, array $clauses = [], $limit): array;
     
 }

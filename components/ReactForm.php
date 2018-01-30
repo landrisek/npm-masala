@@ -5,13 +5,14 @@ namespace Masala;
 use Nette\Application\UI\ISignalReceiver,
     Nette\Application\IPresenter,
     Nette\Application\UI\Control,
+    Nette\ComponentModel\IComponent,
     Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 class ReactForm extends Control implements IReactFormFactory {
 
     /** @var array */
-    private $data;
+    private $data = [];
 
     /** @var string */
     private $jsDir;
@@ -19,23 +20,16 @@ class ReactForm extends Control implements IReactFormFactory {
     /** @var IRequest */
     private $request;
 
-    public function __construct($jsDir, IRequest $request) {
+    public function __construct(string $jsDir, IRequest $request) {
         $this->jsDir = $jsDir;
         $this->request = $request;
     }
 
-    /** @return IReactFormFactory */
-    public function create() {
-        return $this;
-    }
-
-    /** @return IReactFormFactory */
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
     }
 
-    /** @return IReactFormFactory */
-    private function add($key, $label, $method, $tag, array $attributes = [], array $validators = []) {
+    private function add($key, $label, $method, $tag, array $attributes = [], array $validators = []): IReactFormFactory {
         $validations = [];
         foreach($validators as $validatorId => $validator) {
             $validations[$validatorId] = ['value' => ucfirst($validator), 'style' => ['display' => 'none']];
@@ -60,29 +54,28 @@ class ReactForm extends Control implements IReactFormFactory {
         return $this;
     }
 
-    /** @return IReactFormFactory */
-    public function addAction($key, $label, array $attributes = [], array $validators = []) {
+    public function addAction($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         $attributes['style']['marginLeft'] = '10px';
         return $this->add($key, $label, __FUNCTION__, 'a', $attributes, $validators);
     }
 
     /** @return IReactFormFactory */
-    public function addCheckbox($key, $label, array $attributes = [], array $validators = []) {
+    public function addCheckbox($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         $attributes['type'] = 'checkbox';
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes, $validators);
     }
 
     /** @return IReactFormFactory */
-    public function addDateTime($key, $label, array $attributes = [], array $validators = []) {
+    public function addDateTime($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         return $this->add($key, $label, 'addDateTime', 'input', $attributes, $validators);
     }
 
     /** @return IReactFormFactory */
-    public function addEmpty($key, $label, array $attributes = []) {
+    public function addEmpty($key, $label, array $attributes = []): IReactFormFactory  {
         return $this->add($key, $label, __FUNCTION__, 'div', $attributes);
     }
 
-    private function addHandlers(array $links) {
+    private function addHandlers(array $links): array {
         $handlers = [];
         if($this->getParent() instanceof ISignalReceiver) {
             $methods = array_flip(get_class_methods($this->getParent()));
@@ -100,102 +93,88 @@ class ReactForm extends Control implements IReactFormFactory {
         return $handlers;
     }
 
-    /** @return IReactFormFactory */
-    public function addHidden($key, $label, array $attributes = [], array $validators = []) {
+    public function addHidden($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         return $this->add($key, $label, __FUNCTION__, 'div', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addMessage($key, $label, array $attributes = []) {
+    public function addMessage($key, $label, array $attributes = []): IReactFormFactory  {
         $attributes['style'] = ['display' => 'none'];
         return $this->add($key, $label, __FUNCTION__, 'div', $attributes);
     }
 
-    /** @return IReactFormFactory */
-    public function addMultiSelect($key, $label, array $attributes = [], array $validators = []) {
+    public function addMultiSelect($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         if(null == $attributes['value']) {
             $attributes['value'] = [];
         }
         return $this->add($key, $label, __FUNCTION__, 'select', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addMultiUpload($key, $label, array $attributes = [], array $validators = []) {
+    public function addMultiUpload($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addRadioList($key, $label, array $attributes = [], array $validators = []) {
+    public function addRadioList($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         $attributes['type'] = 'radio';
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addSubmit($key, $label, array $attributes = []) {
+    public function addSubmit($key, $label, array $attributes = []): IReactFormFactory {
         $attributes['type'] = 'submit';
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes);
     }
 
-    /** @return IReactFormFactory */
-    public function addSelect($key, $label, array $attributes = [], array $validators = []) {
+    public function addSelect($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         return $this->add($key, $label, __FUNCTION__, 'select', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addProgressBar($key, $label = '',  array $attributes = [], array $validators = []) {
+    public function addProgressBar($key, $label = '',  array $attributes = [], array $validators = []): IReactFormFactory {
         $attributes['width'] = 0;
         return $this->add($key . '-progress', $label, __FUNCTION__, 'div', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addTitle($key, $label,  $attributes) {
+    public function addTitle($key, $label,  array $attributes): IReactFormFactory  {
         return $this->add($key, $label,  __FUNCTION__, 'div', $attributes);
     }
     
-    /** @return IReactFormFactory */
-    public function addText($key, $label, array $attributes = [], array $validators = []) {
+    public function addText($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         $attributes['type'] = isset($attributes['type']) ? $attributes['type'] : 'text';
         return $this->add($key, $label,__FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addTextArea($key, $label, array $attributes = [], array $validators = []) {
+    public function addTextArea($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         $attributes['type'] = 'textarea';
         return $this->add($key, $label,__FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
-    public function addUpload($key, $label, array $attributes = [], array $validators = []) {
+    public function addUpload($key, $label, array $attributes = [], array $validators = []): IReactFormFactory {
         return $this->add($key, $label,__FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return array */
-    public function getComponent($key) {
+    public function create(): ReactForm {
+        return $this;
+    }
+
+    public function getOffset(string $key): array {
         return $this->data[$key];
     }
 
-    /** @return array */
-    public function getData() {
+    public function getData(): array {
         return $this->data;
     }
 
-    /** @return IRequest */
-    public function getRequest() {
+    public function getRequest(): IRequest {
         return $this->request;
     }
 
-    /** @return bool */
-    public function isSignalled() {
+    public function isSignalled(): bool {
         return !empty($this->request->getUrl()->getQueryParameter('do'));
     }
 
-    /** @return void */
-    public function unsetOffset($key) {
+    public function unsetOffset(string $key): void {
         unset($this->data[$key]);
     }
 
-    /** @return void */
-    public function render(...$args) {
+    public function render(...$args): void {
         $this->template->component = $this->getName();
         $this->template->data = json_encode(['row' => $this->data, 'validators' => []]);
         $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
@@ -208,10 +187,5 @@ class ReactForm extends Control implements IReactFormFactory {
 
 interface IReactFormFactory {
 
-    /** @return ReactForm */
-    function create();
-    
-    /** @return ReactForm */
-    function attached($parent);
-
+    public function create(): ReactForm;
 }
