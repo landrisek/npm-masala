@@ -2,25 +2,24 @@
 
 namespace Masala;
 
-use Nette\Database\Table\IRow;
+use Masala\EmptyRow,
+    Nette\Database,
+    Nette\Database\Table;
 
 /** @author Lubomir Andrisek */
 final class MockRepository extends BaseRepository implements IMock {
 
-    /** @return IRow */
-    public function explainColumn($table, $column) {
+    public function explainColumn(string $table, string $column): Database\IRow {
         return $this->database->query('EXPLAIN SELECT `' . $column . '` FROM `' . $table . '`')->fetch();
     }
 
-    /** @return array */
-    public function getColumns($table) {
+    public function getColumns(string $table): array {
         return $this->database->getConnection()
                         ->getSupplementalDriver()
                         ->getColumns($table);
     }
 
-    /** @return IRow */
-    public function getDuplicity($table, $group, array $columns) {
+    public function getDuplicity(string $table, string $group, array $columns): Database\Table\IRow {
         $resource = $this->database->table((string) $table)
                         ->select($group . ', COUNT(id) AS sum');
         foreach($columns as $column => $value) {
@@ -32,13 +31,12 @@ final class MockRepository extends BaseRepository implements IMock {
         return $row;
     }
 
-    /** @retrun string|array */
-    public function getPrimary(string $table) {
+    public function getPrimary(string $table): ?array {
         return $this->database->table($table)
                     ->getPrimary();
     }
 
-    public function getTestRow(string $table, array $columns = [], $select = null, $order = null): IRow {
+    public function getTestRow(string $table, array $columns = [], $select = null, $order = null): Database\Table\IRow {
         $resource = $this->database->table($table);
         empty($select) ?  null : $resource->select($select);
         foreach ($columns as $column => $value) {
@@ -51,7 +49,7 @@ final class MockRepository extends BaseRepository implements IMock {
         return $row;
     }
 
-    public function getTestRows($table, array $clauses = [], $limit): array {
+    public function getTestRows(string $table, array $clauses, int $limit): array {
         $resource = $this->database->table($table);
         foreach ($clauses as $column => $value) {
             is_bool($value) ? $resource->where($column) : $resource->where($column, $value);

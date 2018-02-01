@@ -147,7 +147,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testHandleExport() {
-        Assert::same(null, $this->mockService->setPost(['offset'=>1]), 'MockService:setPost succeed but it does return something. Do you wish to modify test?');
+        Assert::same(null, $this->mockService->setPost(['Offset'=>1]), 'MockService:setPost succeed but it does return something. Do you wish to modify test?');
         Assert::true(is_object($this->class->setGrid($this->container->getByType('Masala\IBuilder')->export(true))));
     }
 

@@ -4,7 +4,5 @@ namespace Masala;
 
 interface IUser {
 
-    /** @return int */
-    function updateUser($id, array $data);
-
+    public function updateUser(int $id, array $data): int;
 }

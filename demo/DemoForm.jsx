@@ -32,7 +32,7 @@ export default class SurveyForm extends Form {
     }
     submit(event) {
         event.preventDefault();
-        var message = this.state['message'];
+        var message = this.state.message;
         message.Attributes.style = { display : 'block' };
         this.setState({ submited: { display: 'none' }, message: message });
     }

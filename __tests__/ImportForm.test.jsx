@@ -12,7 +12,7 @@ describe('ImportForm', () => {
         expect(element.id).toEqual('importForm')
         document.body.insertBefore(element, document.getElementById('head'))
         var dom = ReactDOM.render(<ImportForm />, document.getElementById(element.id))
-        expect(typeof(dom.state.row['_prepare-progress'])).toEqual('object')
+        expect(typeof(dom.state.row._prepare-progress)).toEqual('object')
         var doms = dom.attached()
         expect('_prepare-progress').toEqual(doms[0].key)
         var json = JSON.parse(document.querySelector('#importForm').getAttribute('data'))

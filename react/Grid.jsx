@@ -29,7 +29,7 @@ export default class Grid extends Component {
         for(var row in state[ROWS][0]) {
             rows[row] = null
         }
-        var data = {id:event.target.id,row:{}}
+        var data = {id:event.target.id,Row:{}}
         for(var row in state[ROW].add) {
             if(null != rows[row] && null != rows[row].Label) {
                 rows[row].Label = state[ROW].add[row].Attributes.value
@@ -38,7 +38,7 @@ export default class Grid extends Component {
             } else {
                 rows[row] = state[ROW].add[row].Attributes.value
             }
-            data.row[row] = state[ROW].add[row].Attributes.value
+            data.Row[row] = state[ROW].add[row].Attributes.value
         }
         state[ROWS][event.target.id] = rows
         state[ROW].add = JSON.parse(request('POST', this.state[BUTTONS].edit.Attributes.link, { json: data }).getBody('utf8'))
@@ -572,11 +572,11 @@ export default class Grid extends Component {
         var rows = this.state[ROWS][event.target.id]
         for(var row in rows) {
             if(null != rows[row] && null != rows[row].Label) {
-                data.row[row] = rows[row].Label
+                data.Row[row] = rows[row].Label
             } else if(null != rows[row] && null != rows[row].Attributes) {
-                data.row[row] = rows[row].Attributes.value
+                data.Row[row] = rows[row].Attributes.value
             } else {
-                data.row[row] = rows[row]
+                data.Row[row] = rows[row]
             }
         }
         var state = []
@@ -635,9 +635,9 @@ export default class Grid extends Component {
         var url = this.state[BUTTONS].link + JSON.stringify(spice) +  '&masala-page=' + this.state[BUTTONS].page  + '&masala-sort=' + JSON.stringify(sort)
         window.history.replaceState('', 'title', url)
         var data = new Object()
-        data.filters = spice
-        data.sort = sort
-        data.offset = this.state[BUTTONS].page
+        data.Filters = spice
+        data.Sort = sort
+        data.Offset = this.state[BUTTONS].page
         return data
     }
     hide() {
@@ -721,9 +721,9 @@ export default class Grid extends Component {
     }
     prepare(event) {
         var data = this.getSpice()
-        data.offset = 0
+        data.Offset = 0
         var response = JSON.parse(request('POST', this.state[BUTTONS][event.target.id].link, { json: data }).getBody('utf8'))
-        if(undefined == response.message) {
+        if(undefined == response.Message) {
             var state = []
             var element = this.state[BUTTONS][event.target.id]
             element.className = 'btn btn-success disabled'
@@ -731,7 +731,7 @@ export default class Grid extends Component {
             this.setState(state)
             this.run(response, 'export')
         } else {
-            this.message(response.message)
+            this.message(response.Message)
             this.forceUpdate()
         }
     }
@@ -741,7 +741,7 @@ export default class Grid extends Component {
         data.columns = this.state[COLUMNS]
         data.rows = this.state[ROWS]
         var response = JSON.parse(request('POST', this.state[BUTTONS].push, { json: data }).getBody('utf8'))
-        if(undefined == response.message) {
+        if(undefined == response.Message) {
             var state = new Object()
             state[ROWS] = response.rows
             if(this.state[BUTTONS].pages > 2) {
@@ -750,7 +750,7 @@ export default class Grid extends Component {
             }
             this.setState(state)
         } else {
-            this.message(response.message)
+            this.message(response.Message)
         }
         this.forceUpdate()
     }
@@ -834,20 +834,20 @@ export default class Grid extends Component {
         this.signal({target:{id:event.target.id,href:this.state[BUTTONS].remove.Attributes.link},preventDefault(){}})
     }
     run(payload, key) {
-        if(parseInt(payload.stop) > parseInt(payload.offset)) {
+        if(parseInt(payload.Stop) > parseInt(payload.Offset)) {
             axios.post(this.state[BUTTONS].run, payload).then(response => {
                 var buttons = this.state[BUTTONS]
-                buttons[key].width = payload.offset / (payload.stop / 100)
+                buttons[key].width = payload.Offset / (payload.Stop / 100)
                 var state = []
                 state[BUTTONS] = buttons
-                if('service' == response.data.status && 'object' == typeof(response.data.row) && SIZE > payload.offset) {
+                if('service' == response.Data.status && 'object' == typeof(response.Data.Row) && SIZE > payload.Offset) {
                     state[ROWS] = this.state[ROWS]
-                    for(var row in response.data.row) {
-                        state[ROWS][parseInt(row) + parseInt(payload.offset)] = response.data.row[row]
+                    for(var row in response.Data.Row) {
+                        state[ROWS][parseInt(row) + parseInt(payload.Offset)] = response.Data.Row[row]
                     }
                 }
                 this.setState(state)
-                this.run(response.data, key)
+                this.run(response.Data, key)
             })
         } else {
             this.done(payload, key)
@@ -978,7 +978,7 @@ export default class Grid extends Component {
         var data = {id:event.target.id,row:{},submit:false}
         for(var row in this.state[ROW].edit) {
             if(undefined != this.state[ROW].edit[row].Attributes.value) {
-                data.row[row] = this.state[ROW].edit[row].Attributes.value
+                data.Row[row] = this.state[ROW].edit[row].Attributes.value
             }
         }
         state[ROWS] = this.state[ROWS]
@@ -994,7 +994,7 @@ export default class Grid extends Component {
         } else {
             state[ROWS][event.target.name][event.target.id] = state[ROW][event.target.key][event.target.id].Attributes.value
         }
-        data.row = state[ROWS][event.target.name]
+        data.Row = state[ROWS][event.target.name]
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))
         this.setState(state)
     }
@@ -1047,10 +1047,10 @@ export default class Grid extends Component {
         } else {
             state[ROWS][event.target.name][event.target.id].Attributes.value = event.target.value
         }
-        data.row = state[ROWS][event.target.name]
+        data.Row = state[ROWS][event.target.name]
         for(var row in this.state[ROW].edit) {
             if(undefined != this.state[ROW].edit[row].Attributes.value) {
-                data.row[row] = this.state[ROW].edit[row].Attributes.value
+                data.Row[row] = this.state[ROW].edit[row].Attributes.value
             }
         }
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))

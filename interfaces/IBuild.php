@@ -4,7 +4,6 @@ namespace Masala;
 
 interface IBuild {
 
-    /** @return array */
-    function build(array $row);
+    public function build(array $row): array;
 
 }

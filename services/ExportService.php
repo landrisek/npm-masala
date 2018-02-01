@@ -38,7 +38,9 @@ final class ExportService implements IProcess {
     }
 
     public function getSetting(): IRow {
-        return $this->setting;
+        if(null == $this->setting) {
+            return new EmptyRow();
+        }
     }
 
     public function prepare(array $response, IMasalaFactory $masala): array {

@@ -629,7 +629,7 @@ final class Builder implements IBuilder {
     }
 
     public function getRow(): array {
-        foreach($row = $this->getPost('row') as $column => $value) {
+        foreach($row = $this->getPost('Row') as $column => $value) {
             if(!isset($this->columns[$column]) || empty($this->columns[$column]) || strlen($column) > strlen(ltrim($column, '_'))) {
                 unset($row[$column]);
             } else if(is_array($value) && isset($value['Label'])) {
@@ -758,7 +758,7 @@ final class Builder implements IBuilder {
         $this->annotations[$column] = isset($this->annotations[$column]) ? $this->annotations[$column] : [];
         foreach ($annotations as $annotationId) {
             if('enum' == $annotationId) {
-            } else if ($this->presenter->getName() == $annotationId or $this->presenter->getName() . ':' . $this->presenter->getAction() == $annotationId) {
+            } else if ($this->presenter->getName() == $annotationId || $this->presenter->getName() . ':' . $this->presenter->getAction() == $annotationId) {
                 $this->annotations[$column]['hidden'] = true;
             } elseif (preg_match('/\(/', $annotationId)) {
                 $explode = explode(',', preg_replace('/(.*)\(|\)|\'/', '', $annotationId));
@@ -971,9 +971,9 @@ final class Builder implements IBuilder {
         }
         $resource->update($row);
         if(true == $submit && $this->edit instanceof IEdit) {
-            $new = $this->edit->submit($this->primary, $this->getPost('row'));
+            $new = $this->edit->submit($this->primary, $this->getPost('Row'));
         } else if(false == $submit && $this->update instanceof IUpdate) {
-            $new = $this->update->update($this->getPost('id'), $this->getPost('row'));
+            $new = $this->update->update($this->getPost('id'), $this->getPost('Row'));
         }
         foreach($this->where as $column => $value) {
             is_numeric($column) ? $resource->where($value) : $resource->where($column, $value);
@@ -983,7 +983,7 @@ final class Builder implements IBuilder {
         } else if(null == $resource->fetch()) {
             return [];
         } else {
-            return $this->getPost('row');
+            return $this->getPost('Row');
         }
     }
 
@@ -1035,7 +1035,7 @@ final class Builder implements IBuilder {
         } elseif (is_array($column) and isset($this->columns[preg_replace('/(.*)\./', '', $key)])) {
             $this->where[$key] = $column;
             $this->annotations[preg_replace('/(.*)\./', '', $key)]['enum'] = array_combine($column, $column);
-        } elseif (is_string($column) or is_numeric($column) or is_array($column)) {
+        } elseif (is_string($column) || is_numeric($column) || is_array($column)) {
             $this->where[$key] = $column;
         } elseif (null === $column) {
             $this->where[] = $key;
@@ -1065,7 +1065,7 @@ final class Builder implements IBuilder {
     }
 
     public function prepare(): IBuilder {
-        if(null == $filters = $this->getPost('filters')) {
+        if(null == $filters = $this->getPost('Filters')) {
             $filters = [];
         }
         if(isset($filters['groups'])) {
@@ -1074,7 +1074,7 @@ final class Builder implements IBuilder {
         } else if(!empty($this->groups)) {
             $this->group = 0;
         }
-        if(empty($sort = $this->getPost('sort')) && null == $this->order) {
+        if(empty($sort = $this->getPost('Sort')) && null == $this->order) {
             foreach($this->columns as $name => $column) {
                 if(empty($this->getAnnotation($name, 'unrender'))) {
                     $sort = [$name => 'DESC'];
@@ -1088,7 +1088,7 @@ final class Builder implements IBuilder {
         foreach($sort as $order => $sorted) {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
-        if(!is_numeric($offset = $this->getPost('offset'))) {
+        if(!is_numeric($offset = $this->getPost('Offset'))) {
             $offset = 1;
         }
         foreach ($filters as $column => $value) {
@@ -1143,7 +1143,7 @@ final class Builder implements IBuilder {
         /** where and having */
         $where = (!empty($this->where)) ? ' WHERE ' : '';
         foreach ($this->where as $column => $value) {
-            $column = (preg_match('/\./', $column) or is_numeric($column)) ? $column : '`' . $column . '`';
+            $column = (preg_match('/\./', $column) || is_numeric($column)) ? $column : '`' . $column . '`';
             if (is_numeric($column)) {
                 $where .= ' ' . $value . ' AND ';
             } elseif (is_array($value) and preg_match('/\sIN|\sNOT/', strtoupper($column))) {
@@ -1175,7 +1175,7 @@ final class Builder implements IBuilder {
             $this->sum .= ' HAVING ' . $this->having . ' ';
         }
         /** offset */
-        if(empty($status = $this->getPost('status'))) {
+        if(empty($status = $this->getPost('Status'))) {
             $this->offset = ($offset - 1) * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
         } else {

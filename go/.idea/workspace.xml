@@ -11,11 +11,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="reorders.go" pinned="false" current-in-tab="false">
+      <file leaf-file-name="reorders.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/reorders.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="7" column="39" lean-forward="false" selection-start-line="7" selection-start-column="39" selection-end-line="7" selection-end-column="39" />
+            <state relative-caret-position="108">
+              <caret line="6" column="70" lean-forward="false" selection-start-line="6" selection-start-column="70" selection-end-line="6" selection-end-column="70" />
               <folding>
                 <element signature="e#14#31#0" expanded="true" />
               </folding>
@@ -23,12 +23,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Grid.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Grid.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/masala/Grid.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="592">
-              <caret line="53" column="44" lean-forward="true" selection-start-line="53" selection-start-column="44" selection-end-line="53" selection-end-column="44" />
-              <folding />
+            <state relative-caret-position="754">
+              <caret line="55" column="38" lean-forward="false" selection-start-line="55" selection-start-column="38" selection-end-line="55" selection-end-column="38" />
+              <folding>
+                <element signature="e#16#92#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -38,6 +40,11 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>grid.re</find>
+      <find>fmt.</find>
+      <find>getRequest</find>
+      <find>debug</find>
+      <find>strings.</find>
+      <find>fmt:</find>
     </findStrings>
   </component>
   <component name="IdeDocumentHistory">
@@ -46,8 +53,8 @@
         <option value="$PROJECT_DIR$/package.sh" />
         <option value="$PROJECT_DIR$/Console.go" />
         <option value="$PROJECT_DIR$/Grid.go" />
-        <option value="$PROJECT_DIR$/reorders.go" />
         <option value="$PROJECT_DIR$/src/masala/Grid.go" />
+        <option value="$PROJECT_DIR$/reorders.go" />
       </list>
     </option>
   </component>
@@ -220,21 +227,23 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/reorders.go">
+    <entry file="file://$PROJECT_DIR$/src/masala/Grid.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="126">
-          <caret line="7" column="39" lean-forward="false" selection-start-line="7" selection-start-column="39" selection-end-line="7" selection-end-column="39" />
+        <state relative-caret-position="754">
+          <caret line="55" column="38" lean-forward="false" selection-start-line="55" selection-start-column="38" selection-end-line="55" selection-end-column="38" />
           <folding>
-            <element signature="e#14#31#0" expanded="true" />
+            <element signature="e#16#92#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/masala/Grid.go">
+    <entry file="file://$PROJECT_DIR$/reorders.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="592">
-          <caret line="53" column="44" lean-forward="true" selection-start-line="53" selection-start-column="44" selection-end-line="53" selection-end-column="44" />
-          <folding />
+        <state relative-caret-position="108">
+          <caret line="6" column="70" lean-forward="false" selection-start-line="6" selection-start-column="70" selection-end-line="6" selection-end-column="70" />
+          <folding>
+            <element signature="e#14#31#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

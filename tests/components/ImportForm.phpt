@@ -89,7 +89,7 @@ final class ImportFormTest extends TestCase {
     }
 
     public function testSucceed(): void {
-        $testParameters = ['id' => 1, 'feed' => 'laurasport', 'page' => 1, 'grid' => 'products'];
+        $testParameters = ['id' => 1, 'page' => 1];
         foreach ($this->presenters as $class => $latte) {
             $presenter = $this->mockService->getPresenter($class, $latte);
             Assert::true(is_array($parameters = $presenter->request->getParameters('action')), 'Parameters have not been set in ' . $class . '.');

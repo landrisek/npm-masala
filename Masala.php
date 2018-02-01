@@ -142,23 +142,23 @@ final class Masala extends Control implements IMasalaFactory {
 
     private function getResponse(): array {
         $response = ['_file' => $this->grid->getPost('_file'),
-            'data' => $this->grid->getPost('data'),
+            'Data' => $this->grid->getPost('Data'),
             'divider' => $this->grid->getPost('divider'),
             'header' => $this->grid->getPost('header'),
-            'filters' => $this->grid->getPost('filters'),
-            'offset' => $this->grid->getPost('offset'),
-            'status' => $this->grid->getPost('status'),
-            'stop'=>$this->grid->getPost('stop'),
+            'Filters' => $this->grid->getPost('Filters'),
+            'Offset' => $this->grid->getPost('Offset'),
+            'Status' => $this->grid->getPost('Status'),
+            'Stop' => intval($this->grid->getPost('Stop')),
         ];
-        if(null == $response['data'] = $this->grid->getPost('data')) {
-            $response['data'] = [];
+        if(null == $response['Data'] = $this->grid->getPost('Data')) {
+            $response['Data'] = [];
         }
         return $response;
     }
 
     public function handleDone(): void {
         $this->grid->log('done');
-        $service = 'get' . ucfirst($this->grid->getPost('status'));
+        $service = 'get' . ucfirst($this->grid->getPost('Status'));
         $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
     }
     
@@ -175,11 +175,11 @@ final class Masala extends Control implements IMasalaFactory {
         file_put_contents($folder . '/' . $file, $header);
         $response = new JsonResponse($this->grid->getExport()->prepare([
                 '_file' => $file,
-                'filters' => $this->grid->getPost('filters'),
-                'offset' => 0,
-                'sort' => $this->grid->getPost('sort'),
-                'status' => 'export',
-                'stop' => $this->grid->getSum()], $this));
+                'Filters' => $this->grid->getPost('Filters'),
+                'Offset' => 0,
+                'Sort' => $this->grid->getPost('Sort'),
+                'Status' => 'export',
+                'Stop' => $this->grid->getSum()], $this));
         $this->presenter->sendResponse($response);
     }
     
@@ -209,11 +209,11 @@ final class Masala extends Control implements IMasalaFactory {
         $writer->save($folder . '/' .$file);
         $response = new JsonResponse($this->grid->getExport()->prepare([
             '_file' => $file,
-            'filters' => $this->grid->getPost('filters'),
-            'offset' => 0,
-            'sort' => $this->grid->getPost('sort'),
-            'status' => 'excel',
-            'stop' => $this->grid->getSum()], $this));
+            'Filters' => $this->grid->getPost('Filters'),
+            'Offset' => 0,
+            'Sort' => $this->grid->getPost('Sort'),
+            'Status' => 'excel',
+            'Stop' => $this->grid->getSum()], $this));
         $this->presenter->sendResponse($response);
     }
     
@@ -237,105 +237,105 @@ final class Masala extends Control implements IMasalaFactory {
                                     'header'=>$this->header,
                                     '_file'=> $this->grid->getPost('_name'),
                                     'link'=> $this->link('run'),
-                                    'offset'=> $offset,
-                                    'status'=>'import',
-                                    'stop' => filesize($path)], $this));
+                                    'Offset'=> $offset,
+                                    'Status'=>'import',
+                                    'Stop' => filesize($path)], $this));
         $this->presenter->sendResponse($response);
     }
     
     public function handlePrepare(): void {
         $this->grid->log('prepare');
-        $data = ['filters' => $this->grid->getPost('filters'),
-            'offset' => 0,
-            'sort' => $this->grid->getPost('sort'),
-            'status' => 'service',
-            'stop' => $this->grid->prepare()->getSum()];
+        $data = ['Filters' => $this->grid->getPost('Filters'),
+            'Offset' => 0,
+            'Sort' => $this->grid->getPost('Sort'),
+            'Status' => 'service',
+            'Stop' => $this->grid->prepare()->getSum()];
         $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
         $this->presenter->sendResponse($response);
     }
     
     public function handleRun(): void {
         $response = $this->getResponse();
-        if ('import' == $response['status']) {
+        if ('import' == $response['Status']) {
             $service = $this->grid->getImport();
             $path = $this->grid->getImport()->getFile() . $this->grid->getPost('_file');
             $handle = fopen($path, 'r');
             for($i = 0; $i < $speed = $service->speed($this->config['speed']); $i++) {
-                fseek($handle, $response['offset']);
+                fseek($handle, $response['Offset']);
                 $offset = fgets($handle);
-                if($response['stop'] == $response['offset'] = ftell($handle)) {
+                if($response['Stop'] == $response['Offset'] = ftell($handle)) {
                     $i = $speed;
                 }
-                $response['row'] = [];
+                $response['Row'] = [];
                 $offset = $this->sanitize($offset, $response['divider']);
                 foreach ($response['header'] as $headerId => $header) {
                     if (is_array($header)) {
                         foreach ($header as $valueId => $value) {
-                            $response['row'][$headerId][$valueId] = $offset[$value];
+                            $response['Row'][$headerId][$valueId] = $offset[$value];
                         }
                     } else {
-                        $response['row'][$headerId] = $offset[$header];
+                        $response['Row'][$headerId] = $offset[$header];
                     }
                 }
                 $response = $service->run($response, $this);
             }
         /** export */
-        } elseif(in_array($response['status'], ['export', 'excel'])) {
+        } elseif(in_array($response['Status'], ['export', 'excel'])) {
             $service = $this->grid->getExport();
             $path = $service->getFile() . '/' . $response['_file'];
             $response['limit'] = $service->speed($this->config['speed']);
-            $response['row'] = $this->grid->prepare()->getOffsets();
-            $response['sort'] = $this->grid->getPost('sort');
+            $response['Row'] = $this->grid->prepare()->getOffsets();
+            $response['Sort'] = $this->grid->getPost('Sort');
             $response = $service->run($response, $this);
-            if('export' == $response['status']) {
+            if('export' == $response['Status']) {
                 $handle = fopen('nette.safe://' . $path, 'a');
             } else {
                 $excel = PHPExcel_IOFactory::load($path);
                 $excel->setActiveSheetIndex(0);
                 $last = $excel->getActiveSheet()->getHighestRow();
             }
-            foreach($response['row'] as $rowId => $cells) {
+            foreach($response['Row'] as $rowId => $cells) {
                 foreach($cells as $cellId => $cell) {
                     if($cell instanceof DateTime) {
-                        $response['row'][$rowId][$cellId] = $cell->__toString();
+                        $response['Row'][$rowId][$cellId] = $cell->__toString();
                     } else if(empty($this->grid->getAnnotation($cellId, ['unrender', 'hidden', 'unexport'])) && isset($cell['Attributes']) && isset($cell['Attributes']['value'])) {
-                        $response['row'][$rowId][$cellId] = $cell['Attributes']['value'];
+                        $response['Row'][$rowId][$cellId] = $cell['Attributes']['value'];
                     } else if(empty($this->grid->getAnnotation($cellId, ['unrender', 'hidden', 'unexport'])) && !isset($cell['Attributes'])) {
-                        $response['row'][$rowId][$cellId] = $cell;
+                        $response['Row'][$rowId][$cellId] = $cell;
                     } else {
-                        unset($response['row'][$rowId][$cellId]);
+                        unset($response['Row'][$rowId][$cellId]);
                     }
                 }
-                if('export' == $response['status']) {
-                    fputs($handle, PHP_EOL . implode(';', $response['row'][$rowId]));
+                if('export' == $response['Status']) {
+                    fputs($handle, PHP_EOL . implode(';', $response['Row'][$rowId]));
                 } else {
                     $last++;
                     $letter = 'a';
-                    foreach ($response['row'][$rowId] as $cell) {
+                    foreach ($response['Row'][$rowId] as $cell) {
                         $excel->getActiveSheet()->SetCellValue($letter++ . $last, $cell);
                     }
                 }
             }
-            if('export' == $response['status']) {
+            if('export' == $response['Status']) {
                 fclose($handle);
             } else {
                 $writer = new PHPExcel_Writer_Excel2007($excel);
                 $writer->save($path);
             }
-            $response['offset'] = $response['offset'] + $service->speed($this->config['speed']);
+            $response['Offset'] = $response['Offset'] + $service->speed($this->config['speed']);
         /** process */
         } else {
             $service = $this->grid->getService();
-            if(!empty($response['row'] = $this->grid->prepare()->getOffsets())) {
+            if(!empty($response['Row'] = $this->grid->prepare()->getOffsets())) {
                 $response = $service->run($response, $this);
             }
-            $response['offset'] = $response['offset'] + $service->speed($this->config['speed']);
+            $response['Offset'] = $response['Offset'] + $service->speed($this->config['speed']);
         }
         if(($setting = $service->getSetting()) instanceof ActiveRow) {
             foreach (json_decode($setting->callback) as $callbackId => $callback) {
                 $sanitize = preg_replace('/print|echo|exec|call|eval|mysql/', '', $callback);
                 eval('function call($response["row"]) {' . $sanitize . '}');
-                $response['row'] = call($response['row']);
+                $response['Row'] = call($response['Row']);
             }
         }
         $this->presenter->sendResponse(new JsonResponse($response));

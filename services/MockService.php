@@ -90,7 +90,7 @@ final class MockService {
         return $builder;
     }
 
-    public function getCall(string $class, string $method, string $parameters, object $parent) {
+    public function getCall(string $class, string $method, $parameters, object $parent) {
         $arguments = [];
         if (class_exists($class)) {
             $object = $this->container->getByType($class);

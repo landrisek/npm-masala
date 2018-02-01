@@ -238,7 +238,7 @@ export default class Form extends Component {
         data._name = name
         data._key = key
         axios.post(LINKS.save, data).then(response => {
-            state[ROW][key].Attributes.value[response.data] = name
+            state[ROW][key].Attributes.value[response.Data] = name
             state[ROW]._submit.Attributes.className = 'btn btn-success'
             self.setState(state)
         })
@@ -258,7 +258,7 @@ export default class Form extends Component {
     save(key, file) {
         var self = this
         if(null == file.type.match('image')) {
-            axios.get(file.preview).then(response => { self.load(key, response.data, file.name) })
+            axios.get(file.preview).then(response => { self.load(key, response.Data, file.name) })
         } else {
             var reader = new FileReader()
             reader.onload = function() {
@@ -278,10 +278,10 @@ export default class Form extends Component {
         }
     }
     run(payload, progress) {
-        if(parseInt(payload.stop) > parseInt(payload.offset)) {
-            axios.post(LINKS['run'], payload).then(response => {  this.run(response.data, progress) })
+        if(parseInt(payload.Stop) > parseInt(payload.Offset)) {
+            axios.post(LINKS.run, payload).then(response => {  this.run(response.Data, progress) })
             var element = this.state[ROW][progress]
-            element.Attributes.width = payload.offset / (payload.stop / 100)
+            element.Attributes.width = payload.Offset / (payload.Stop / 100)
             var state = []
             state[ROW] = this.state[ROW]
             state[ROW][progress] = element

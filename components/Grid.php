@@ -183,7 +183,7 @@ final class Grid extends Control implements IGridFactory {
     }
 
     public function handleEdit(): void {
-        $row = $this->builder->row($this->builder->getPost('id'), $this->builder->getPost('row'));
+        $row = $this->builder->row($this->builder->getPost('id'), $this->builder->getPost('Row'));
         if($this->builder->isEdit()) {
             $this->builder->getEdit()->after($row);
         }
@@ -197,7 +197,7 @@ final class Grid extends Control implements IGridFactory {
     }
 
     public function handleChart(): void {
-        $this->presenter->sendResponse(new JsonResponse($this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('row'))));
+        $this->presenter->sendResponse(new JsonResponse($this->builder->getChart()->chart($this->builder->getPost('spice'), $this->builder->getPost('Row'))));
     }
 
     public function handleListen(): void {

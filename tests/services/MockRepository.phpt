@@ -23,7 +23,7 @@ final class MockRepositoryTest extends TestCase {
         $this->container = $container;
     }
 
-    protected function setUp() {
+    protected function setUp(): void {
         $this->class = $this->container->getByType('Masala\IMock');
     }
 
@@ -31,7 +31,7 @@ final class MockRepositoryTest extends TestCase {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    public function testGetters() {
+    public function testGetters(): void {
         $path = $this->container->parameters['appDir'] . '/Masala/services/MockRepository.php';
         Assert::true(is_file($path), 'File ' . $path . ' for parsing was not found.');
         $methods = [];
@@ -59,7 +59,7 @@ final class MockRepositoryTest extends TestCase {
                 foreach ($clauses as $clause) {
                     $column = trim(preg_replace('/\,(.*)|\'|\"| (.*)/', '', htmlspecialchars($clause)));
                     $row = (!in_array($column, $queryColumns)) ? $this->class->explainColumn('fc_trigger', $column) : $this->class->explainColumn($parameters['masala']['log'], $column);
-                    Assert::notSame(false, $row, 'Testing non-existing column.');
+                    Assert::same($row, 'debug');
                     Assert::true($row instanceof Row, 'Testing non-existing column.');
                     Assert::same('index', $row->type, 'In table ' . $parameters['masala']['log'] . ' is used unindexed column ' . $column);
                 }
