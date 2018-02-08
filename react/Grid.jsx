@@ -568,7 +568,7 @@ export default class Grid extends Component {
         this.setState(state)
     }
     edit(event) {
-        var data = {id:event.target.id,row:{}}
+        var data = {id:event.target.id,Row:{}}
         var rows = this.state[ROWS][event.target.id]
         for(var row in rows) {
             if(null != rows[row] && null != rows[row].Label) {
@@ -840,14 +840,14 @@ export default class Grid extends Component {
                 buttons[key].width = payload.Offset / (payload.Stop / 100)
                 var state = []
                 state[BUTTONS] = buttons
-                if('service' == response.Data.status && 'object' == typeof(response.Data.Row) && SIZE > payload.Offset) {
+                if('service' == response.data.Status && 'object' == typeof(response.data.Row) && SIZE > payload.Offset) {
                     state[ROWS] = this.state[ROWS]
-                    for(var row in response.Data.Row) {
-                        state[ROWS][parseInt(row) + parseInt(payload.Offset)] = response.Data.Row[row]
+                    for(var row in response.data.Row) {
+                        state[ROWS][parseInt(row) + parseInt(payload.Offset)] = response.data.Row[row]
                     }
                 }
                 this.setState(state)
-                this.run(response.Data, key)
+                this.run(response.data, key)
             })
         } else {
             this.done(payload, key)
@@ -891,7 +891,7 @@ export default class Grid extends Component {
     }
     signal(event) {
         event.preventDefault()
-        var response = JSON.parse(request('POST', event.target.href, { json: {spice:this.getSpice(),row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
+        var response = JSON.parse(request('POST', event.target.href, { json: {spice:this.getSpice(),Row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
         var state = []
         if(true === response.remove) {
             var element = this.state[ROWS]
@@ -975,7 +975,7 @@ export default class Grid extends Component {
     }
     date(event, time) {
         var state = []
-        var data = {id:event.target.id,row:{},submit:false}
+        var data = {id:event.target.id,Row:{},submit:false}
         for(var row in this.state[ROW].edit) {
             if(undefined != this.state[ROW].edit[row].Attributes.value) {
                 data.Row[row] = this.state[ROW].edit[row].Attributes.value
@@ -1055,7 +1055,11 @@ export default class Grid extends Component {
         }
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: data }).getBody('utf8'))
         for(var row in this.state[ROW].edit) {
-            if(undefined != this.state[ROW].edit[row].Attributes.data && undefined != this.state[ROW].edit[row].Attributes.value) {
+            if(undefined != this.state[ROW].edit[row].Attributes.data &&
+                undefined != this.state[ROW].edit[row].Attributes.value &&
+                'object' == typeof(state[ROWS][event.target.name][row])) {
+                state[ROWS][event.target.name].value = this.state[ROW].edit[row].Attributes.data[this.state[ROW].edit[row].Attributes.value]
+            } else if(undefined != this.state[ROW].edit[row].Attributes.data && undefined != this.state[ROW].edit[row].Attributes.value) {
                 state[ROWS][event.target.name][row] = this.state[ROW].edit[row].Attributes.data[this.state[ROW].edit[row].Attributes.value]
             }
         }

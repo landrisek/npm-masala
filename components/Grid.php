@@ -50,7 +50,8 @@ final class Grid extends Control implements IGridFactory {
     /** @var IUser */
     private $usersModel;
 
-    public function __construct(string $appDir, string $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request, ITranslator $translatorModel, IUser $usersModel, User $user) {
+    public function __construct(string $appDir, string $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request,
+        ITranslator $translatorModel, IUser $usersModel, User $user) {
         $this->appDir = $appDir;
         $this->jsDir = $jsDir;
         $this->config = $config;

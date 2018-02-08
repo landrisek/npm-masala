@@ -1080,9 +1080,14 @@ final class Builder implements IBuilder {
                     $sort = [$name => 'DESC'];
                     break;
                 }
-            }            
+            }
         } else if(null == $sort) {
             $sort = $this->order;
+        }
+        if(empty($sort)) {
+            foreach($this->keys as $primary => $value) {
+                $this->sort .= $primary . ' ASC, ';
+            }
         }
         $this->sort = '';
         foreach($sort as $order => $sorted) {
@@ -1186,12 +1191,6 @@ final class Builder implements IBuilder {
                 $this->limit = $this->import->speed($this->config['speed']);
             } else {
                 $this->limit = $this->service->speed($this->config['speed']);
-            }
-            if(in_array($status, ['import', 'excel', 'export', 'service'])) {
-                $this->sort = '';
-                foreach($this->keys as $primary => $value) {
-                    $this->sort .= $primary . ' ASC, ';
-                }
             }
         }
         /** sort */

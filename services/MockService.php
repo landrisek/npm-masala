@@ -109,7 +109,7 @@ final class MockService {
         return call_user_func_array([$overload, $method], $arguments);
     }
 
-    public function getConfig(array $keys): string {
+    public function getConfig(array $keys) {
         $config = $this->config;
         foreach ($keys as $key) {
             $config = $config[$key];

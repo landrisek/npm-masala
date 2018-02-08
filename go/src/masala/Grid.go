@@ -9,6 +9,7 @@ import ("bytes"
 
 type Grid struct {
 	payload Payload
+	service IProcess
 	url string
 }
 
@@ -23,24 +24,33 @@ type Payload struct {
 	Stop int
 }
 
-func (grid Grid) done() {
-	grid.setState("done")
-	fmt.Print(grid.payload, "\n")
+type IProcess interface {
+	Done(payload Payload)
+	Run(payload Payload)
+	Prepare(payload Payload)
 }
 
-func (grid Grid) Inject(payload Payload, url string) Grid {
+func (grid Grid) done() {
+	grid.setState("done")
+	grid.service.Done(grid.payload)
+}
+
+func (grid Grid) Inject(payload Payload, service IProcess, url string) Grid {
 	grid.payload = payload
+	grid.service = service
 	grid.url = url
 	return grid
 }
 
 func (grid Grid) Prepare() {
 	grid.setState("prepare").run()
+	grid.service.Prepare(grid.payload)
 }
 
 func (grid Grid) run() {
 	if grid.payload.Stop > grid.payload.Offset {
 		grid.setState("run").run()
+		grid.service.Run(grid.payload)
 	} else {
 		grid.done()
 	}
@@ -51,9 +61,11 @@ func (grid Grid) setState(handler string) Grid {
 	response, _ := http.Post(strings.Join([]string{grid.url, "&do=masala-", handler}, ""), "applications/json", bytes.NewBuffer(state))
 	defer response.Body.Close()
 	payload, _ := ioutil.ReadAll(response.Body)
+	if "run" == handler {
+		fmt.Print(string(payload), "\n")
+	}
 	data := Payload{}
 	json.Unmarshal(payload, &data)
-	fmt.Print(grid.payload.Offset, "\n")
 	grid.payload = data
 	return grid
 }

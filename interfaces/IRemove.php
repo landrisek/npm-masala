@@ -4,7 +4,6 @@ namespace Masala;
 
 interface IRemove {
 
-    /** @return array */
-    function remove(array $primary, array $response);
+    public function remove(array $primary, array $response): array;
 
 }

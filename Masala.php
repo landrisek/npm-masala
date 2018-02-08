@@ -147,6 +147,7 @@ final class Masala extends Control implements IMasalaFactory {
             'header' => $this->grid->getPost('header'),
             'Filters' => $this->grid->getPost('Filters'),
             'Offset' => $this->grid->getPost('Offset'),
+            'Sort' => $this->grid->getPost('Sort'),
             'Status' => $this->grid->getPost('Status'),
             'Stop' => intval($this->grid->getPost('Stop')),
         ];
