@@ -170,14 +170,6 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
-    public function add(): array {
-        $data = $this->getRow();
-        if($this->add instanceof IAdd) {
-            return $this->add->insert($data);
-        }
-        return $this->database->table($this->table)->insert($data)->toArray();
-    }
-    
     public function attached(ISignalReceiver $masala): void {
         $this->presenter = $masala->getPresenter();
         $this->identity = $this->presenter->identity;
@@ -577,6 +569,13 @@ final class Builder implements IBuilder {
              }*/
             $this->logQuery($hash);
         }
+        foreach(reset($data) as $column => $value) {
+            if(is_object($value)) {
+                $data[-1][$column]['Attributes']['value'] = '';
+            } else {
+                $data[-1][$column] = '';
+            }
+        }
         return $data;
     }
     
@@ -632,25 +631,30 @@ final class Builder implements IBuilder {
         foreach($row = $this->getPost('Row') as $column => $value) {
             if(!isset($this->columns[$column]) || empty($this->columns[$column]) || strlen($column) > strlen(ltrim($column, '_'))) {
                 unset($row[$column]);
-            } else if(is_array($value) && isset($value['Label'])) {
-                $row[$column] = $value['Label'];
-            } else if(is_array($value) && isset($value['Attributes']) && empty(ltrim($value['Attributes']['value'], '_'))) {
+            } else if(!empty($this->getAnnotation($column, 'pri') && null == $value)) {
+                unset($row[$column]);
+            } else if(!empty($this->getAnnotation($column, 'pri')) && is_array($value)) {
+                $this->primary[$column] = $value['Attributes']['value'];
+                unset($row[$column]);
+            } else if(!empty($this->getAnnotation($column, 'pri'))) {
+                $this->primary[$column] = $value;
                 unset($row[$column]);
             } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['int', 'tinyint']))) {
                 $row[$column] = intval($value['Attributes']['value']);
+            } else if(is_array($value) && isset($value['Attributes']) && (!isset($value['Attributes']['value']) || empty(ltrim($value['Attributes']['value'], '_')))) {
+                unset($row[$column]);
             } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['decimal', 'float']))) {
                 $row[$column] = floatval($value['Attributes']['value']);
             } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['datetime']))) {
                 $row[$column] = date($this->config['format']['time']['query'], strtotime($value['Attributes']['value']));
             } else if(is_array($value) && isset($value['Attributes']) && !empty($this->getAnnotation($column, ['date']))) {
                 $row[$column] = date($this->config['format']['date']['query'], strtotime($value['Attributes']['value']));
+            } else if(is_array($value) && isset($value['Method']) && isset($value['Attributes'])) {
+                $row[$column] = ltrim($value['Attributes']['value'], '_');
             } else if(is_array($value) && isset($value['Attributes'])) {
-                $row[$column] = $value['Attributes']['value'];
-            } else if(!empty($this->getAnnotation($column, 'pri') && null == $value)) {
-                unset($row[$column]);
-            } else if(!empty($this->getAnnotation($column, 'pri'))) {
-                $this->primary[$column] = $value;
-                unset($row[$column]);
+                $row[$column] = ltrim($value['Attributes']['value'], '_');
+            } else if(is_array($value) && isset($value['Label'])) {
+                $row[$column] = $value['Label'];
             } else if(!empty($this->getAnnotation($column, 'unedit'))) {
                 unset($row[$column]);
             } else if(!empty($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint']) && empty(ltrim($value, '_')))) {
@@ -874,9 +878,8 @@ final class Builder implements IBuilder {
             $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
             $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
             $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
-            if ($this->getAnnotation($column, 'pri')) {
+            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, 'unedit')) {
                 $this->row->addHidden($column, $value, $attributes);
-            } elseif ($this->getAnnotation($column, 'unedit')) {
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
                 foreach($default as $option => $status) {
@@ -891,17 +894,18 @@ final class Builder implements IBuilder {
             } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
                 $attributes['format'] = $this->config['format']['time']['build'];
                 $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-                $attributes['value'] = is_null($value) ? null : date($this->config['format']['time']['build'], strtotime($value));
+                $attributes['value'] = empty($value) ? null : date($this->config['format']['time']['build'], strtotime($value));
                 $this->row->addDateTime($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['date'])) {
                 $attributes['format'] = $this->config['format']['date']['build'];
                 $attributes['locale'] = preg_replace('/(\_.*)/', '', $this->translatorModel->getLocale());
-                $attributes['value'] = is_null($value) ? null : date($this->config['format']['date']['build'], strtotime($value));
+                $attributes['value'] = empty($value) ? null : date($this->config['format']['date']['build'], strtotime($value));
                 $this->row->addDateTime($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, 'tinyint') && 1 == $value) {
                 $attributes['checked'] = 'checked';
                 $this->row->addCheckbox($column, $label, $attributes, []);
             } elseif ($this->getAnnotation($column, 'tinyint')) {
+                $attributes['checked'] = null;
                 $this->row->addCheckbox($column, $label, $attributes, []);
             } elseif ($this->getAnnotation($column, 'textarea')) {
                 $this->row->addTextArea($column, $label . ':', $attributes, []);
@@ -963,17 +967,19 @@ final class Builder implements IBuilder {
     public function submit(bool $submit): array {
         $row = $this->getRow();
         $resource = $this->database->table($this->table);
-        if(empty($this->primary)) {
-            throw new InvalidStateException('Primary keys were not set.');
+        if(empty($this->primary) && $this->add instanceof IAdd) {
+            return $this->add->insert($row);
+        } else if(empty($this->primary)) {
+            return $this->database->table($this->table)->insert($row)->toArray();
         }
         foreach($this->primary as $column => $value) {
             $resource->where($column, $value);
         }
-        $resource->update($row);
+        $resource->limit(1)->update($row);
         if(true == $submit && $this->edit instanceof IEdit) {
             $new = $this->edit->submit($this->primary, $this->getPost('Row'));
         } else if(false == $submit && $this->update instanceof IUpdate) {
-            $new = $this->update->update($this->getPost('id'), $this->getPost('Row'));
+            $new = $this->update->update($this->getPost('Key'), $this->getPost('Row'));
         }
         foreach($this->where as $column => $value) {
             is_numeric($column) ? $resource->where($value) : $resource->where($column, $value);
@@ -999,10 +1005,9 @@ final class Builder implements IBuilder {
     
     public function validate(): array {
         $validators = [];
-        $row = $this->getRow();
-        foreach($row as $column => $value) {
+        foreach($row = $this->getRow() as $column => $value) {
             if($this->getAnnotation($column, 'unedit')) {
-            } else if($this->getAnnotation($column, 'required') && empty($value)) {
+            } else if($this->getAnnotation($column, 'required') && empty($value) && false == $this->getAnnotation($column, 'tinyint')) {
                 $validators[$column] = ucfirst($this->translatorModel->translate($column)) . ' ' . $this->translatorModel->translate('is required.');
             } else if($this->getAnnotation($column, 'uni')) {
                 $resource = $this->database->table($this->table);

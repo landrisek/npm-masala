@@ -30,7 +30,7 @@ final class ExportService implements IProcess {
     public function attached(IReactFormFactory $form): void { }
 
     public function done(array $response, IMasalaFactory $masala): array {
-        return ['label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['_file']];
+        return ['Label' => $this->translatorModel->translate('Click here to download your file.'), 'href' => $this->link . 'temp/' . $response['_file']];
     }
     
     public function getFile(): string {

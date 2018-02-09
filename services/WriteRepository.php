@@ -2,13 +2,20 @@
 
 namespace Masala;
 
+use Nette\Database\Table\IRow;
+
 /** @author Lubomir Andrisek */
 final class WriteRepository extends BaseRepository {
 
-    /** @return int */
-    public function updateWrite($keyword, array $data) {
+    public function getWrite(string $keyword): IRow {
         return $this->database->table($this->source)
-                        ->where('keyword', (string) $keyword)
+                    ->where('keyword', $keyword)
+                    ->fetch();
+    }
+
+    public function updateWrite(string $keyword, array $data): int {
+        return $this->database->table($this->source)
+                        ->where('keyword', $keyword)
                         ->update($data);
     }
 

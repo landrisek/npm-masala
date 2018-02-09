@@ -62,12 +62,6 @@ final class Grid extends Control implements IGridFactory {
         $this->usersModel = $usersModel;
     }
 
-    private function action(string $key): array {
-        return ['Attributes' => ['className' => 'fa-hover fa fa-' . $key, 'link' => $this->link($key)],
-            'Tag' => 'a',
-            'Label' => $this->translatorModel->translate($key)];
-    }
-
     private function addDate(string $name, string $label, array $attributes): void {
         $operators = ['>' => 'from', '<' => 'to', '>=' => 'from', '<=' => 'to'];
         $attributes['class'] = 'form-control';
@@ -179,10 +173,6 @@ final class Grid extends Control implements IGridFactory {
         }
     }
 
-    public function handleAdd(): void {
-        $this->presenter->sendResponse(new JsonResponse($this->builder->add()));
-    }
-
     public function handleEdit(): void {
         $row = $this->builder->row($this->builder->getPost('id'), $this->builder->getPost('Row'));
         if($this->builder->isEdit()) {
@@ -251,7 +241,7 @@ final class Grid extends Control implements IGridFactory {
     }
     
     public function handleUpdate(): void {
-        $this->presenter->sendResponse(new JsonResponse($this->builder->submit($this->builder->getPost('submit'))));
+        $this->presenter->sendResponse(new JsonResponse($this->builder->submit($this->builder->getPost('Submit'))));
     }
 
     public function handleValidate(): void {
@@ -284,74 +274,70 @@ final class Grid extends Control implements IGridFactory {
         $excel = ['style' => ['marginRight'=>'10px','float'=>'left']];
         if($this->getParent()->getGrid()->isExport()){
             $excel['className'] = 'btn btn-success';
-            $excel['label'] = 'excel';
+            $excel['Label'] = 'excel';
             $excel['link'] = $this->getParent()->link('excel');
             $excel['onClick'] = 'prepare';
             $excel['width'] = 0;
             $export['className'] = 'btn btn-success';
-            $export['label'] = 'export';
+            $export['Label'] = 'export';
             $export['link'] = $this->getParent()->link('export');
             $export['onClick'] = 'prepare';
             $export['width'] = 0;
         }
-        $this->template->dialogs = ['setting','reset','send','excel','export','process','done','add'];
+        $this->template->dialogs = ['setting','reset','send','excel','export','process','done'];
         if($this->builder->isButton()) {
             foreach($this->builder->getButton()->getButtons() as $buttonId => $button) {
                 $this->template->dialogs[] = $buttonId;
             }
         }
         $data = ['buttons' => [
-                    'add' => $this->builder->isEdit() ? ['Attributes' => ['className'=>'btn btn-warning',
-                        'id' => -1,
-                        'label'=> $this->translatorModel->translate('add item'),
-                        'link' => $this->link('add'),
-                        'onClick'=> 'add'],
-                        'Label' => $this->translatorModel->translate('add item')] : [],
-                    'chart' => $this->builder->isChart() ? $this->action('chart') : [],
-                    'dialogs' => $this->template->dialogs,
-                    'done' => ['className' => 'alert alert-success',
-                        'label' => $this->translatorModel->translate('Click here to download your file.'),
-                        'link' => $this->getParent()->link('done'),
-                        'style' => ['display'=>'none', 'float' => 'left', 'marginRight' => '10px']],
-                    'edit' => $this->builder->isEdit() ? $this->action('edit') : [],
-                    'export' => $export,
-                    'excel' => $excel,
-                    'filter' => $this->link('filter'),
-                    'link' => $link,
-                    'listen' => $this->link('listen'),
-                    'page' => $page,
-                    'pages' => 2,
-                    'paginate' => $this->link('paginate'),
-                    'process' => [],
-                    'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
-                    'push' => $this->link('push'),
-                    'remove' => $this->builder->isRemove() ? $this->action('remove') : [],
-                    'reset' => ['label' =>$this->translatorModel->translate('reset form'),
-                        'className' => 'btn btn-warning',
-                        'onClick' => 'reset',
-                        'style' => ['marginRight'=>'10px','float'=>'left']],
-                    'run' => $this->getParent()->link('run'),
-                    'send' => ['label' => $this->translatorModel->translate('filter data'),
-                        'className' => 'btn btn-success',
-                        'onClick' => 'submit',
-                        'style' => ['marginRight'=>'10px', 'float'=>'left']],
-                    'setting' => isset($this->user->getIdentity()->getData()[$this->config['settings']]) ? ['className' => 'btn btn-success',
-                        'display' => ['none'],
-                        'label'=> $this->translatorModel->translate('setting'),
-                        'link' =>$this->link('setting'),
-                        'onClick' => 'setting',
-                        'style' => ['marginRight'=>'10px','float'=>'left']] : false,
+                'add' => $this->builder->isEdit() ? ['Label' => $this->translatorModel->translate( 'add item'), 'link' => $this->link('edit')] : [],
+                'chart' => $this->builder->isChart() ? ['Label' => $this->translatorModel->translate( 'chart'), 'link' => $this->link('chart')] : [],
+                'dialogs' => $this->template->dialogs,
+                'done' => ['className' => 'alert alert-success',
+                    'Label' => $this->translatorModel->translate('Click here to download your file.'),
+                    'link' => $this->getParent()->link('done'),
+                    'style' => ['display'=>'none', 'float' => 'left', 'marginRight' => '10px']],
+                'edit' => $this->builder->isEdit() ? ['Label' => $this->translatorModel->translate( 'edit item'), 'link' => $this->link('edit')] : [],
+                'export' => $export,
+                'excel' => $excel,
+                'filter' => $this->link('filter'),
+                'link' => $link,
+                'listen' => $this->link('listen'),
+                'page' => $page,
+                'pages' => 2,
+                'paginate' => $this->link('paginate'),
+                'process' => [],
+                'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
+                'push' => $this->link('push'),
+                'remove' => $this->builder->isRemove() ? ['Label' => $this->translatorModel->translate( 'remove item'), $this->link('remove')] : [],
+                'reset' => ['Label' =>$this->translatorModel->translate('reset form'),
+                    'className' => 'btn btn-warning',
+                    'onClick' => 'reset',
+                    'style' => ['marginRight'=>'10px','float'=>'left']],
+                'run' => $this->getParent()->link('run'),
+                'send' => ['Label' => $this->translatorModel->translate('filter data'),
+                    'className' => 'btn btn-success',
+                    'onClick' => 'submit',
+                    'style' => ['marginRight'=>'10px', 'float'=>'left']],
+                'setting' => isset($this->user->getIdentity()->getData()[$this->config['settings']]) ? ['className' => 'btn btn-success',
+                    'display' => ['none'],
+                    'Label'=> $this->translatorModel->translate('setting'),
+                    'link' =>$this->link('setting'),
+                    'onClick' => 'setting',
+                    'style' => ['marginRight'=>'10px','float'=>'left']] : false,
                     'summary' => $this->link('summary'),
                     'update' => $this->link('update'),
                     'validate' => $this->link('validate')],
-                'columns' => $columns,
-                'edit' => [],
-                'charts' => [],
-                'listeners' => [],
-                'lists' => $this->lists,
-                'row' => ['add' => $this->builder->row(-1, $this->row)->getData(), 'edit' => []],
-                'rows' => [],
-                'validators' => []];
+            'columns' => $columns,
+            'edit' => [-1=>[]],
+            'charts' => [],
+            'listeners' => [],
+            'lists' => $this->lists,
+            'new' => [],
+            'row' => -1,
+            'rows' => [],
+            'validators' => []];
         if($this->builder->isListener()) {
             $data['listeners'] = $this->builder->getListener()->getKeys();
         }
@@ -366,7 +352,7 @@ final class Grid extends Control implements IGridFactory {
         }
         if($this->builder->isProcess()) {
             $data['buttons']['process'] = ['className' => 'btn btn-success',
-                'label' => $process,
+                'Label' => $process,
                 'link' => $this->getParent()->link('prepare'),
                 'style' => ['marginRight'=>'10px','float'=>'left'],
                 'onClick' => 'prepare'];

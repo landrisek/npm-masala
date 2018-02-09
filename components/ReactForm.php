@@ -59,18 +59,15 @@ class ReactForm extends Control implements IReactFormFactory {
         return $this->add($key, $label, __FUNCTION__, 'a', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
     public function addCheckbox($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         $attributes['type'] = 'checkbox';
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
     public function addDateTime($key, $label, array $attributes = [], array $validators = []): IReactFormFactory  {
         return $this->add($key, $label, 'addDateTime', 'input', $attributes, $validators);
     }
 
-    /** @return IReactFormFactory */
     public function addEmpty($key, $label, array $attributes = []): IReactFormFactory  {
         return $this->add($key, $label, __FUNCTION__, 'div', $attributes);
     }

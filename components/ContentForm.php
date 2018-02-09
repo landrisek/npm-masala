@@ -7,6 +7,7 @@ use Nette\Application\UI\Control,
     Nette\ComponentModel\IComponent,
     Nette\Database\Table\IRow,
     Nette\Localization\ITranslator;
+use Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 final class ContentForm extends Control implements IContentFormFactory {
@@ -29,6 +30,12 @@ final class ContentForm extends Control implements IContentFormFactory {
     /** @var IPresenter */
     private $presenter;
 
+    /** @var IRequest */
+    private $request;
+
+    /** @var IRow */
+    private $row;
+
     /** @var array */
     private $source;
 
@@ -41,13 +48,14 @@ final class ContentForm extends Control implements IContentFormFactory {
     /** @var WriteRepository */
     private $writeRepository;
 
-    public function __construct($jsDir, IContent $contentRepository, IBuilder $builder, ITranslator $translatorRepository,
+    public function __construct($jsDir, IContent $contentRepository, IBuilder $builder, IRequest $request, ITranslator $translatorRepository,
         KeywordsRepository $keywordsRepository, WriteRepository $writeRepository) {
-        $this->jsDir = $jsDir;
-        $this->contentRepository = $contentRepository;
-        $this->writeRepository = $writeRepository;
         $this->builder = $builder;
+        $this->contentRepository = $contentRepository;
+        $this->jsDir = $jsDir;
         $this->keywordsRepository = $keywordsRepository;
+        $this->request = $request;
+        $this->writeRepository = $writeRepository;
         $this->translatorRepository = $translatorRepository;
     }
 
@@ -55,7 +63,7 @@ final class ContentForm extends Control implements IContentFormFactory {
         parent::attached($presenter);
         if($presenter instanceof IPresenter) {
             $this->presenter = $presenter;
-            $this->keyword = $this->builder->getQuery('keyword');
+            $this->keyword = $this->request->getQuery('keyword');
         }
     }
 
@@ -117,7 +125,7 @@ final class ContentForm extends Control implements IContentFormFactory {
 
     public function render(...$args): void {
         $this->template->component = $this->getName();
-        $this->template->data =  json_encode(['content' => json_decode(trim($this->row->check()->content)),
+        $this->template->data =  json_encode(['content' => json_decode(trim($this->row->content)),
                                             'current' => 0,
                                             'labels'=>['select'=>ucfirst($this->translatorRepository->translate('select')),
                                                         'plain'=>ucfirst($this->translatorRepository->translate('plain')),

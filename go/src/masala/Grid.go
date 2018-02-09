@@ -16,6 +16,7 @@ type Grid struct {
 type Payload struct {
 	Filters map[string]interface{}
 	Data map[string]interface{}
+	Label string
 	Message string
 	Offset int
 	Row []interface{}
@@ -31,8 +32,8 @@ type IProcess interface {
 }
 
 func (grid Grid) done() {
-	grid.setState("done")
-	grid.service.Done(grid.payload)
+	builder := grid.setState("done")
+	grid.service.Done(builder.payload)
 }
 
 func (grid Grid) Inject(payload Payload, service IProcess, url string) Grid {
@@ -61,11 +62,9 @@ func (grid Grid) setState(handler string) Grid {
 	response, _ := http.Post(strings.Join([]string{grid.url, "&do=masala-", handler}, ""), "applications/json", bytes.NewBuffer(state))
 	defer response.Body.Close()
 	payload, _ := ioutil.ReadAll(response.Body)
-	if "run" == handler {
-		fmt.Print(string(payload), "\n")
-	}
 	data := Payload{}
 	json.Unmarshal(payload, &data)
 	grid.payload = data
+	fmt.Print(grid.payload.Offset, "\n")
 	return grid
 }
