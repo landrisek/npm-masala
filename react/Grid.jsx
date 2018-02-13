@@ -1005,7 +1005,8 @@ export default class Grid extends Component {
         } else {
             state[ROWS][event.target.name][event.target.id].Attributes.value = event.target.value
         }
-        state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: {Row:state[ROWS][event.target.name],Submit:false}}).getBody('utf8'))
+        console.log(event.target.id)
+        state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: {Key:event.target.id,Row:state[ROWS][event.target.name],Submit:false}}).getBody('utf8'))
         this.setState(state)
     }
 
