@@ -114,14 +114,14 @@ final class BuilderTest extends TestCase {
             foreach($columns as $column) {
                 $testRow[$column['name']] = 'test';
             }
-            Assert::same(null, $this->mockService->setPost(['row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::same(null, $this->mockService->setPost(['Row'=>$testRow]), 'MockService::setPost does return something.');
             Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
             Assert::same(reset($row), 'test');
             $testRow = [];
             foreach($columns as $column) {
                 $testRow[$column['name']] = '_test';
             }
-            Assert::same(null, $this->mockService->setPost(['row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::same(null, $this->mockService->setPost(['Row'=>$testRow]), 'MockService::setPost does return something.');
             Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
             Assert::notSame(reset($row), '_test', 'Data was not deconcated.');
             Assert::false(empty($row = $this->class->row(1, ['test'=>'_test'])->getData()), 'IRowFormFactory::getData return empty array.');

@@ -166,6 +166,7 @@ final class MockService {
         $presenter->shouldReceive('getName')->andReturn($name);
         $presenter->shouldReceive('sendResponse')->andReturn('response succeed');
         $presenter->shouldReceive('onShutdown');
+        $presenter->shouldReceive('onStartup');
         $urlScript = new Http\UrlScript();
         foreach ($parameters as $key => $value) {
             $urlScript->setQueryParameter($key, $value);

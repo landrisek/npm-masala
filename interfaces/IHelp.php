@@ -4,7 +4,6 @@ namespace Masala;
 
 interface IHelp {
 
-    /** @return array */
-    function getHelp($controller, $action, $parameters);
+    function getHelp(string $controller, string $action, string $parameters): array;
     
 }

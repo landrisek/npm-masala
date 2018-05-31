@@ -50,8 +50,8 @@ final class Grid extends Control implements IGridFactory {
     /** @var IUser */
     private $usersModel;
 
-    public function __construct(string $appDir, string $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request,
-        ITranslator $translatorModel, IUser $usersModel, User $user) {
+    public function __construct(string $appDir, string $jsDir, array $config, IFilterFormFactory $filterForm, IRequest $request, ITranslator $translatorModel, 
+        IUser $usersModel, User $user) {
         $this->appDir = $appDir;
         $this->jsDir = $jsDir;
         $this->config = $config;
@@ -310,7 +310,7 @@ final class Grid extends Control implements IGridFactory {
                 'process' => [],
                 'proceed' => $this->translatorModel->translate('Do you really want to proceed?'),
                 'push' => $this->link('push'),
-                'remove' => $this->builder->isRemove() ? ['Label' => $this->translatorModel->translate( 'remove item'), $this->link('remove')] : [],
+                'remove' => $this->builder->isRemove() ? ['Label' => $this->translatorModel->translate( 'remove item'), 'link' => $this->link('remove')] : [],
                 'reset' => ['Label' =>$this->translatorModel->translate('reset form'),
                     'className' => 'btn btn-warning',
                     'onClick' => 'reset',

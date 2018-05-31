@@ -16,7 +16,6 @@ use Nette\Application\Responses\JsonResponse,
     PHPExcel_IOFactory,
     stdClass;
 
-
 /** @author Lubomir Andrisek */
 final class Masala extends Control implements IMasalaFactory {
 

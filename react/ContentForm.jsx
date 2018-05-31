@@ -4,6 +4,7 @@ import request from 'sync-request'
 
 var CURRENT = 'current'
 var CONTENT = 'content'
+var ID = 'contentForm'
 var LABELS = 'labels'
 var LINKS = {}
 var PLAIN = 'plain'
@@ -13,11 +14,10 @@ var SOURCE = 'source'
 var WRITE = 'write'
 
 export default class ContentForm extends Component {
-    constructor(props){
+    constructor(props) {
         super(props);
-        var name = this.constructor.name;
-        this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'))
-        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'))
+        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))
+        LINKS = JSON.parse(document.getElementById(ID).getAttribute('data-links'))
     }
     addInsert(key) {
         return <div key={key}><label>{this.state[LABELS][key]}</label><input className='form-control'
@@ -236,4 +236,4 @@ export default class ContentForm extends Component {
         this.setState(state)
     }
 }
-ReactDOM.render(<ContentForm />, document.getElementById('contentForm'))
+ReactDOM.render(<ContentForm />, document.getElementById(ID))

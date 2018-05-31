@@ -9,6 +9,7 @@ use Exception,
 final class MasalaExtension extends CompilerExtension {
 
     private $defaults = ['assets' => 'assets/masala',
+        'css' => 'assets/masala/css',
         'feeds' => 'feeds',
         'format' => ['date' => ['build' => 'd.m.Y', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")'],
                     'time' => ['build' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")']],
@@ -49,9 +50,9 @@ final class MasalaExtension extends CompilerExtension {
         $builder->addDefinition($this->prefix('grid'))
                 ->setFactory('Masala\Grid', [$parameters['appDir'], $manifest['Grid.js'], $parameters['masala']]);
         $builder->addDefinition($this->prefix('filterForm'))
-                ->setFactory('Masala\FilterForm', ['']);
+                ->setFactory('Masala\FilterForm', [$parameters['masala']['css'], '']);
         $builder->addDefinition($this->prefix('importForm'))
-                ->setFactory('Masala\ImportForm', [$manifest['ImportForm.js']]);
+                ->setFactory('Masala\ImportForm', [$parameters['masala']['css'], $manifest['ImportForm.js']]);
         $builder->addDefinition($this->prefix('helpRepository'))
                 ->setFactory('Masala\HelpRepository', [$parameters['masala']['help']]);
         $builder->addDefinition($this->prefix('keywordsRepository'))
@@ -63,7 +64,7 @@ final class MasalaExtension extends CompilerExtension {
         $builder->addDefinition($this->prefix('mockService'))
                 ->setFactory('Masala\MockService');
         $builder->addDefinition($this->prefix('rowForm'))
-                ->setFactory('Masala\RowForm', [$manifest['RowForm.js']]);
+                ->setFactory('Masala\RowForm', [$parameters['masala']['css'], $manifest['RowForm.js']]);
         $builder->addDefinition($this->prefix('writeRepository'))
                 ->setFactory('Masala\WriteRepository', [$parameters['masala']['write']]);
     }

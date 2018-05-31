@@ -9,6 +9,8 @@ var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
 var CHARTS = 'charts'
 var EDIT = 'edit'
+var ID = 'grid'
+var ITERATOR = 1
 var LISTENERS = 'listeners'
 var LISTS = 'lists'
 var NEW = 'new'
@@ -20,8 +22,7 @@ var VALIDATORS = 'validators'
 export default class Grid extends Component {
     constructor(props) {
         super(props)
-        var name = this.constructor.name;
-        this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'));
+        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))
     }
     addAction(key) {
         return <div key={'trigger-' + key} style={this.state[BUTTONS][key].style}><a className={this.state[BUTTONS][key].className}
@@ -55,14 +56,14 @@ export default class Grid extends Component {
         return container
     }
     addButton(key) {
-        return <th className={'grid-col-' + key} key={key}>
+        return <div key={'elements-' + key} class={'form-control col-xy-sm'}>
             <a className={this.state[COLUMNS][key].Attributes.className}
                href={this.state[COLUMNS][key].Attributes.href}
                onClick={this.bind(this.state[COLUMNS][key].Attributes.onClick)}
                id={key}
                key={key}
                title={this.state[COLUMNS][key].Attributes.title}>{this.state[COLUMNS][key].Attributes.Label}</a>
-        </th>
+        </div>
     }
     addBody() {
         var body = []
@@ -103,13 +104,12 @@ export default class Grid extends Component {
         return body
     }
     addCheckbox(key) {
-        var th = 'grid-col-' + key
         var columns = this.state[COLUMNS]
         var checked = ''
         if('clicked' == columns[key].Attributes.value) {
             checked = 'checked'
         }
-        return <th className={th} key={key} style={columns[key].Attributes.style}>
+        return <div key={'elements-' + key}>
             {this.addLabel(key)}
             <input id={key}
                    className={columns[key].Attributes.className}
@@ -120,15 +120,16 @@ export default class Grid extends Component {
                    value={columns[key].Attributes.value}
                    checked={checked}
                    type='checkbox' />
-        </th>
+        </div>
     }
     addColumns() {
         var body = []
         var columns = this.state[COLUMNS]
+        ITERATOR = 1
         for (var key in columns) {
             var closure = this[columns[key].Method]
             if('function' == typeof(closure) && false == columns[key].Attributes.filter && false == columns[key].Attributes.unrender) {
-                body.push(this[columns[key].Method](key))
+                body.push(<th className={'grid-col-' + key} key={key} style={columns[key].Attributes.style}>{this[columns[key].Method](key)}</th>)
             } else if('function' == typeof(closure) && true == columns[key].Attributes.filter && false == columns[key].Attributes.unrender) {
                 body.push(this.addEmpty(key))
             }
@@ -136,19 +137,19 @@ export default class Grid extends Component {
         return body
     }
     addDate(data) {
-        return <Datetime locale={data.Attributes.locale}
+        return <div><Datetime locale={data.Attributes.locale}
                          id={data.Attributes.id}
                          name={data.Attributes.name}
                          onChange={this.date.bind(this, {target:data.Attributes})}
-                         value={data.Attributes.value} />
+                         value={data.Attributes.value} /></div>
     }
     addDateTime(key) {
-        return <th className={'grid-col-' + key} id={key} key={key} style={this.state[COLUMNS][key].Attributes.style}>
+        return <div key={'elements-' + key}>
             {this.addLabel(key)}
             <Datetime locale={this.state[COLUMNS][key].Attributes.locale}
                          onChange={this.datetime.bind(this, key)}
                          value={this.state[COLUMNS][key].Attributes.value}
-        /></th>
+        /></div>
     }
     datetime(key, event) {
         var state = []
@@ -218,7 +219,7 @@ export default class Grid extends Component {
             </div></div>
     }
     addEmpty(key) {
-        return <th key={key} className={'grid-col-' + key}></th>
+        return <th className={'grid-col-' + key} key={key}></th>
     }
     addFilters() {
         var body = [];
@@ -274,7 +275,7 @@ export default class Grid extends Component {
         if(true == selected) {
             select = <ul className='list-group'>{container}</ul>
         }
-        return <th className={'grid-col-' + key} id={key} key={key}>{this.addLabel(key)}
+        return <div key={'elements-' + key}>{this.addLabel(key)}
             {select}
             <div className='input-group'>
                 <input alt={alt}
@@ -297,7 +298,7 @@ export default class Grid extends Component {
                     </ul>
                 </div>
             </div>
-        </th>
+        </div>
     }
     addLabel(key) {
         if(true == this.state[COLUMNS][key].Attributes.filter) {
@@ -411,13 +412,13 @@ export default class Grid extends Component {
         return container
     }
     addSelect(key) {
-        return <th className={'grid-col-' + key} key={key} style={this.state[COLUMNS][key].Attributes.style}>
+        return <div key={'elements-' + key}>
                 {this.addLabel(key)}
                 <select className={this.state[COLUMNS][key].Attributes.className}
                         id={key}
                         onChange={this.change.bind(this)}
                         >{this.getOptions(key)}>
-                </select></th>
+                </select></div>
     }
     addSummary() {
         var container = []
@@ -432,9 +433,8 @@ export default class Grid extends Component {
         return <tr id='masala-summary' key='masala-summary'>{container}</tr>
     }
     addText(key) {
-        return <th className={'grid-col-' + key} key={key} style={this.state[COLUMNS][key].Attributes.style}>
-            {this.addLabel(key)}
-            <input id={key}
+        return <div key={'element-' + key}>{this.addLabel(key)}
+                <input id={key}
                 className={this.state[COLUMNS][key].Attributes.className}
                 data={this.state[COLUMNS][key].Attributes.data}
                 onBlur={this.change.bind(this)}
@@ -443,8 +443,8 @@ export default class Grid extends Component {
                 style={this.state[COLUMNS][key].Attributes.style}
                 value={this.state[COLUMNS][key].Attributes.value}
                 type='text' />
-        </th>
-    }
+                </div>
+   }
     autocomplete(event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
@@ -718,6 +718,7 @@ export default class Grid extends Component {
         data.key = event.target.id
         data.columns = this.state[COLUMNS]
         data.rows = this.state[ROWS]
+        delete data.rows[-1]
         var response = JSON.parse(request('POST', this.state[BUTTONS].push, { json: data }).getBody('utf8'))
         if(undefined == response.Message) {
             var state = new Object()
@@ -808,7 +809,7 @@ export default class Grid extends Component {
         if(false === confirm(this.state[BUTTONS].proceed)) {
             return
         }
-        JSON.parse(request('POST', this.state[BUTTONS].remove, { json: {spice:this.getSpice(),Row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
+        JSON.parse(request('POST', this.state[BUTTONS].remove.link, { json: {spice:this.getSpice(),Row:this.state[ROWS][event.target.id] }}).getBody('utf8'))
         var state = []
         state[ROWS] = this.state[ROWS]
         delete state[ROWS][event.target.id]
@@ -824,7 +825,7 @@ export default class Grid extends Component {
                 if('service' == response.data.Status && 'object' == typeof(response.data.Row) && SIZE > payload.Offset) {
                     state[ROWS] = this.state[ROWS]
                     for(var row in response.data.Row) {
-                        state[ROWS][parseInt(row) + parseInt(payload.Offset)] = response.data.Row[row]
+                        state[ROWS][parseInt(payload.Offset)][row] = response.data.Row[row]
                     }
                 }
                 this.setState(state)
@@ -1011,7 +1012,7 @@ export default class Grid extends Component {
     }
 
 }
-var element = document.getElementById('grid')
+var element = document.getElementById(ID)
 if(null != element) {
-    ReactDOM.render(<Grid />, document.getElementById('grid')).start()
+    ReactDOM.render(<Grid />, document.getElementById(ID)).start()
 }

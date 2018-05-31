@@ -3,8 +3,7 @@
 namespace Masala;
 
 use Masala\EmptyRow,
-    Nette\Database,
-    Nette\Database\Table;
+    Nette\Database;
 
 /** @author Lubomir Andrisek */
 final class MockRepository extends BaseRepository implements IMock {

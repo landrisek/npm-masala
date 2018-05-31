@@ -9,12 +9,8 @@ use Nette\ComponentModel\IComponent,
 /** @author Lubomir Andrisek */
 final class RowForm extends ReactForm implements IRowFormFactory {
 
-    /** @var string */
-    private $jsDir;
-
-    public function __construct(string $jsDir, IRequest $request, ITranslator $translatorModel) {
-        parent::__construct($jsDir, $request, $translatorModel);
-        $this->jsDir = $jsDir;
+    public function __construct(string $css, string $js, IRequest $request, ITranslator $translatorModel) {
+        parent::__construct($css, $js, $request);
     }
 
     public function create(): ReactForm {

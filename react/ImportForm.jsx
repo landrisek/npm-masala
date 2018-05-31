@@ -3,14 +3,14 @@ import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import Form from './Form.jsx'
 
+var ID = 'importForm'
 var ROW = 'row'
 var LINKS = {}
 
 export default class ImportForm extends Form {
     constructor(props){
-        super(props)
-        var name = this.constructor.name;
-        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'));
+        super(props, ID)
+        LINKS = JSON.parse(ID).getAttribute('data-links')
     }
     done(payload) {
         super.done(payload)
@@ -49,7 +49,7 @@ export default class ImportForm extends Form {
         return <div>{this.attached()}</div>
     }
 }
-var element = document.getElementById('importForm')
+var element = document.getElementById(ID)
 if(null != element) {
-    ReactDOM.render(<ImportForm />, document.getElementById('importForm'))
+    ReactDOM.render(<ImportForm />, document.getElementById(ID))
 }

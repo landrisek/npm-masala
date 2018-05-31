@@ -43,9 +43,11 @@ final class ImportFormTest extends TestCase {
         Assert::false(empty($service = $processes[rand(0, sizeof($processes) -1)]));
         Assert::true(is_object($this->service = $this->container->getService($service)), 'Get IProcess failed.');
         Assert::false(empty($assets = isset($this->container->parameters['masala']['assets']) ? $this->container->parameters['masala']['assets'] : 'assets'));
-        Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/js/manifest.json',
-            $this->container->getByType('Nette\Http\IRequest'), $this->container->getByType('Nette\Localization\ITranslator'))),
-            'IImportFormFactory is not set.');
+        Assert::false(empty($manifest = (array) json_decode(file_get_contents($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/js/manifest.json'))));
+        Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/css', 
+                                                            $manifest['ImportForm.js'], 
+                                                            $this->container->getByType('Nette\Http\IRequest'), 
+                                                            $this->container->getByType('Nette\Localization\ITranslator'))), 'IImportFormFactory is not set.');
         $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
     }
     
@@ -60,7 +62,7 @@ final class ImportFormTest extends TestCase {
             Assert::true(is_object($masala = $presenter->context->getByType('Masala\Masala')), 'Masala is not set.');
             Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
             Assert::true(is_object($masala->setRow($presenter->grid->copy())), 'Masala:setGrid does not return class itself.');
-            Assert::true(is_object($presenter->addComponent($this->container->getByType('Masala\Masala'), 'masala')), 'Attached Masala failed.');                        
+            Assert::true(is_object($presenter->addComponent($this->container->getByType('Masala\Masala'), 'masala')), 'Attached Masala failed.');
             Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
             Assert::same(null, $masala->attached($presenter), 'Masala:attached succeed but method return something. Do you wish to modify test?');
             Assert::true(is_object($presenter), 'Presenter was not set.');

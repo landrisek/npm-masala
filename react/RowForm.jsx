@@ -3,13 +3,13 @@ import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import request from 'sync-request'
 
+var ID = 'rowForm'
 var LINKS = {}
 
 export default class RowForm extends Form {
     constructor(props){
-        super(props)
-        var name = this.constructor.name;
-        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'));
+        super(props, ID)
+        LINKS = JSON.parse(document.getElementById(ID).getAttribute('data-links'))
     }
     temp() {
         if(true == this.validate()) {
@@ -19,7 +19,7 @@ export default class RowForm extends Form {
             }
             var element = this.state.edit;
             element.Attributes.style = {display:'block'}
-            var response = JSON.parse(request('POST', LINKS['submit'], { json: data }).getBody('utf8'))
+            var response = JSON.parse(request('POST', LINKS.submit, { json: data }).getBody('utf8'))
             if(undefined != response.message) {
                 element.Label = response.message
             }
@@ -33,4 +33,4 @@ export default class RowForm extends Form {
         return <div>{this.attached()}</div>
     }
 }
-ReactDOM.render(<RowForm />, document.getElementById('rowForm'))
+ReactDOM.render(<RowForm />, document.getElementById(ID))

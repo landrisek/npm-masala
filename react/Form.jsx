@@ -10,11 +10,10 @@ var ROW = 'row'
 var VALIDATORS = 'validators'
 
 export default class Form extends Component {
-    constructor(props){
+    constructor(props, id) {
         super(props);
-        var name = this.constructor.name;
-        this.state = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data'))
-        LINKS = JSON.parse(document.getElementById(name[0].toLowerCase() + name.substring(1, name.length)).getAttribute('data-links'))
+        this.state = JSON.parse(document.getElementById(id).getAttribute('data'))
+        LINKS = JSON.parse(document.getElementById(id).getAttribute('data-links'))
     }
     attached() {
         var body = [];
@@ -113,7 +112,7 @@ export default class Form extends Component {
         return <input
             className={this.state[ROW][key].Attributes.className}
             data={this.state[ROW][key].Attributes.data}
-            id={key}we
+            id={key}
             key={key}
             onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
             style={this.state[ROW][key].Attributes.style}
@@ -274,7 +273,7 @@ export default class Form extends Component {
     submit() {
         var data = this.validate()
         if(null != data) {
-            request('POST', LINKS.submit, { json: {row:data} })
+            request('POST', LINKS.submit, { json: {Row:data} })
         }
     }
     run(payload, progress) {

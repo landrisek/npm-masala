@@ -1,0 +1,65 @@
+{*block #datagrid}
+    <div class="adg">
+        {include #flashes}
+        {snippet grid}
+            {include #filtering}
+            <table cellspacing="0" cellpadding="0" border="0">
+                {include #colgroup}
+                {block #header}
+                    <thead>
+                        <tr>
+                            {foreach $components as $column}
+                                {block #'col_header_'.$column->name}
+                                    <th>
+                                        {_$column->caption} {include #ordering, column => $column}
+                                    </th>
+                                {/block}
+                            {/foreach}
+                        </tr>
+                        {if isset($columnFilter)}
+                        <tr>
+                            {form filteringColumnForm 'class' => $ajaxEnabled ? 'adg-ajax' : null}
+                                {foreach $components as $column}
+                                    <th class="ui-front">
+                                        {if $column->filter == $column->name}
+                                            {input $column->name, class => adg-autocomplete, title => $template->translate('_dg_vyhledat_'.$column->name), 'data-link' => $autocompleteUrl}
+                                        {/if}
+                                        {if $column->name == 'actions'}
+                                            {input submit}
+                                        {/if}
+                                    </th>
+                                {/foreach}
+                            {/form}
+                        </tr>
+                        {/if}
+                    </thead>
+                {/block}
+                {block #body}
+                    <tbody>
+                        {if count($results) == 0}
+                        <tr>
+                            <td colspan="{= count($components->getInnerIterator())}">{_'_datagrid_empty'}</td>
+                        </tr>
+                        {else}
+                            {foreach $results as $key => $datarow}
+                                {include #row, components => $components, key => $key, datarow => $datarow}
+                            {/foreach}
+                        {/if}
+                    </tbody>
+                {/block}
+                {block #footer}
+                    <tfoot>
+                        <tr>
+                            <td colspan="{= count($components->getInnerIterator())}">
+                                {block #footerinner}
+                                    {include #pagination}
+                                    {include #limitation}
+                                {/block}
+                            </td>
+                        </tr>
+                    </tfoot>
+                {/block}
+            </table>
+        {/snippet}
+    </div>
+{/block*}

@@ -31,6 +31,7 @@ final class MasalaTest extends TestCase {
     protected function setUp() {
         $this->mockService = $this->container->getByType('Masala\MockService');
         $this->class = $this->container->getByType('Masala\Masala');
+        $this->container->getByType('Nette\Localization\ITranslator')->setLocale('cs_CZ');
     }
 
     public function __destruct() {

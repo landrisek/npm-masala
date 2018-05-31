@@ -353,7 +353,7 @@ final class Builder implements IBuilder {
         if (is_array($annotation)) {
             foreach ($annotation as $annotationId) {
                 if (isset($this->annotations[$column][$annotationId])) {
-                    return $this->annotations;
+                    return $this->annotations[$column];
                 }
             }
             return [];
@@ -569,11 +569,13 @@ final class Builder implements IBuilder {
              }*/
             $this->logQuery($hash);
         }
-        foreach(reset($data) as $column => $value) {
-            if(is_object($value)) {
-                $data[-1][$column]['Attributes']['value'] = '';
-            } else {
-                $data[-1][$column] = '';
+        if(!empty($data)) {
+            foreach(reset($data) as $column => $value) {
+                if(is_object($value)) {
+                    $data[-1][$column]['Attributes']['value'] = '';
+                } else {
+                    $data[-1][$column] = '';
+                }
             }
         }
         return $data;
@@ -657,7 +659,7 @@ final class Builder implements IBuilder {
                 $row[$column] = $value['Label'];
             } else if(!empty($this->getAnnotation($column, 'unedit'))) {
                 unset($row[$column]);
-            } else if(!empty($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint']) && empty(ltrim($value, '_')))) {
+            } else if(!empty($this->getAnnotation($column, ['date', 'datetime', 'decimal', 'float', 'int', 'tinyint'])) && 0 == strlen(ltrim($value, '_'))) {
                 unset($row[$column]);
             } else if(!empty($defaults = $this->getAnnotation($column,'enum')) && !isset($defaults[ltrim($value, '_')])) {
                 unset($row[$column]);
@@ -665,7 +667,7 @@ final class Builder implements IBuilder {
                 $row[$column] = floatval($value);
             } else if((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $row[$column] = date($this->config['format']['date']['query'], $converted);
-            } else if(is_string($value)) {
+            } else {
                 $row[$column] = ltrim($value, '_');
             }
         }
@@ -878,14 +880,14 @@ final class Builder implements IBuilder {
             $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
             $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
             $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
-            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, 'unedit')) {
-                $this->row->addHidden($column, $value, $attributes);
+            if (($this->getAnnotation($column, 'pri') && null == $value) || $this->getAnnotation($column, ['unedit', 'unrender'])) {
+                $this->row->addHidden($column, $column, ['value' => $value]);
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
                 foreach($default as $option => $status) {
                     $translation = $this->translatorModel->translate($status);
                     if($value == $translation || $value == $status) {
-                        $attributes['value'] = '_' . $option;
+                        $attributes['value'] = $option;
                     }
                     $attributes['data'][$option] = $translation;
                 }
