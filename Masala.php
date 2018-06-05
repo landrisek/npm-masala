@@ -167,7 +167,7 @@ final class Masala extends Control implements IMasalaFactory {
         !file_exists($folder) ? mkdir($folder, 0755, true) : null;
         $header = '';
         foreach($this->grid->prepare()->getOffset(0) as $column => $value) {
-            if($value instanceof DateTime || empty($this->grid->getAnnotation($column, ['unrender', 'hidden']))) {
+            if(!$value instanceof DateTime && empty($this->grid->getAnnotation($column, ['unrender', 'hidden']))) {
                 $header .= $this->grid->translate($column, $this->grid->getTable() . '.' .  $column) . ';';
             }
         }
@@ -197,7 +197,7 @@ final class Masala extends Control implements IMasalaFactory {
         $sheet->setTitle(substr($title, 0, 31));
         $letter = 'a';
         foreach($this->grid->prepare()->getOffset(0) as $column => $value) {
-            if($value instanceof DateTime || empty($this->grid->getAnnotation($column, ['unrender', 'hidden', 'unexport']))) {
+            if(!$value instanceof DateTime && empty($this->grid->getAnnotation($column, ['unrender', 'hidden', 'unexport']))) {
                 $sheet->setCellValue($letter . '1', ucfirst($this->translatorRepository->translate($column)));
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
@@ -285,6 +285,7 @@ final class Masala extends Control implements IMasalaFactory {
             $path = $service->getFile() . '/' . $response['_file'];
             $response['limit'] = $service->speed($this->config['speed']);
             $response['Row'] = $this->grid->prepare()->getOffsets();
+            if(isset($response['Row'])) { unset($response['Row'][-1]); }
             $response['Sort'] = $this->grid->getPost('Sort');
             $response = $service->run($response, $this);
             if('export' == $response['Status']) {
