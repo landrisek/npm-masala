@@ -56,7 +56,7 @@ export default class Grid extends Component {
         return container
     }
     addButton(key) {
-        return <div key={'elements-' + key} class={'form-control col-xy-sm'}>
+        return <div key={'elements-' + key} className={'form-control col-xy-sm'}>
             <a className={this.state[COLUMNS][key].Attributes.className}
                href={this.state[COLUMNS][key].Attributes.href}
                onClick={this.bind(this.state[COLUMNS][key].Attributes.onClick)}
@@ -233,7 +233,7 @@ export default class Grid extends Component {
         return body
     }
     addHidden(key) {
-        return <th class={'grid-col-' + key} key={key}></th>
+        return <th className={'grid-col-' + key} key={key}></th>
     }
     addMultiSelect(key) {
         var values = new Object()
@@ -463,13 +463,19 @@ export default class Grid extends Component {
             return this[closure].bind(this)
         }
     }
+    append(list, item) {
+        var n = 0
+        for(var key in list) { n++ }
+        list['_' + n] = item
+        return list
+    }
     change(event) {
         var state = []
         state[COLUMNS] = this.state[COLUMNS]
         if('click' == event.type) {
             state[COLUMNS][event.target.id].Attributes.autocomplete = ''
             state[COLUMNS][event.target.id].Attributes.position = 0
-            state[COLUMNS][event.target.id].Attributes.value.push(event.target.getAttribute('value'))
+            state[COLUMNS][event.target.id].Attributes.value = this.append(state[COLUMNS][event.target.id].Attributes.value, event.target.getAttribute('value'))
             if('_' == event.target.getAttribute('value')) {
                 state[COLUMNS][event.target.id].Attributes.value = []
             }
@@ -655,7 +661,7 @@ export default class Grid extends Component {
             state[COLUMNS] = this.state[COLUMNS]
             if(13 == event.keyCode && '_' != event.target.alt) {
                 state[COLUMNS][event.target.id].Attributes.autocomplete = ''
-                state[COLUMNS][event.target.id].Attributes.value.push(event.target.alt)
+                state[COLUMNS][event.target.id].Attributes.value = this.append(state[COLUMNS][event.target.id].Attributes.value, event.target.alt)
             } else if(event.target.name > this.state[COLUMNS][event.target.id].Attributes.position && 40 == event.keyCode) {
                 state[COLUMNS][event.target.id].Attributes.position++
                 this.setState(state)
@@ -684,7 +690,7 @@ export default class Grid extends Component {
         }
     }
     message(message) {
-        document.getElementById('masala-message-modal-body').insertAdjacentHTML('afterbegin', '<p>' + message + '</p>')
+        document.getElementById('masala-edit-modal-body').insertAdjacentHTML('afterbegin', '<p>' + message + '</p>')
         $('#trigger-message').trigger('click')
     }
     paginate() {
