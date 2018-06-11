@@ -620,9 +620,6 @@ final class Builder implements IBuilder {
             is_numeric($column) ? $dataSource->where($value) : $dataSource->where($column, $value);
         }
         if(isset($this->groups[$this->group])) {
-            foreach(explode(',', $this->groups[$this->group]) as $group) {
-                $dataSource->where(trim($group) . ' IS NOT NULL');
-            }
             $dataSource->group($this->groups[$this->group]);
         }
         empty($this->having) ? null : $dataSource->having($this->having);
@@ -880,7 +877,7 @@ final class Builder implements IBuilder {
             $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
             $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
             $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
-            if (($this->getAnnotation($column, 'pri') && null == $value) || $this->getAnnotation($column, ['unedit', 'unrender'])) {
+            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, ['unedit', 'unrender'])) {
                 $this->row->addHidden($column, $column, ['value' => $value]);
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
@@ -968,6 +965,10 @@ final class Builder implements IBuilder {
 
     public function submit(bool $submit): array {
         $row = $this->getRow();
+        $updates = [$this->table => []];
+        foreach($row as $column => $value) {
+            $updates[preg_replace('/\.(.*)/', '', $this->columns[$column])][$column] = $value;
+        }
         $resource = $this->database->table($this->table);
         if(empty($this->primary) && $this->add instanceof IAdd) {
             return $this->add->insert($row);
@@ -977,7 +978,7 @@ final class Builder implements IBuilder {
         foreach($this->primary as $column => $value) {
             $resource->where($column, $value);
         }
-        $resource->limit(1)->update($row);
+        $resource->limit(1)->update($updates[$this->table]);
         if(true == $submit && $this->edit instanceof IEdit) {
             $new = $this->edit->submit($this->primary, $this->getPost('Row'));
         } else if(false == $submit && $this->update instanceof IUpdate) {
@@ -1029,7 +1030,7 @@ final class Builder implements IBuilder {
     }
 
     public function where($key, $column = null, $condition = null): IBuilder {
-        if(is_bool($condition) and false == $condition) {
+        if((is_bool($condition) && false == $condition) || empty($key)) {
         } elseif ('?' == $column and isset($this->where[$key])) {
             $this->arguments[$key] = $this->where[$key];
         } elseif (is_string($condition)) {
@@ -1039,7 +1040,7 @@ final class Builder implements IBuilder {
             $this->annotations[preg_replace('/(.*)\./', '', $key)]['enum'] = array_combine($column, $column);
         } elseif (is_callable($column) and false != $value = $column()) {
             $this->where[$key] = $value;
-        } elseif (is_array($column) and isset($this->columns[preg_replace('/(.*)\./', '', $key)])) {
+        } elseif (is_array($column) && isset($this->columns[preg_replace('/(.*)\./', '', $key)])) {
             $this->where[$key] = $column;
             $this->annotations[preg_replace('/(.*)\./', '', $key)]['enum'] = array_combine($column, $column);
         } elseif (is_string($column) || is_numeric($column) || is_array($column)) {
@@ -1100,18 +1101,18 @@ final class Builder implements IBuilder {
         foreach($sort as $order => $sorted) {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
-        if(!is_numeric($offset = $this->getPost('Offset'))) {
-            $offset = 1;
+        if(!is_numeric($offset = $this->getPost('Offset')) || 1 == $offset) {
+            $offset = 0;
         }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
-            if(is_array($value) && [""] != $value && !empty($value)) {
+            if(is_array($value) && [""] != $value && !empty($value) && !empty($this->columns[$key])) {
                 foreach($value as $underscoreId => $underscore) {
                     $value[$underscoreId] = ltrim($value[$underscoreId], '_');
                 }
                 $this->where[$this->columns[$key]] = $value;
                 continue;
-            } else if([""] == $value || empty($value)) {
+            } else if([""] == $value || empty($value) || empty($this->columns[$key])) {
                 continue;
             }
             $value = ltrim(preg_replace('/\;/', '', htmlspecialchars($value)), '_');
@@ -1145,7 +1146,7 @@ final class Builder implements IBuilder {
                 $this->where[$this->columns[$column]] = date($this->config['format']['date']['query'], $converted);
             } elseif (is_numeric($value)) {
                 $this->where[$this->columns[$column]] = $value;
-            } else {
+            } else if(!empty($this->columns[$column])) {
                 $this->where[$this->columns[$column] . ' LIKE'] = '%' . $value . '%';
             }
         }
@@ -1188,7 +1189,7 @@ final class Builder implements IBuilder {
         }
         /** offset */
         if(empty($status = $this->getPost('Status'))) {
-            $this->offset = ($offset - 1) * $this->config['pagination'];
+            $this->offset = $offset * $this->config['pagination'];
             $this->limit = $this->config['pagination'];
         } else {
             $this->offset = $offset;
