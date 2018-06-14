@@ -1101,8 +1101,10 @@ final class Builder implements IBuilder {
         foreach($sort as $order => $sorted) {
             $this->sort .= ' ' . $order . ' ' . strtoupper($sorted) . ', ';
         }
-        if(!is_numeric($offset = $this->getPost('Offset')) || 1 == $offset) {
+        if(!is_numeric($offset = $this->getPost('Offset'))) {
             $offset = 0;
+        } else {
+            $offset = $offset - 1; 
         }
         foreach ($filters as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
