@@ -2,6 +2,7 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 use Nette\Database\Table\IRow;
 
 interface IProcess {

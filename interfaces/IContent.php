@@ -2,9 +2,9 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IContent {
 
-    /** @return IContent */
-    function getKeywords(array $like);
+    function getKeywords(string $like): array;
 
 }

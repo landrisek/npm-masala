@@ -108,8 +108,8 @@ final class Grid extends Control implements IGridFactory {
                 if(true == $attributes['unfilter'] && !empty($this->builder->getAnnotation($name, ['addCheckbox', 'addDate', 'addMultiSelect', 'addSelect', 'addText']))) {
                     $attributes['filter'] = true;
                 }
-                if (!empty($this->builder->getAnnotation($name, 'hidden'))) {
-                } elseif (!empty($this->builder->getAnnotation($name, 'addCheckbox'))) {
+                if(!empty($this->builder->getAnnotation($name, 'hidden'))) {
+                } else if (!empty($this->builder->getAnnotation($name, 'addCheckbox'))) {
                     $this->filterForm->addCheckbox($name, $label, $attributes);
                 } elseif (!empty($this->builder->getAnnotation($name, 'addDateTime'))) {
                     $attributes['format'] = $this->config['format']['time']['build'];
@@ -291,7 +291,7 @@ final class Grid extends Control implements IGridFactory {
             }
         }
         $data = ['buttons' => [
-                'add' => $this->builder->isEdit() ? ['Label' => $this->translatorModel->translate( 'add item'), 'link' => $this->link('edit')] : [],
+                'add' => $this->builder->isEdit() || $this->builder->isAdd() ? ['Label' => $this->translatorModel->translate( 'add item'), 'link' => $this->link('edit')] : [],
                 'chart' => $this->builder->isChart() ? ['Label' => $this->translatorModel->translate( 'chart'), 'link' => $this->link('chart')] : [],
                 'dialogs' => $this->template->dialogs,
                 'done' => ['className' => 'alert alert-success',
@@ -358,7 +358,7 @@ final class Grid extends Control implements IGridFactory {
                 'onClick' => 'prepare'];
         }
         $this->template->data = json_encode($data);
-        $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
+        $this->template->js = $this->template->basePath . '/' . $this->jsDir;
         $this->template->render();
     }
 

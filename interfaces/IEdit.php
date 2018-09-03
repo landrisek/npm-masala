@@ -2,6 +2,7 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IEdit {
 
     public function after(IReactFormFactory $form): void;

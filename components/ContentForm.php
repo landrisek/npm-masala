@@ -6,8 +6,8 @@ use Nette\Application\UI\Control,
     Nette\Application\Responses\JsonResponse,
     Nette\ComponentModel\IComponent,
     Nette\Database\Table\IRow,
+    Nette\Http\IRequest,
     Nette\Localization\ITranslator;
-use Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 final class ContentForm extends Control implements IContentFormFactory {
@@ -134,7 +134,7 @@ final class ContentForm extends Control implements IContentFormFactory {
                                                         'write'=>ucfirst($this->translatorRepository->translate('output'))],
                                             'source' => $this->source]);
         $this->template->links =  json_encode(['keyword' => $this->link('keyword'),'submit' => $this->link('submit'),'write' => $this->link('write')]);
-        $this->template->js = $this->getPresenter()->template->basePath . '/' . $this->jsDir;
+        $this->template->js = $this->template->basePath . '/' . $this->jsDir;
         $this->template->setFile(__DIR__ . '/../templates/content.latte');
         $this->template->render();
     }

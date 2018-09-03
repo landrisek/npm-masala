@@ -16,8 +16,8 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
     /** @var ITranslator */
     private $translatorRepository;
 
-    public function __construct(string $css, string $js, IRequest $request, ITranslator $translatorRepository) {
-        parent::__construct($css, $js, $request);
+    public function __construct(string $js, IRequest $request, ITranslator $translatorRepository) {
+        parent::__construct($js, $request);
         $this->translatorRepository = $translatorRepository;
     }
 

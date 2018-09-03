@@ -2,12 +2,11 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IFetch {
 
-    /** @return array */
-    public function fetch(IBuilder $builder);
+    public function fetch(IBuilder $builder): array;
 
-    /** @return int */
-    public function sum(IBuilder $builder);
+    public function sum(IBuilder $builder): int;
 
 }

@@ -2,9 +2,9 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IImport {
 
-    /** @return void */
-    public function save(array $response);
+    public function save(array $response): void;
 
 }

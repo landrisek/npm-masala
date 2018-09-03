@@ -1,19 +1,18 @@
-var webpack = require('webpack');
-var path = require('path');
-var ManifestPlugin = require("webpack-manifest-plugin");
-var WebpackMd5HashPlugin = require('webpack-md5-hash');
-var __DEV__ = JSON.parse(process.env.BUILD_DEV || "true");
-var __DEV__ = false /**/
-var ASSETS_DIR = 'assets/masala/js';
-var BUILD_DIR = path.resolve(__dirname, ASSETS_DIR);
-var APP_DIR = path.resolve(__dirname, 'app/Masala/react');
+var webpack = require('webpack')
+var path = require('path')
+var ManifestPlugin = require('webpack-manifest-plugin')
+var WebpackMd5HashPlugin = require('webpack-md5-hash')
+var __DEV__ = JSON.parse(process.env.BUILD_DEV || 'true')
+var __DEV__ = false
+var ASSETS_DIR = '../../../assets/masala/js'
+var BUILD_DIR = path.resolve(__dirname, ASSETS_DIR)
+var APP_DIR = path.resolve(__dirname, '../react')
 
 module.exports = {
     entry: {  ContentForm: APP_DIR + '/ContentForm.jsx',
-        EditForm: APP_DIR + '/EditForm.jsx',
         Grid: APP_DIR + '/Grid.jsx',
         ImportForm: APP_DIR + '/ImportForm.jsx',
-        ProcessForm: APP_DIR + '/ProcessForm.jsx'
+        RowForm: APP_DIR + '/RowForm.jsx'
     },
     devServer: {
         proxy: {
@@ -32,7 +31,7 @@ module.exports = {
         loaders : [
             {
                 test : /\.jsx?/,
-                exclude:/(node_modules|bower)/,
+                exclude:/(node_modules)/,
                 include : APP_DIR,
                 loader : 'babel-loader',
                 query  :{

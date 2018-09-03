@@ -1,7 +1,8 @@
 {block assets}
-	<div rel=manifest data="{$basePath}/{$assets}/js/manifest.json">
-    <link rel="stylesheet" href="{$basePath}/{$npm}/react-datetime/css/react-datetime.css" />
-	{var rand = rand(1, 15)}
+    <div rel='manifest' data="{$basePath}/{$assets}/js/manifest.json">
+    <link rel='stylesheet' href="{$basePath}/{$npm}/react-datetime/css/react-datetime.css" />
+    <link href="{$basePath}/{$npm}/font-awesome/css/font-awesome.min.css" rel='stylesheet'>
+    {var rand = rand(1, 15)}
     <style>
         .modal {
             background: rgba( 255, 255, 255, .8 )
@@ -42,7 +43,6 @@
             font-size: 22px;
             color: rgba(255,255,255,1);
         }
-
         #lemon {
             display: none;
             position: absolute;
@@ -74,7 +74,6 @@
             background: inherit;
             border-radius: 0 6px 0 0;
         }
-
         #cubes {
             position: absolute;
             top:0; right:0; bottom:0; left:0;

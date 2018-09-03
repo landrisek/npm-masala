@@ -2,9 +2,9 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IAdd {
 
-    /** @return array */
-    public function insert(array $response);
+    public function insert(array $response): array;
 
 }

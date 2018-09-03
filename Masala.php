@@ -34,6 +34,9 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var IHelp */
     private $helpRepository;
 
+    /** @var IIdentity */
+    public $identity;
+
     /** @var IImportFormFactory */
     private $importFormFactory;
 
@@ -46,8 +49,8 @@ final class Masala extends Control implements IMasalaFactory {
     /** @var ITranslator */
     private $translatorRepository;
 
-    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory,
-        IRequest $request, ITranslator $translatorRepository) {
+    public function __construct(array $config, IGridFactory $gridFactory, IHelp $helpRepository, IImportFormFactory $importFormFactory, IRequest $request, 
+        ITranslator $translatorRepository) {
         parent::__construct(null, null);
         $this->config = $config;
         $this->gridFactory = $gridFactory;
@@ -61,10 +64,10 @@ final class Masala extends Control implements IMasalaFactory {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter) {
             if(!empty($this->grid->getTable())) {
-                $this->grid->attached($this);
+                $this->grid->attached($this, false);
             }
             if(!empty($this->row->getTable())) {
-                $this->row->attached($this);
+                $this->row->attached($this, true);
             }
         }
     }
@@ -378,6 +381,10 @@ final class Masala extends Control implements IMasalaFactory {
         $this->template->dialogs = ['help' => 1102.0, 'import' => 1101.0, ];
         $this->template->grid = $this->row;
         $this->template->help = $this->helpRepository->getHelp($this->presenter->getName(), $this->presenter->getAction(), $this->request->getUrl()->getQuery());
+        $this->template->npm = false;
+        if(empty($this->grid->getTable())) {
+            $this->template->npm = $this->config['npm'];
+        }
         $this->template->setFile(__DIR__ . '/templates/row.latte');
         $this->template->setTranslator($this->translatorRepository);
         $this->template->render();

@@ -2,6 +2,7 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IBuilder {
 
     public function getOffsets(): array;

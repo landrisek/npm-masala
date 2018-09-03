@@ -31,6 +31,9 @@ final class Builder implements IBuilder {
     /** @var array */
     private $arguments = [];
 
+    /** @var bool */
+    private $attached;
+
     /** @var IBuild */
     private $build;
 
@@ -170,7 +173,8 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
-    public function attached(ISignalReceiver $masala): void {
+    public function attached(ISignalReceiver $masala, bool $row): void {
+        $this->attached = $row;
         $this->presenter = $masala->getPresenter();
         $this->identity = $this->presenter->identity;
         $this->control = $masala->getName();
@@ -281,7 +285,8 @@ final class Builder implements IBuilder {
     }
     
     private function column(string $column): IBuilder {
-        if (!empty($this->getAnnotation($column, 'hidden'))) {
+        if(!empty($this->getAnnotation($column, 'unedit')) && $this->attached) {
+        } elseif(!empty($this->getAnnotation($column, 'hidden')) && false == $this->attached) {
         } elseif (!empty($this->getAnnotation($column, ['addSelect', 'addMultiSelect']))) {
             $this->defaults[$column] = $this->getList($column);
         } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and empty($this->getAnnotation($column, 'unfilter'))) {
@@ -519,11 +524,11 @@ final class Builder implements IBuilder {
     }
 
     public function getOffset(int $offset): array {
-        if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
+        if(empty($this->join) && empty($this->leftJoin) and empty($this->innerJoin)) {
             $row = $this->getResource()
-                ->order($this->sort)
-                ->limit(1, $offset)
-                ->fetch();
+                                ->order($this->sort)
+                                ->limit(1, $offset)
+                                ->fetch();
         } else {
             $limit = count($this->arguments);
             $arguments = $this->arguments;
@@ -533,7 +538,7 @@ final class Builder implements IBuilder {
             $row = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetch();
         }
         if($row instanceof ActiveRow) {
-            return $row->toArray();
+            return $this->toArray();
         } elseif(is_object($row)) {
             return (array) $row;
         } else {
@@ -790,6 +795,10 @@ final class Builder implements IBuilder {
         return $this;
     }
 
+    public function isAdd(): bool {
+        return $this->add instanceof IAdd;
+    }
+
     public function isButton(): bool {
         return $this->button instanceof IButton;
     }
@@ -877,7 +886,7 @@ final class Builder implements IBuilder {
             $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
             $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
             $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
-            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, ['unedit', 'unrender'])) {
+            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, ['unedit']) || preg_match('/\_(.*)/', $column)) {
                 $this->row->addHidden($column, $column, ['value' => $value]);
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
@@ -888,7 +897,6 @@ final class Builder implements IBuilder {
                     }
                     $attributes['data'][$option] = $translation;
                 }
-                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
                 $attributes['format'] = $this->config['format']['time']['build'];
@@ -913,7 +921,6 @@ final class Builder implements IBuilder {
                 $this->row->addTextArea($column, $label . ':', $attributes, []);
             } elseif (is_array($value) && $this->getAnnotation($column, 'int')) {
                 $attributes['data'] = $value;
-                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, 'addMultiSelect') || (!empty($value) && is_array($value))) {
                 $attributes['data'] = $value;
@@ -923,7 +930,6 @@ final class Builder implements IBuilder {
                 $this->row->addMultiSelect($column, $label . ':', $attributes, []);
             } elseif (!empty($value) and is_array($value)) {
                 $attributes['data'] = $value;
-                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['decimal', 'float', 'int'])) {
                 $attributes['type'] = 'number';
@@ -1103,7 +1109,7 @@ final class Builder implements IBuilder {
         }
         if(!is_numeric($offset = $this->getPost('Offset'))) {
             $offset = 0;
-        } else {
+        } else if($offset > 0) {
             $offset = $offset - 1; 
         }
         foreach ($filters as $column => $value) {

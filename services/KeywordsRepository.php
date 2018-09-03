@@ -7,8 +7,7 @@ use Nette\Database\Table\IRow;
 /** @author Lubomir Andrisek */
 final class KeywordsRepository extends BaseRepository {
 
-    /** @return IRow */
-    public function getKeyword($keyword, array $used) {
+    public function getKeyword(sring $keyword, array $used): IRow {
         $resource = $this->database->table($this->source)
                         ->where('content LIKE',  '%' . strtolower($keyword) . '%');
         foreach($used as $usage) {

@@ -4,10 +4,8 @@ namespace Masala;
 
 interface IButton {
 
-    /** @return array */
-    function getButtons();
+    public function getButtons(): array;
 
-    /** @return array */
-    function push(array $response);
+    public function push(array $response): array;
 
 }

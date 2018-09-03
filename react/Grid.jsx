@@ -210,8 +210,8 @@ export default class Grid extends Component {
                 <div className='modal-dialog'>
                     <div className='modal-content'>
                         <div className='modal-header'>
-                            <button type='button' className='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
                             <h4 className='modal-title' id={'masala-label-edit'}>{this.state[BUTTONS].edit.Label}</h4>
+                            <button type='button' className='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
                         </div>
                         <div className='modal-body' id={'masala-edit-modal-body'}>{container}</div>
                     </div>
@@ -351,19 +351,19 @@ export default class Grid extends Component {
         var container = []
         var extent = 9
         if(this.state[BUTTONS].page > 1) {
-            container.push(<li key='first-page' className='page-item'><a onClick={this.setPage.bind(this, 1)}>1</a></li>)
-            container.push(<li key='previous-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
+            container.push(<li key='first-page' className='page-item'><a className='page-link' onClick={this.setPage.bind(this, 1)}>1</a></li>)
+            container.push(<li key='previous-page' className='page-item'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
         }
         var i = 0
         while(i < extent) {
             container = this.getPage(container, i++)
         }
         if(this.state[BUTTONS].pages > i) {
-            container.push(<li key='next-page'><a aria-label='Next' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}><span aria-hidden="true">&raquo;</span></a></li>)
+            container.push(<li key='next-page' className='page-item'><a aria-label='Next' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}><span aria-hidden="true">&raquo;</span></a></li>)
         }
         if(this.state[BUTTONS].pages > this.state[BUTTONS].page && this.state[BUTTONS].page > extent) {
-            container.push(<li key='last-page' className='page-item'><a onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
-            container.push(<li key='last-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
+            container.push(<li key='last-page' className='page-item'><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
+            container.push(<li key='last-page' className='page-item'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
         }
         return container
     }
@@ -603,9 +603,9 @@ export default class Grid extends Component {
         if(this.state[BUTTONS].page + i <= this.state[BUTTONS].pages) {
             var page = 'page' + (this.state[BUTTONS].page + i)
             if(0 == i) {
-                container.push(<li className='page-item active' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item active' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             } else {
-                container.push(<li className='page-item' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             }
 
         }
@@ -741,7 +741,7 @@ export default class Grid extends Component {
     }
     render() {
         var dialogs = []
-        if(undefined == this.state[BUTTONS].edit.length) {
+        if(undefined == this.state[BUTTONS].add.length) {
             dialogs.push(<a className='btn btn-success'
                              data-target={'#masala-edit'}
                              data-toggle='modal'
@@ -762,7 +762,7 @@ export default class Grid extends Component {
             loader.style.display = 'none'
         }
         return <div>
-            <ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
+            <nav><ul className='pagination' id='paginator' key='paginator'>{this.addPaginator()}</ul></nav>
             <table style={{width:'100%'}}><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
                 <tr><td style={{paddingTop:'10px'}}>{dialogs}</td></tr>
@@ -775,7 +775,7 @@ export default class Grid extends Component {
                 </thead>
                 <tbody>{this.addBody()}</tbody>
             </table>
-            <ul key='down-paginator' id='down-paginator' className='pagination'>{this.addPaginator()}</ul>
+            <ul className='pagination' id='down-paginator' key='down-paginator'>{this.addPaginator()}</ul>
             {this.addDialog()}
         </div>
     }
@@ -1012,7 +1012,6 @@ export default class Grid extends Component {
         } else {
             state[ROWS][event.target.name][event.target.id].Attributes.value = event.target.value
         }
-        console.log(event.target.id)
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: {Key:event.target.id,Row:state[ROWS][event.target.name],Submit:false}}).getBody('utf8'))
         this.setState(state)
     }

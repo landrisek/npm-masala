@@ -2,8 +2,9 @@
 
 namespace Masala;
 
+/** @author Lubomir Andrisek */
 interface IHelp {
 
-    function getHelp(string $controller, string $action, string $parameters): array;
+    public function getHelp(string $controller, string $action, string $parameters): array;
     
 }

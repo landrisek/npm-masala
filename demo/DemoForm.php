@@ -5,40 +5,40 @@ namespace Masala;
 use Masala\ReactForm,
     Nette\Application\IPresenter,
     Nette\Application\UI\Control,
+    Nette\ComponentModel\IComponent,
     Nette\Localization\ITranslator,
     Nette\Http\IRequest;
 
 /** @author Lubomir Andrisek */
 final class DemoForm extends ReactForm implements IDemoFormFactory {
 
-    /** @var TranslatorModel */
-    private $translatorModel;
+    /** @var ITranslator */
+    private $translatorRepository;
 
-    public function __construct(ITranslator $translatorModel, IRequest $request) {
+    public function __construct(ITranslator $translatorRepository, IRequest $request) {
         parent::__construct($request);
-        $this->translatorModel = $translatorModel;
+        $this->translatorRepository = $translatorRepository;
     }
 
-    /** @return ISurveyFormFactory */
-    public function create() {
-        return $this;
-    }
-
-    public function attached($presenter) {
+    public function attached(IComponent $presenter): void {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter) {
-            $this->addTitle('title', ['value' => $this->translatorModel->translate('If you have a minute, let us know why are you subscribing.'),
+            $this->addTitle('title', ['value' => $this->translatorRepository->translate('If you have a minute, let us know why are you subscribing.'),
                                       'class' => 'unsubscribe'])
                     ->addRadioList('answer', ['data' => ['test'], 'onClick' => 'click()'])
                     ->addText('content', ['data' => ['delay' => 0],
                                             'onBlur' => 'change()',
                                             'onChange' => 'change()',
                                             'style' => ['display'=>'none'], 
-                                            'placeholder' => $this->translatorModel->translate('You can write your opinion here.'),
+                                            'placeholder' => $this->translatorRepository->translate('You can write your opinion here.'),
                                             'value' => ''], 
-                                        ['required' => $this->translatorModel->translate('Please fill your question.')])
+                                        ['required' => $this->translatorRepository->translate('Please fill your question.')])
                     ->addSubmit('submit');
         }
+    }
+
+    public function create(): ReactForm {
+        return $this;
     }
 
     public function submit(Control $control) {
@@ -54,6 +54,5 @@ final class DemoForm extends ReactForm implements IDemoFormFactory {
 
 interface IDemoFormFactory {
 
-    /** @return DemoForm */
-    function create();
+    public function create(): ReactForm;
 }
