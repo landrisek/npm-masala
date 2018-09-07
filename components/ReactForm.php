@@ -18,6 +18,9 @@ class ReactForm extends Control implements IReactFormFactory {
     /** @var array */
     private $data  = [];
 
+    /** @var IEdit */
+    private $edit;
+
     /** @var string */
     protected const EMAIL = 'isEmail';
 
@@ -176,7 +179,11 @@ class ReactForm extends Control implements IReactFormFactory {
     public function addUpload(string $key, string $label, array $attributes = []): IReactFormFactory {
         return $this->add($key, $label, __FUNCTION__, 'input', $attributes);
     }
-    
+
+    public function attached(IComponent $presenter): void {
+        parent::attached($presenter);
+    }
+
     private function class(array $attributes): array {
         $attributes['className'] = isset($attributes['className']) ? $attributes['className'] : 'form-control';
         return $attributes;
@@ -184,10 +191,6 @@ class ReactForm extends Control implements IReactFormFactory {
 
     public function create(): ReactForm {
         return $this;
-    }
-
-    public function attached(IComponent $presenter): void {
-        parent::attached($presenter);
     }
 
     public function getOffset(string $key): array {
@@ -205,6 +208,9 @@ class ReactForm extends Control implements IReactFormFactory {
     public function handleValidate(): void {
         $values = json_decode(file_get_contents('php://input'), true);
         $validators = [];
+        if($this->edit instanceof IEdit) {
+            $validators = $this->edit->validate($values);
+        }
         foreach($this->rules as $key => $rule) {
             if(true == $this->compulsory[$key] && empty($values['row'][$key])) {
                 $validators[$key] = $values['row'][$key];
@@ -212,8 +218,9 @@ class ReactForm extends Control implements IReactFormFactory {
                 $validators[$key] = $values['row'][$key];
             } else if(false == Validators::$rule($values['row'][$key]) && !empty($values['row'][$key])) {
                 $validators[$key] = $values['row'][$key];
-            };
+            }
         }
+        
         $this->getPresenter()->sendResponse(new JsonResponse($validators));
     }
     
@@ -225,12 +232,7 @@ class ReactForm extends Control implements IReactFormFactory {
         $this->data[$key] = $component;
         return $this;
     }
-    
-    public function unsetOffset(string $key): IReactFormFactory {
-        unset($this->data[$key]);
-        return $this;
-    }
-    
+
     public function render(...$args): void {
         $this->template->component = $this->getName();
         $this->template->data = json_encode(['row' => $this->data, 'validators' => []]);
@@ -243,7 +245,12 @@ class ReactForm extends Control implements IReactFormFactory {
         $this->template->setFile(__DIR__ . '/../templates/react.latte');
         $this->template->render();
     }
-    
+
+    public function setEdit(IEdit $edit): IReactFormFactory {
+        $this->edit = $edit;
+        return $this;
+    }
+
     public function setRequired(bool $value) {
         end($this->data); 
         $this->compulsory[key($this->data)] = $value;
@@ -257,7 +264,11 @@ class ReactForm extends Control implements IReactFormFactory {
         }
         return $data;
     }
-    
+
+    public function unsetOffset(string $key): IReactFormFactory {
+        unset($this->data[$key]);
+        return $this;
+    }
 }
 interface IReactFormFactory {
 

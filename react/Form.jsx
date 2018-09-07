@@ -100,13 +100,12 @@ export default class Form extends Component {
         return container;
     }
     addSelect(key) {
-        return <div key={key}>
+        return <div key={key} style={this.state[ROW][key].Attributes.style}>
                 <label className='btn'>{this.state[ROW][key].Label}</label>
                 <select className={this.state[ROW][key].Attributes.className}
                         defaultValue={this.state[ROW][key].Attributes.value}
                         id={key}
-                        onChange={this.change.bind(this)}
-                        style={this.state[ROW][key].Attributes.style}>{this.getOptions(key)}
+                        onChange={this.change.bind(this)}>{this.getOptions(key)}
                 </select>
                 {this.addValidator(key)}
         </div>
@@ -203,10 +202,11 @@ export default class Form extends Component {
     done(payload) {
         var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
+        state[ROW] = this.state[ROW]
         for (var key in this.state[ROW]) {
             var element = this.state[ROW][key]
             element.Attributes.style = {display:'none'}
-            state[key] = element
+            state[ROW][key] = element
         }
         this.setState(state)
         return response
@@ -258,7 +258,7 @@ export default class Form extends Component {
     save(key, file) {
         var self = this
         if(null == file.type.match('image')) {
-            axios.get(file.preview).then(response => { self.load(key, response.data, file.name) })
+            axios.get(file.preview).then(response => { self.load(key, response.data, file.name); })
         } else {
             var reader = new FileReader()
             reader.onload = function() {
@@ -279,7 +279,7 @@ export default class Form extends Component {
     }
     run(payload, progress) {
         if(parseInt(payload.Stop) > parseInt(payload.Offset)) {
-            axios.post(LINKS.run, payload).then(response => {  this.run(response.Data, progress) })
+            axios.post(LINKS.run, payload).then(response => { this.run(response.data, progress); })
             var element = this.state[ROW][progress]
             element.Attributes.width = payload.Offset / (payload.Stop / 100)
             var state = []

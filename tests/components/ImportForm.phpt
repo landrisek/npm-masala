@@ -44,9 +44,8 @@ final class ImportFormTest extends TestCase {
         Assert::true(is_object($this->service = $this->container->getService($service)), 'Get IProcess failed.');
         Assert::false(empty($assets = isset($this->container->parameters['masala']['assets']) ? $this->container->parameters['masala']['assets'] : 'assets'));
         Assert::false(empty($manifest = (array) json_decode(file_get_contents($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/js/manifest.json'))));
-        Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/css', 
-                                                            $manifest['ImportForm.js'], 
-                                                            $this->container->getByType('Nette\Http\IRequest'), 
+        Assert::true(is_object($this->class = new ImportForm($manifest['ImportForm.js'],
+                                                            $this->container->getByType('Nette\Http\IRequest'),
                                                             $this->container->getByType('Nette\Localization\ITranslator'))), 'IImportFormFactory is not set.');
         $this->presenters = (isset($this->container->parameters['mockService']['import'])) ? $this->container->parameters['mockService']['import'] : [];
     }
@@ -69,12 +68,14 @@ final class ImportFormTest extends TestCase {
             $service = $presenter->grid->getImport();
             Assert::true(is_object($this->class->setService($service)), 'ImportForm:setService does not return class itself.');
             Assert::same($this->class, $this->class->setService($service), 'ImportForm:setService does not return class itself.');
-            Assert::true(is_object($setting = $mockRepository->getTestRow($this->container->parameters['masala']['feeds'], 
-                    ['type' => 'import', 'source' => $presenter->getName() . ':' . $presenter->getAction()])), 'Setting is not set.');
-            Assert::true($setting instanceof ActiveRow, 'Import setting is not set in ' . $class . '.');            
-            Assert::notSame(null, $setting->mapper, 'Following tests require existing active row for source ' . $setting->feed . '.');
-            Assert::false(empty($setting->mapper), 'Mapper for source ' . $setting->feed . ' is not set.');
-            Assert::true(is_string($setting->feed), 'Name of feed was not set.');
+            if(isset($this->container->parameters['masala']['feeds'])) {
+                Assert::true(is_object($setting = $mockRepository->getTestRow($this->container->parameters['masala']['feeds'], 
+                        ['type' => 'import', 'source' => $presenter->getName() . ':' . $presenter->getAction()])), 'Setting is not set.');
+                Assert::true($setting instanceof ActiveRow, 'Import setting is not set in ' . $class . '.');
+                Assert::notSame(null, $setting->mapper, 'Following tests require existing active row for source ' . $setting->feed . '.');
+                Assert::false(empty($setting->mapper), 'Mapper for source ' . $setting->feed . ' is not set.');
+                Assert::true(is_string($setting->feed), 'Name of feed was not set.');
+            }
             $presenter->removeComponent($masala);
         }
     }

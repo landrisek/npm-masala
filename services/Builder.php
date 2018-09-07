@@ -943,9 +943,11 @@ final class Builder implements IBuilder {
                 $this->row->addText($column, $label . ':', $attributes, []);
             }
         }
+        if($this->edit instanceof IEdit) {
+            $this->edit->after($this->row->setEdit($this->edit));
+        }
         $this->row->addMessage('_message', $this->translatorModel->translate('Changes were saved.'), ['className' => 'alert alert-success']);
-        $this->row->addSubmit('_submit', ucfirst($this->translatorModel->translate('save')),
-                    ['className' => 'btn btn-success', 'id' => 'add', 'name' => intval($id), 'onClick' => 'submit']);
+        $this->row->addSubmit('_submit', ucfirst($this->translatorModel->translate('save')), ['className' => 'btn btn-success', 'id' => 'add', 'name' => intval($id), 'onClick' => 'submit']);
         return $this->row;
     }
     
@@ -1011,7 +1013,7 @@ final class Builder implements IBuilder {
         $this->update = $update;
         return $this;
     }
-    
+
     public function validate(): array {
         $validators = [];
         foreach($row = $this->getRow() as $column => $value) {

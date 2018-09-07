@@ -40,7 +40,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testAttached() {
-        Assert::true(file_exists($path = $this->container->parameters['appDir'] . '/Masala/'), 'Masala folder does not exist in default folder. Please modify test.');
+        Assert::true(file_exists($path = $this->container->parameters['wwwDir'] . '/app/Masala/'), 'Masala folder does not exist in default folder. Please modify test.');
         $columns = scandir($path);
         foreach ($columns as $column) {
             if (0 < substr_count($column, 'column') and 'column.latte' != $column) {
@@ -83,6 +83,7 @@ final class MasalaTest extends TestCase {
             }
             Assert::true(method_exists($class, $method), 'According to latte file should exist method ' . $method . ' in ' . $class . '.');
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
+            Assert::false(empty($source), 'Table in ' . $class . ':' . $method . ' is empty.');
             Assert::true(is_object($presenter->grid->where('id IS NOT NULL')), 'Grid setter method does not return class itself.');
             Assert::true(is_object($this->class->setGrid($presenter->grid)), 'IMasalaFactory::setGrid failed.');
             Assert::true(is_object($this->class->setRow($presenter->grid->copy())), 'IMasalaFactory::setGrid failed.');
@@ -171,8 +172,8 @@ final class MasalaTest extends TestCase {
     }
 
     public function testRender() {
-        $latte = $this->container->parameters['appDir'] . '/Masala/templates/grid.latte';
-        Assert::true(is_file($latte), 'Latte file for grid is not set.');
+        $latte = $this->container->parameters['wwwDir'] . '/app/Masala/templates/grid.latte';
+        Assert::true(is_file($latte), 'Latte file ' . $latte . ' for grid is not set.');
         Assert::false(empty($grid = file_get_contents($latte)), 'Latte file is empty.');
         Assert::true(0 < substr_count($grid, '<script src="{$js}"></script>'), 'It seems that react component is not included.');
     }

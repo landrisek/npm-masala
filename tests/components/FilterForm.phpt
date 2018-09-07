@@ -36,7 +36,7 @@ final class FilterFormTest extends TestCase {
     protected function setUp() {
         $this->mockService = $this->container->getByType('Masala\MockService');
         $this->class = $this->container->getByType('Masala\IFilterFormFactory');
-        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
+        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['wwwDir'] . '/app/Masala/demo/default.latte'];
     }
 
     public function __destruct() {

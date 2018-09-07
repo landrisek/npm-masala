@@ -32,7 +32,7 @@ final class MockRepositoryTest extends TestCase {
     }
 
     public function testGetters(): void {
-        $path = $this->container->parameters['appDir'] . '/Masala/services/MockRepository.php';
+        $path = $this->container->parameters['wwwDir'] . '/app/Masala/services/MockRepository.php';
         Assert::true(is_file($path), 'File ' . $path . ' for parsing was not found.');
         $methods = [];
         $method = '';

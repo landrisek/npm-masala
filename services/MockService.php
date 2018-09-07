@@ -17,6 +17,8 @@ use Mockery,
     Nette\Database\Structure,
     Nette\Localization\ITranslator,
     Nette\Security\User,
+    RecursiveIteratorIterator,
+    RecursiveDirectoryIterator,
     ReflectionClass,
     Tester\Assert;
 
@@ -132,9 +134,9 @@ final class MockService {
         if (property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
         }
-        /*if (property_exists($presenter, 'row')) {
-            $presenter->row = $presenter->grid;
-        }*/
+        if (property_exists($presenter, 'row')) {
+            $presenter->row = $presenter->grid->copy();
+        }
         foreach ($this->services as $serviceId => $method) {
             if (isset($this->config['mockService'][$serviceId]) and property_exists($class, $serviceId)) {
                 $service = $this->container->$method();
@@ -308,10 +310,10 @@ final class MockService {
     }
     
     public function getFiles($suffix, $regex = null) {
-        $scan = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->config['appDir']));
+        $scan = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->config['wwwDir'] . '/app'));
         $files = [];
         foreach ($scan as $file) {
-            if (!$file->isDir() and in_array(preg_replace('/(.*)\./', '', $file->getPathname()), $suffix)) {
+            if (!$file->isDir() && in_array(preg_replace('/(.*)\./', '', $file->getPathname()), $suffix)) {
                 $name = basename($file->getPathname());
                 if (is_string($regex) and preg_match('/' . $regex . '/', $name)) {
                     $files[] = $file->getPathname();

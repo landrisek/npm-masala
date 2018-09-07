@@ -9,4 +9,6 @@ interface IEdit {
 
     public function submit(array $primary, array $response): array;
 
+    public function validate(array $data): array;
+
 }

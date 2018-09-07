@@ -83,11 +83,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     protected function createComponentRowForm(): IRowFormFactory {
         $offsets = $this->row->limit(1)->prepare()->getOffsets();
-        $form = $this->row->row(0, reset($offsets));
-        if($this->row->isEdit()) {
-            $this->row->getEdit()->after($form);
-        }
-        return $form;
+        return $this->row->row(0, reset($offsets));
     }
 
     protected function createComponentImportForm(): IImportFormFactory {
@@ -226,7 +222,7 @@ final class Masala extends Control implements IMasalaFactory {
         $header = json_decode($setting->mapper);
         $divider = $this->getDivider($path);
         $handle = fopen($path, 'r');
-        while (false !== ($row = fgets($handle, 10000))) {
+        while(false !== ($row = fgets($handle, 10000))) {
             $before = $row;
             $row = $this->sanitize($row, $divider);
             if (empty($this->header)) {
@@ -236,12 +232,21 @@ final class Masala extends Control implements IMasalaFactory {
                 break;
             }
         }
-        $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
-                                    'header'=>$this->header,
-                                    '_file'=> $this->grid->getPost('_name'),
-                                    'link'=> $this->link('run'),
-                                    'Offset'=> $offset,
-                                    'Status'=>'import',
+        $components = [];
+        foreach($this->grid->getPost('') as $componentId => $component) {
+            if(!preg_match('/\_[a-zA-Z]+/', $componentId) && isset($component['Attributes']['value'])) {
+                $components[$componentId] = ltrim($component['Attributes']['value'], '_');
+            } else if(!preg_match('/\_[a-zA-Z]+/', $componentId) && isset($component['Attributes']['data'])) {
+                $components[$componentId] = ltrim(key($component['Attributes']['data']), '_');
+            }
+        }
+        $response = new JsonResponse($this->grid->getImport()->prepare(['Data' => $components,
+                                    'divider' =>$divider,
+                                    'header' =>$this->header,
+                                    '_file' => $this->grid->getPost('_name'),
+                                    'link' => $this->link('run'),
+                                    'Offset' => $offset,
+                                    'Status' => 'import',
                                     'Stop' => filesize($path)], $this));
         $this->presenter->sendResponse($response);
     }
