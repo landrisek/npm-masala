@@ -176,7 +176,7 @@ final class Builder implements IBuilder {
     public function attached(ISignalReceiver $masala, bool $row): void {
         $this->attached = $row;
         $this->presenter = $masala->getPresenter();
-        $this->identity = $this->presenter->identity;
+        $this->identity = $this->presenter->getUser()->getIdentity();
         $this->control = $masala->getName();
         /** import */
         $setting = $this->getSetting('import');
