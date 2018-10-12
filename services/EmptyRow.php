@@ -8,13 +8,13 @@ use Iterator,
     Nette\Database\Table\Selection;
 
 /** @author Lubomir Andrisek */
-final class EmptyRow implements Iterator, IRow {
+class EmptyRow implements Iterator, IRow {
 
     public function setTable(Selection $name) {}
 
     public function getTable(): Selection {}
 
-    /**@return mixed */
+	/**@return mixed */
     public function getPrimary(bool $throw = true) {}
 
     public function getSignature(bool $throw = true): string { return ''; }
@@ -23,28 +23,35 @@ final class EmptyRow implements Iterator, IRow {
 
     public function ref(string $key, ?string $throughColumn = null): ?IRow { }
 
-    /** @return mixed */
+	/** @return mixed */
     public function current() {}
 
-    public function next(): void {}
+    /** @return void */
+    public function next() {}
 
     /** @return mixed */
     public function key() {}
 
-    public function offsetExists($offset): bool {}
+    /** @return boolean  */
+    public function valid() {}
 
+    /** @return void  */
+    public function rewind() {}
+
+    /** @return boolean */
+    public function offsetExists($offset) {}
+
+    /** @return mixed */
     public function offsetGet($offset) {}
 
-    public function offsetSet($offset, $value): void {}
+    /** @return void */
+    public function offsetSet($offset, $value) {}
 
-    public function offsetUnset($offset): void {}
+    /** @return void */
+    public function offsetUnset($offset) {}
 
-    public function rewind(): void {}
-
-    public function toArray(): array {
+    /** @retrun array */
+    public function toArray() {
         return [];
     }
-
-    public function valid(): bool {}
-
 }

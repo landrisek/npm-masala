@@ -9,7 +9,6 @@ use Masala\IBuilder,
     Nette\Security\Identity,
     Nette\Security\IIdentity;
 
-/** @author Lubomir Andrisek */
 class DemoPresenter extends Presenter {
 
     /** @var IBuilder @inject */
@@ -28,25 +27,29 @@ class DemoPresenter extends Presenter {
     private $table;
 
     /** @var ITranslator @inject */
-    public $translatorRepository;
+    public $translatorModel;
 
+    /** @return void */
     public function startup() {
         parent::startup();
         $this->table = reset($this->context->parameters['tables']);
         $this->row = $this->grid->copy();
     }
 
-    public function actionDefault(): void {
+    /** @return void */
+    public function actionDefault() {
         $this->identity = new Identity(86, null, ['settings' => '[]']);
         $this->grid->table($this->table);
     }
 
-    public function actionEdit(): void {
+    /** @return void */
+    public function actionEdit() {
         $this->identity = new Identity(86, null, ['settings' => '[]']);
         $this->row->table($this->table);
     }
 
-    protected function createComponentMasala(): IMasalaFactory {
+    /** @return IMasalaFactory */
+    protected function createComponentMasala() {
         return $this->masalaFactory->create()
                     ->setGrid($this->grid)
                     ->setRow($this->row);

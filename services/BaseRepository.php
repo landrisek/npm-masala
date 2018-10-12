@@ -24,7 +24,8 @@ class BaseRepository {
         $this->cache = new Cache($storage);
     }
 
-    public function getSource(): string {
+    /** @return array */
+    public function getSource() {
         return $this->source;
     }
 

@@ -2,11 +2,10 @@
 
 namespace Masala;
 
-/** @author Lubomir Andrisek */
 interface IListener {
 
-    function getKeys(): array;
+    public function getKeys(): array;
 
-    function listen(array $response): array;
+    public function listen(array $response): array;
 
 }

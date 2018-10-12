@@ -42,17 +42,14 @@ export default class Form extends Component {
                            onChange={this.change.bind(this)}
                            type='checkbox'
                            value={this.state[ROW][key].Attributes.value}  />
-                    <label className='btn' style={{marginLeft:'10px'}}>{this.state[ROW][key].Label}</label>
+                    <label style={{marginLeft:'10px'}}>{this.state[ROW][key].Label}</label>
         </div>
     }
     addDateTime(key) {
-        return <div key={key}>
-                <label className='btn'>{this.state[ROW][key].Label}</label>
-                <Datetime locale={this.state[ROW][key].Attributes.locale}
+        return <Datetime locale={this.state[ROW][key].Attributes.locale}
                          onChange={this.datetime.bind(this, key)}
-                         width={'90%'}
-                         value={this.state[ROW][key].Attributes.value} />
-              </div>
+                         value={this.state[ROW][key].Attributes.value}
+            />
     }
     datetime(key, event) {
         var state = []
@@ -64,27 +61,27 @@ export default class Form extends Component {
         return <input key={key} type='hidden' />
     }
     addMessage(key) {
-        return <div className='alert alert-success'
-                    key={key} 
+        return <div key={key} 
+                    className='alert alert-success'
                     role='alert'
                     style={this.state[ROW][key].Attributes.style}>
                     {this.state[ROW][key].Label}</div>
     }
     addMultiSelect(key) {
-        return <div key={key}><label className='btn'>{this.state[ROW][key].Label}</label>
+        return <div key={key}><label>{this.state[ROW][key].Label}</label>
             <select className={this.state[ROW][key].Attributes.className}
-                    id={this.state[ROW][key].Attributes.id}
-                    multiple
-                    onChange={this.change.bind(this)}
-                    style={this.state[ROW][key].Attributes.style}>{this.getOptions(key)}>
+                       id={this.state[ROW][key].Attributes.id}
+                       multiple
+                       style={this.state[ROW][key].Attributes.style}
+                       onChange={this.change.bind(this)}>{this.getOptions(key)}>
         </select></div>
     }
     addProgressBar(key) {
-        return <div className='progress'
-                    key={key}
-                    style={this.state[ROW][key].Attributes.style}>
-                    <div className='progress-bar' style={{width:this.state[ROW][key].Attributes.width+'%'}}></div>
-           </div>
+        return <div key={key}
+            style={this.state[ROW][key].Attributes.style}
+            className='progress'><div
+            className='progress-bar'
+            style={{width:this.state[ROW][key].Attributes.width+'%'}}></div></div>
     }
     addRadioList(key) {
         var container = [];
@@ -95,23 +92,25 @@ export default class Form extends Component {
                                     onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
                                     type='radio'
                                     value={value} />
-                                    <label className='btn'>{this.state[ROW][key].Attributes.data[value]}</label></div>);
+                                    <label>{this.state[ROW][key].Attributes.data[value]}</label></div>);
         }
         return container;
     }
     addSelect(key) {
-        return <div key={key} style={this.state[ROW][key].Attributes.style}>
-                <label className='btn'>{this.state[ROW][key].Label}</label>
+        return <div key={key}>
+                <label>{this.state[ROW][key].Label}</label>
                 <select className={this.state[ROW][key].Attributes.className}
-                        defaultValue={this.state[ROW][key].Attributes.value}
-                        id={key}
-                        onChange={this.change.bind(this)}>{this.getOptions(key)}
+                                      defaultValue={this.state[ROW][key].Attributes.value}
+                                      id={key}
+                                      style={this.state[ROW][key].Attributes.style}
+                                      onChange={this.change.bind(this)}>{this.getOptions(key)}
                 </select>
                 {this.addValidator(key)}
         </div>
     }
     addSubmit(key) {
-        return <input className={this.state[ROW][key].Attributes.className}
+        return <input
+            className={this.state[ROW][key].Attributes.className}
             data={this.state[ROW][key].Attributes.data}
             id={key}
             key={key}
@@ -119,37 +118,6 @@ export default class Form extends Component {
             style={this.state[ROW][key].Attributes.style}
             type='submit'
             value={this.state[ROW][key].Label} />
-    }
-    addText(key) {
-        return <div key={key}>
-            <label className='btn'>{this.state[ROW][key].Label}</label>
-            <input className={this.state[ROW][key].Attributes.className}
-                   data={this.state[ROW][key].Attributes.data}
-                   id={key}
-                   onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
-                   onClick={this.bind(this.state[ROW][key].Attributes.onClick)} 
-                   onChange={this.change.bind(this)}
-                   readOnly={this.state[ROW][key].Attributes.readonly}
-                   style={this.state[ROW][key].Attributes.style}
-                   type={this.state[ROW][key].Attributes.type}
-                   value={this.state[ROW][key].Attributes.value} />
-            <div>{this.addValidator(key)}</div></div>
-    }
-    addTextArea(key) {
-        return <div key={key}>
-            <label className='btn'>{this.state[ROW][key].Label}</label>
-            <textarea className={this.state[ROW][key].Attributes.className}
-                      data={this.state[ROW][key].Attributes.data}
-                      id={key}
-                      onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
-                      onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
-                      onChange={this.change.bind(this)}
-                      style={this.state[ROW][key].Attributes.style}>
-                {this.state[ROW][key].Attributes.value}</textarea>
-            <div>{this.addValidator(key)}</div></div>
-    }
-    addTitle(key) {
-        return <h1 key={key} className={this.state[ROW][key].Attributes.className}>{this.state[ROW][key].Attributes.value}</h1>
     }
     addUpload(key) {
         var files = []
@@ -170,8 +138,40 @@ export default class Form extends Component {
     }
     addValidator(key) {
         if(undefined != this.state[VALIDATORS][key]) {
-            return <div key={'validator-' + key} className='bg-danger'>{this.state[VALIDATORS][key]}</div>
+            //return <div key={'validator-' + key} className='bg-danger'>{this.state[VALIDATORS][key]}</div>
         }
+    }
+    addText(key) {
+        return <div key={key} className='input-group'>
+            <label>{this.state[ROW][key].Label}</label>
+            <input 
+            id={key}
+            className={this.state[ROW][key].Attributes.className}
+            data={this.state[ROW][key].Attributes.data}
+            onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
+            onClick={this.bind(this.state[ROW][key].Attributes.onClick)} 
+            onChange={this.change.bind(this)}
+            readOnly={this.state[ROW][key].Attributes.readonly}
+            style={this.state[ROW][key].Attributes.style}
+            type={this.state[ROW][key].Attributes.type}
+            value={this.state[ROW][key].Attributes.value} />
+            <div>{this.addValidator(key)}</div></div>
+    }
+    addTextArea(key) {
+        return <div key={key} className='input-group'>
+            <textarea
+                id={key}
+                className={this.state[ROW][key].Attributes.className}
+                data={this.state[ROW][key].Attributes.data}
+                onBlur={this.bind(this.state[ROW][key].Attributes.onBlur)}
+                onClick={this.bind(this.state[ROW][key].Attributes.onClick)}
+                onChange={this.change.bind(this)}
+                style={this.state[ROW][key].Attributes.style}>
+                {this.state[ROW][key].Attributes.value}</textarea>
+            <div>{this.addValidator(key)}</div></div>
+    }
+    addTitle(key) {
+        return <h1 key={key} className={this.state[ROW][key].Attributes.className}>{this.state[ROW][key].Attributes.value}</h1>
     }
     bind(method) {
         if(undefined === method) {
@@ -202,11 +202,10 @@ export default class Form extends Component {
     done(payload) {
         var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
-        state[ROW] = this.state[ROW]
         for (var key in this.state[ROW]) {
             var element = this.state[ROW][key]
             element.Attributes.style = {display:'none'}
-            state[ROW][key] = element
+            state[key] = element
         }
         this.setState(state)
         return response
@@ -238,7 +237,7 @@ export default class Form extends Component {
         data._name = name
         data._key = key
         axios.post(LINKS.save, data).then(response => {
-            state[ROW][key].Attributes.value[response.data] = name
+            state[ROW][key].Attributes.value[response.Data] = name
             state[ROW]._submit.Attributes.className = 'btn btn-success'
             self.setState(state)
         })
@@ -258,7 +257,7 @@ export default class Form extends Component {
     save(key, file) {
         var self = this
         if(null == file.type.match('image')) {
-            axios.get(file.preview).then(response => { self.load(key, response.data, file.name); })
+            axios.get(file.preview).then(response => { self.load(key, response.Data, file.name) })
         } else {
             var reader = new FileReader()
             reader.onload = function() {
@@ -279,7 +278,7 @@ export default class Form extends Component {
     }
     run(payload, progress) {
         if(parseInt(payload.Stop) > parseInt(payload.Offset)) {
-            axios.post(LINKS.run, payload).then(response => { this.run(response.data, progress); })
+            axios.post(LINKS.run, payload).then(response => {  this.run(response.Data, progress) })
             var element = this.state[ROW][progress]
             element.Attributes.width = payload.Offset / (payload.Stop / 100)
             var state = []

@@ -2,7 +2,6 @@
 
 namespace Masala;
 
-/** @author Lubomir Andrisek */
 interface IFetch {
 
     public function fetch(IBuilder $builder): array;

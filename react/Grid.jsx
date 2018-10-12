@@ -1,9 +1,10 @@
 import {AreaChart} from 'react-easy-chart';
-import axios from 'axios'
-import Datetime from 'react-datetime'
-import React, {Component} from 'react'
-import ReactDOM from 'react-dom'
-import request from 'sync-request'
+import axios from 'axios';
+import Datetime from 'react-datetime';
+import React, {Component} from 'react';
+import ReactDOM from 'react-dom';
+import request from 'sync-request';
+import ReactHtmlParser, { processNodes, convertNodeToElement, htmlparser2 } from 'react-html-parser';
 
 var BUTTONS = 'buttons'
 var COLUMNS = 'columns'
@@ -22,7 +23,7 @@ var VALIDATORS = 'validators'
 export default class Grid extends Component {
     constructor(props) {
         super(props)
-        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))
+        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))        
     }
     addAction(key) {
         return <div key={'trigger-' + key} style={this.state[BUTTONS][key].style}><a className={this.state[BUTTONS][key].className}
@@ -78,7 +79,7 @@ export default class Grid extends Component {
         body.push(this.addSummary())
         for(var key in rows) {
             var id = 'row-' + key;
-            body.push(<tr id={id} style={rows[key].style} key={id}>{this.addRow(rows[key], key)}</tr>)
+            body.push(<tr id={id} style={rows[key].style}  className={rows[key].className} key={id}>{this.addRow(rows[key], key)}</tr>)
             if('object' == typeof(this.state[CHARTS][key])) {
                 var clone = document.getElementById('row-' + key)
                 body.push(<AreaChart
@@ -210,8 +211,8 @@ export default class Grid extends Component {
                 <div className='modal-dialog'>
                     <div className='modal-content'>
                         <div className='modal-header'>
-                            <h4 className='modal-title' id={'masala-label-edit'}>{this.state[BUTTONS].edit.Label}</h4>
                             <button type='button' className='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
+                            <h4 className='modal-title' id={'masala-label-edit'}>{this.state[BUTTONS].edit.Label}</h4>
                         </div>
                         <div className='modal-body' id={'masala-edit-modal-body'}>{container}</div>
                     </div>
@@ -351,19 +352,19 @@ export default class Grid extends Component {
         var container = []
         var extent = 9
         if(this.state[BUTTONS].page > 1) {
-            container.push(<li key='first-page' className='page-item'><a className='page-link' onClick={this.setPage.bind(this, 1)}>1</a></li>)
-            container.push(<li key='previous-page' className='page-item'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
+            container.push(<li key='first-page' className='page-item'><a onClick={this.setPage.bind(this, 1)}>1</a></li>)
+            container.push(<li key='previous-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
         }
         var i = 0
         while(i < extent) {
             container = this.getPage(container, i++)
         }
         if(this.state[BUTTONS].pages > i) {
-            container.push(<li key='next-page' className='page-item'><a aria-label='Next' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}><span aria-hidden="true">&raquo;</span></a></li>)
+            container.push(<li key='next-page'><a aria-label='Next' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}><span aria-hidden="true">&raquo;</span></a></li>)
         }
         if(this.state[BUTTONS].pages > this.state[BUTTONS].page && this.state[BUTTONS].page > extent) {
-            container.push(<li key='last-page' className='page-item'><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
-            container.push(<li key='last-page' className='page-item'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
+            container.push(<li key='last-page' className='page-item'><a onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
+            container.push(<li key='last-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
         }
         return container
     }
@@ -377,7 +378,7 @@ export default class Grid extends Component {
         var container = []
         var actions = false
         for(var row in rows) {
-            actions = true
+            actions = true;
             if(undefined != this.state[COLUMNS][row] && true != this.state[COLUMNS][row].Attributes.unrender) {
                 if('object' == typeof(rows[row]) && null !== rows[row]) {
                     rows[row].Attributes.id = row
@@ -393,7 +394,7 @@ export default class Grid extends Component {
                     }
                     container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row} style={rows[row].Attributes.style}>{element}</td>)
                 } else {
-                    container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{rows[row]}</td>)
+                    container.push(<td id={'grid-col-' + row} key={'grid-col-' + key + row}>{ReactHtmlParser(rows[row])}</td>)
                 }
             } else if('_actions' == row) {
                 var actions = []
@@ -603,9 +604,9 @@ export default class Grid extends Component {
         if(this.state[BUTTONS].page + i <= this.state[BUTTONS].pages) {
             var page = 'page' + (this.state[BUTTONS].page + i)
             if(0 == i) {
-                container.push(<li className='page-item active' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item active' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             } else {
-                container.push(<li className='page-item' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             }
 
         }
@@ -741,7 +742,7 @@ export default class Grid extends Component {
     }
     render() {
         var dialogs = []
-        if(undefined == this.state[BUTTONS].add.length) {
+        if(undefined == this.state[BUTTONS].edit.length) {
             dialogs.push(<a className='btn btn-success'
                              data-target={'#masala-edit'}
                              data-toggle='modal'
@@ -762,7 +763,7 @@ export default class Grid extends Component {
             loader.style.display = 'none'
         }
         return <div>
-            <nav><ul className='pagination' id='paginator' key='paginator'>{this.addPaginator()}</ul></nav>
+            <ul key='paginator' id='paginator' className='pagination'>{this.addPaginator()}</ul>
             <table style={{width:'100%'}}><tbody>
                 <tr><td>{this.addProgressBar('export')}{this.addFilters()}</td></tr>
                 <tr><td style={{paddingTop:'10px'}}>{dialogs}</td></tr>
@@ -775,7 +776,7 @@ export default class Grid extends Component {
                 </thead>
                 <tbody>{this.addBody()}</tbody>
             </table>
-            <ul className='pagination' id='down-paginator' key='down-paginator'>{this.addPaginator()}</ul>
+            <ul key='down-paginator' id='down-paginator' className='pagination'>{this.addPaginator()}</ul>
             {this.addDialog()}
         </div>
     }
@@ -1012,6 +1013,7 @@ export default class Grid extends Component {
         } else {
             state[ROWS][event.target.name][event.target.id].Attributes.value = event.target.value
         }
+        console.log(event.target.id)
         state[ROWS][event.target.name] = JSON.parse(request('POST', this.state[BUTTONS].update, { json: {Key:event.target.id,Row:state[ROWS][event.target.name],Submit:false}}).getBody('utf8'))
         this.setState(state)
     }

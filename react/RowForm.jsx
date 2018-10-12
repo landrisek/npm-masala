@@ -5,21 +5,28 @@ import request from 'sync-request'
 
 var ID = 'rowForm'
 var LINKS = {}
-var ROW = 'row'
 
 export default class RowForm extends Form {
     constructor(props){
         super(props, ID)
         LINKS = JSON.parse(document.getElementById(ID).getAttribute('data-links'))
     }
-    submit() {
-        var data = this.validate()
-        if(null != data) {
-            var state = []
-            state[ROW] = this.state[ROW]
-            state[ROW]._message.Attributes.style = {display:'block'}
-            this.setState(state)
-            request('POST', LINKS.submit, { json: {Row:data} })
+    temp() {
+        if(true == this.validate()) {
+            var data = new Object()
+            for(var key in this.state) {
+                data[key] = this.state[ROW][key].Attributes.value
+            }
+            var element = this.state.edit;
+            element.Attributes.style = {display:'block'}
+            var response = JSON.parse(request('POST', LINKS.submit, { json: data }).getBody('utf8'))
+            if(undefined != response.message) {
+                element.Label = response.message
+            }
+            if(undefined != response.remove && false != response.remove) {
+                document.getElementById(response.remove).remove()
+            }
+            this.setState({ 'edit': element })
         }
     }
     render() {

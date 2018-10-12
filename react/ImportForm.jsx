@@ -10,7 +10,7 @@ var LINKS = {}
 export default class ImportForm extends Form {
     constructor(props){
         super(props, ID)
-        LINKS = JSON.parse(document.getElementById(ID).getAttribute('data-links'))
+        LINKS = JSON.parse(ID).getAttribute('data-links')
     }
     done(payload) {
         super.done(payload)

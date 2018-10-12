@@ -1,0 +1,1 @@
+../../../node_modules/.bin/webpack -d --config webpack.dev.js

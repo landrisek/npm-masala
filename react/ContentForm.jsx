@@ -20,13 +20,13 @@ export default class ContentForm extends Component {
         LINKS = JSON.parse(document.getElementById(ID).getAttribute('data-links'))
     }
     addInsert(key) {
-        return <div key={key}><label>{this.state[LABELS][key]}</label>
-            <input className='form-control'
+        return <div key={key}><label>{this.state[LABELS][key]}</label><input className='form-control'
                       id={key}
                       onChange={this.update.bind(this)}
                       onKeyPress={this.insert.bind(this)}
                       style={{width: 'auto'}}
-                      value={this.state[key]} /></div>
+                      value={this.state[key]}
+        /></div>
     }
     addSelect(key) {
         var options = this.state[CONTENT][key]

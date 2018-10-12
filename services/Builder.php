@@ -31,9 +31,6 @@ final class Builder implements IBuilder {
     /** @var array */
     private $arguments = [];
 
-    /** @var bool */
-    private $attached;
-
     /** @var IBuild */
     private $build;
 
@@ -173,8 +170,7 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
-    public function attached(ISignalReceiver $masala, bool $row): void {
-        $this->attached = $row;
+    public function attached(ISignalReceiver $masala): void {
         $this->presenter = $masala->getPresenter();
         $this->identity = $this->presenter->getUser()->getIdentity();
         $this->control = $masala->getName();
@@ -201,8 +197,8 @@ final class Builder implements IBuilder {
         foreach ($this->columns as $column => $annotation) {
             if (preg_match('/\sAS\s/', $annotation)) {
                 throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
-            } elseif (in_array($column, ['style', 'groups'])) {
-                throw new InvalidStateException('Style and groups keywords are reserved for callbacks and column for Grid.jsx:update method. See https://github.com/landrisek/Masala/wiki/Select-statement. Use different alias.');
+            } elseif (in_array($column, ['style', 'groups', 'class', 'className'])) {
+                throw new InvalidStateException('Style, groups and class and className keywords are reserved for callbacks and column for Grid.jsx:update method. See https://github.com/landrisek/Masala/wiki/Select-statement. Use different alias.');
             }
             $this->inject($annotation, $column);
         }
@@ -285,8 +281,7 @@ final class Builder implements IBuilder {
     }
     
     private function column(string $column): IBuilder {
-        if(!empty($this->getAnnotation($column, 'unedit')) && $this->attached) {
-        } elseif(!empty($this->getAnnotation($column, 'hidden')) && false == $this->attached) {
+        if (!empty($this->getAnnotation($column, 'hidden'))) {
         } elseif (!empty($this->getAnnotation($column, ['addSelect', 'addMultiSelect']))) {
             $this->defaults[$column] = $this->getList($column);
         } elseif (is_array($enum = $this->getAnnotation($column, 'enum')) and empty($this->getAnnotation($column, 'unfilter'))) {
@@ -524,11 +519,11 @@ final class Builder implements IBuilder {
     }
 
     public function getOffset(int $offset): array {
-        if(empty($this->join) && empty($this->leftJoin) and empty($this->innerJoin)) {
+        if (empty($this->join) and empty($this->leftJoin) and empty($this->innerJoin)) {
             $row = $this->getResource()
-                                ->order($this->sort)
-                                ->limit(1, $offset)
-                                ->fetch();
+                ->order($this->sort)
+                ->limit(1, $offset)
+                ->fetch();
         } else {
             $limit = count($this->arguments);
             $arguments = $this->arguments;
@@ -538,7 +533,7 @@ final class Builder implements IBuilder {
             $row = $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$arguments)->fetch();
         }
         if($row instanceof ActiveRow) {
-            return $this->toArray();
+            return $row->toArray();
         } elseif(is_object($row)) {
             return (array) $row;
         } else {
@@ -795,10 +790,6 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    public function isAdd(): bool {
-        return $this->add instanceof IAdd;
-    }
-
     public function isButton(): bool {
         return $this->button instanceof IButton;
     }
@@ -886,7 +877,7 @@ final class Builder implements IBuilder {
             $attributes =  ['className' => 'form-control', 'name' => intval($id), 'value' => is_null($value) ? '' : $value];
             $this->getAnnotation($column, 'disable') ? $attributes['readonly'] = 'readonly' : null;
             $this->getAnnotation($column, 'onchange') ? $attributes['onChange'] = 'submit' : null;
-            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, ['unedit']) || preg_match('/\_(.*)/', $column)) {
+            if ($this->getAnnotation($column, 'pri') || $this->getAnnotation($column, ['unedit'])) {
                 $this->row->addHidden($column, $column, ['value' => $value]);
             } elseif (!empty($default = $this->getAnnotation($column, 'enum'))) {
                 $attributes['data'] = [null => $this->translatorModel->translate('--unchosen--')];
@@ -897,6 +888,7 @@ final class Builder implements IBuilder {
                     }
                     $attributes['data'][$option] = $translation;
                 }
+                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['datetime', 'timestamp'])) {
                 $attributes['format'] = $this->config['format']['time']['build'];
@@ -921,6 +913,7 @@ final class Builder implements IBuilder {
                 $this->row->addTextArea($column, $label . ':', $attributes, []);
             } elseif (is_array($value) && $this->getAnnotation($column, 'int')) {
                 $attributes['data'] = $value;
+                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, 'addMultiSelect') || (!empty($value) && is_array($value))) {
                 $attributes['data'] = $value;
@@ -930,6 +923,7 @@ final class Builder implements IBuilder {
                 $this->row->addMultiSelect($column, $label . ':', $attributes, []);
             } elseif (!empty($value) and is_array($value)) {
                 $attributes['data'] = $value;
+                $attributes['style'] = ['height' => '100%'];
                 $this->row->addSelect($column, $label . ':', $attributes, []);
             } elseif ($this->getAnnotation($column, ['decimal', 'float', 'int'])) {
                 $attributes['type'] = 'number';
@@ -943,11 +937,9 @@ final class Builder implements IBuilder {
                 $this->row->addText($column, $label . ':', $attributes, []);
             }
         }
-        if($this->edit instanceof IEdit) {
-            $this->edit->after($this->row->setEdit($this->edit));
-        }
         $this->row->addMessage('_message', $this->translatorModel->translate('Changes were saved.'), ['className' => 'alert alert-success']);
-        $this->row->addSubmit('_submit', ucfirst($this->translatorModel->translate('save')), ['className' => 'btn btn-success', 'id' => 'add', 'name' => intval($id), 'onClick' => 'submit']);
+        $this->row->addSubmit('_submit', ucfirst($this->translatorModel->translate('save')),
+                    ['className' => 'btn btn-success', 'id' => 'add', 'name' => intval($id), 'onClick' => 'submit']);
         return $this->row;
     }
     
@@ -1013,7 +1005,7 @@ final class Builder implements IBuilder {
         $this->update = $update;
         return $this;
     }
-
+    
     public function validate(): array {
         $validators = [];
         foreach($row = $this->getRow() as $column => $value) {

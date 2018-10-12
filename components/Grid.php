@@ -291,7 +291,7 @@ final class Grid extends Control implements IGridFactory {
             }
         }
         $data = ['buttons' => [
-                'add' => $this->builder->isEdit() || $this->builder->isAdd() ? ['Label' => $this->translatorModel->translate( 'add item'), 'link' => $this->link('edit')] : [],
+                'add' => $this->builder->isEdit() ? ['Label' => $this->translatorModel->translate( 'add item'), 'link' => $this->link('edit')] : [],
                 'chart' => $this->builder->isChart() ? ['Label' => $this->translatorModel->translate( 'chart'), 'link' => $this->link('chart')] : [],
                 'dialogs' => $this->template->dialogs,
                 'done' => ['className' => 'alert alert-success',
