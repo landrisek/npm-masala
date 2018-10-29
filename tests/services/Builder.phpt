@@ -90,11 +90,7 @@ final class BuilderTest extends TestCase {
             Assert::true(method_exists($class, $method), 'According to latte file should exist method ' . $method . ' in ' . $class . '.');
             Assert::same(null, call_user_func_array([$presenter, $method], $arguments), 'Method ' . $method . ' of ' . $class . ' does return something. Do you wish to modify test?');
             Assert::true(is_string($source = $presenter->grid->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
-            if(empty($presenter->row->getTable())) {
-                Assert::false(empty($presenter->grid->getTable()), 'Table is not set in ' . $class . '.');
-            } else {
-                Assert::true(is_string($source = $presenter->row->getTable()), 'Source set in method ' . $method . ' of ' . $class . ' is not set.');
-            }
+            Assert::false(empty($presenter->grid->getTable()), 'Table is not set.');
             Assert::same($source, $presenter->grid->getTable(), 'Table ' . $source . ' was not set.');
             Assert::false(isset($this->select), 'Select in Builder should be private.');
             Assert::false(isset($this->join), 'Join in Builder should be private.');
@@ -109,10 +105,10 @@ final class BuilderTest extends TestCase {
             Assert::true(is_object($this->masala->setRow($this->class->copy())), 'Masala:setRow failed.');
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
             Assert::same(null, $this->masala->attached($presenter), 'Masala:attached method succeed but it does return something. Do you wish modify test?');
-            Assert::same(null, $this->class->attached($this->masala, false), 'Builder:attached method succed but it does return something. Do you wish modify test?');
+            Assert::same(null, $this->class->attached($this->masala), 'Builder:attached method succed but it does return something. Do you wish modify test?');
             Assert::same($this->class->getId('test'), md5($this->masala->getName() . ':' . $presenter->getName() . ':' . $presenter->getAction()  . ':test:' . $presenter->getUser()->getId()), 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
             Assert::false(empty($this->class->prepare()), 'Offset rows for grid were not set.');
-            Assert::false(empty($rows = $this->class->getOffsets()), 'Test row is empty.');
+            Assert::false(empty($rows = $this->class->getOffsets()), 'Test row is empty in ' . $class . '.');
             Assert::false(empty($row = reset($rows)), 'Test row is not set.');
             $testRow = [];
             foreach($columns as $column) {

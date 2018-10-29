@@ -59,12 +59,13 @@ func (grid Grid) run() {
 
 func (grid Grid) setState(handler string) Grid {
 	state, _ := json.Marshal(grid.payload)
-	response, _ := http.Post(strings.Join([]string{grid.url, "&do=masala-", handler}, ""), "applications/json", bytes.NewBuffer(state))
+	call := strings.Join([]string{grid.url, "&do=masala-", handler}, "")
+	response, _ := http.Post(call, "applications/json", bytes.NewBuffer(state))
 	defer response.Body.Close()
 	payload, _ := ioutil.ReadAll(response.Body)
 	data := Payload{}
 	json.Unmarshal(payload, &data)
 	grid.payload = data
-	fmt.Print(grid.payload.Offset, "\n")
+	fmt.Print(call, "\n", grid.payload.Offset, "\n")
 	return grid
 }

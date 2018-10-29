@@ -59,7 +59,7 @@ final class MockServiceTest extends TestCase {
             if (is_array($annotations)) {
                 foreach($annotations as $table => $annotation) {
                     $parameters = (isset($annotation['parameters'])) ? $annotation['parameters'] : null; 
-                    $arguments = $this->class->getCall($annotation['service'], $annotation['method'], $parameters, $this->container->getByType('Masala\IRowFormFactory'));
+                    $arguments = $this->class->getCall($annotation['service'], $annotation['method'], $parameters, $this->container->getByType('Masala\IEditFormFactory'));
                     Assert::true(is_array($arguments), 'Call ' . $key . ' from masala config failed.');
                     Assert::true(is_string($arguments) or is_null($arguments) or is_array($arguments), 'Arguments return by getCall are not set for table.column ' . $table);
                     Assert::true(is_string($annotation['service']), 'Service is not set for table.column ' . $table);

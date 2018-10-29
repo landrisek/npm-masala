@@ -1,8 +1,0 @@
-parameters:
-	appDir: /var/www/ftemails/lubo/app
-	wwwDir: /var/www/ftemails/lubo
-	mockService:
-		testParameters:
-			id: 160
-		excluded:
-			0: translator

@@ -337,7 +337,7 @@ final class Builder implements IBuilder {
 
     private function format(array $row): array {
         foreach($row as $key => $format) {
-            if($format instanceof DateTime) {
+            if($format instanceof DateTime) {                
                 $row[$key] = $format instanceof DateTime ? date($this->config['format']['date']['build'], strtotime($format->__toString())) : $row[$key];
             }
         }

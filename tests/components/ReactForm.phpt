@@ -39,8 +39,8 @@ final class ReactFormTest extends TestCase {
         $assets = $this->container->parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/';
         $request = $this->container->getByType('Nette\Http\IRequest');
         $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $this->class = new ReactForm($assets . '/js/GeneralForm.js', $request, $translatorModel);
-        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['wwwDir'] . '/app/Masala/demo/default.latte'];
+        $this->class = new ReactForm($assets . 'css', $assets . '/js/GeneralForm.js', $request, $translatorModel);
+        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
     }
 
     public function __destruct() {
@@ -83,6 +83,7 @@ final class ReactFormTest extends TestCase {
             Assert::false(empty($data = $this->class->getData()), 'Form values are not set in class ' . $class . ' for source ' . $table);
             Assert::same(['_3' => '3', '_1' => '1', '_2' => '2'], $data['test']['Attributes']['data'], 'ReactForm:addSelect did not concat keys to keep order in javascript arrays.');
             Assert::true(is_array($data), 'ReactForm values are not set.');
+            Assert::true(property_exists($this->class, 'css'), 'Private property for styles does not exist.');
             Assert::true(property_exists($this->class, 'js'), 'Private property for javascript does not exist.');
             Assert::false(empty($methods = get_class_methods($this->class)), 'Masala\IReactFormFactory does not have any method.');
             Assert::false(isset($methods['succeeded']) or isset($methods['formSucceeded']), 'IReactForm should have only one succeed method called submit.');

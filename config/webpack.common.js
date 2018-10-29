@@ -4,7 +4,7 @@ var path = require('path');
 var ManifestPlugin = require("webpack-manifest-plugin");
 var WebpackMd5HashPlugin = require('webpack-md5-hash');
 var APP_DIR = path.resolve(__dirname, '../react');
-var PUBLIC_DIR = '/assets/masala/js';
+var PUBLIC_DIR = 'assets/masala/js';
 
 module.exports = {
     entry: {  ContentForm: APP_DIR + '/ContentForm.jsx',
