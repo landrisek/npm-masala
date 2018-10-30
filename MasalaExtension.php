@@ -46,8 +46,8 @@ final class MasalaExtension extends CompilerExtension {
                 ->setFactory('Masala\MasalaExtension', []);
         $builder->addDefinition($this->prefix('contentForm'))
                 ->setFactory('Masala\ContentForm', [$manifest['ContentForm.js']]);
-        $builder->addDefinition($this->prefix('exportService'))
-                ->setFactory('Masala\ExportService', [$builder->parameters['tempDir']]);
+        $builder->addDefinition($this->prefix('exportFacade'))
+                ->setFactory('Masala\ExportFacade', [$builder->parameters['tempDir']]);
         $builder->addDefinition($this->prefix('emptyRow'))
                 ->setFactory('Masala\EmptyRow');
         $builder->addDefinition($this->prefix('grid'))

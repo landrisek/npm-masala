@@ -65,7 +65,7 @@ final class Builder implements IBuilder {
     private $export;
 
     /** @var IProcess */
-    private $exportService;
+    private $exportFacade;
 
     /** @var IFetch */
     private $fetch;
@@ -160,9 +160,9 @@ final class Builder implements IBuilder {
     /** @var string */
     private $query;
 
-    public function __construct(array $config, ExportService $exportService, Context $database, IStorage $storage, IRowFormFactory $row, ITranslator $translatorModel) {
+    public function __construct(array $config, ExportFacade $exportFacade, Context $database, IStorage $storage, IRowFormFactory $row, ITranslator $translatorModel) {
         $this->config = $config;
-        $this->exportService = $exportService;
+        $this->exportFacade = $exportFacade;
         $this->database = $database;
         $this->cache = new Cache($storage);
         $this->row = $row;
@@ -277,7 +277,7 @@ final class Builder implements IBuilder {
     }
 
     public function copy(): IBuilder {
-        return new Builder($this->config, $this->exportService, $this->database, $this->storage, $this->row, $this->translatorModel);
+        return new Builder($this->config, $this->exportFacade, $this->database, $this->storage, $this->row, $this->translatorModel);
     }
     
     private function column(string $column): IBuilder {
@@ -315,7 +315,7 @@ final class Builder implements IBuilder {
     }
 
     public function export($export): IBuilder {
-        $this->export = ($export instanceof IProcess) ? $export : $this->exportService;
+        $this->export = ($export instanceof IProcess) ? $export : $this->exportFacade;
         return $this;
     }
 

@@ -83,8 +83,8 @@ final class MockFacade {
         $urlScript->setScriptPath($root);
         $urlScript->setPath($root . $presenter . '/' . $action);
         $this->httpRequest = new Http\Request($urlScript);
-        $exportService = $this->container->getByType('Masala\ExportService');
-        $builder = new Builder($config['masala'], $exportService, $context, $cacheStorage, $this->container->getByType('Masala\IRowFormFactory'), $this->translatorModel);
+        $exportFacade = $this->container->getByType('Masala\ExportFacade');
+        $builder = new Builder($config['masala'], $exportFacade, $context, $cacheStorage, $this->container->getByType('Masala\IRowFormFactory'), $this->translatorModel);
         return $builder;
     }
 

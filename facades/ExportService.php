@@ -6,7 +6,7 @@ use Nette\Database\Table\IRow,
     Nette\Http\IRequest,
     Nette\Localization\ITranslator;
 
-final class ExportService implements IProcess {
+final class ExportFacade implements IProcess {
 
     /** @var string */
     private $link;
