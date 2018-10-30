@@ -20,16 +20,17 @@ use Mockery,
     ReflectionClass,
     Tester\Assert;
 
-final class MockService {
-
-    /** @var Container */
-    private $container;
+/** @author Lubomir Andrisek */
+final class MockFacade {
 
     /** @var Context */
     private $cacheStorage;
 
     /** @var array */
     private $config;
+
+    /** @var Container */
+    private $container;
 
     /** @var Context */
     private $context;
@@ -51,9 +52,6 @@ final class MockService {
 
     /** @var TemplateFactory */
     private $templateFactory;
-
-    /** @var array */
-    private $services;
 
     /** @var ITranslator */
     public $translatorModel;
@@ -90,39 +88,9 @@ final class MockService {
         return $builder;
     }
 
-    public function getCall(string $class, string $method, $parameters, object $parent) {
-        $arguments = [];
-        if (class_exists($class)) {
-            $object = $this->container->getByType($class);
-        } else {
-            $object = $this->getParameter($class, $parent);
-        }
-        $overload = is_object($object) ? $object : $$object;
-        if (is_array($parameters)) {
-            $arguments[] = $parameters;
-        } else {
-            foreach (explode(',', $parameters) as $parameter) {
-                $parameter = $this->getParameter($parameter, $parent);
-                $arguments[] = $parameter;
-            }
-        }
-        return call_user_func_array([$overload, $method], $arguments);
-    }
-
-    public function getConfig(array $keys) {
-        $config = $this->config;
-        foreach ($keys as $key) {
-            $config = $config[$key];
-        }
-        return $config;
-    }
-
-    public function getPresenter($class, $latteFile, $parameters = [], $injected = false): IPresenter {
+    public function getPresenter(string $class, string $latteFile, array $parameters): IPresenter {
+        $this->init();
         Assert::true(class_exists($class), 'Class ' . $class . ' not found.');
-        if (false == $injected) {
-            $this->setPresenter();
-            $this->setDependencies($class);
-        }
         Assert::false(empty($source = preg_replace('/(App|Module|Presenter|)/', '', $class)), 'Name of presenter is empty.');
         Assert::true(is_string($name = preg_replace('/\\\/', ':', $source)), 'Name of presenter is not set.');
         Assert::false(empty($name = ltrim($name, ':')), 'Name of presenter is empty');
@@ -132,35 +100,9 @@ final class MockService {
         if (property_exists($presenter, 'grid')) {
             $presenter->grid = $this->getBuilder($name, $action);
         }
-        /*if (property_exists($presenter, 'row')) {
-            $presenter->row = $presenter->grid;
-        }*/
-        foreach ($this->services as $serviceId => $method) {
-            if (isset($this->config['mockService'][$serviceId]) and property_exists($class, $serviceId)) {
-                $service = $this->container->$method();
-                foreach ($this->config['mockService'][$serviceId] as $setterId => $setter) {
-                    if (is_array($setter)) {
-                        foreach ($setter as $setId => $set) {
-                            $setter[$setId] = (strlen($overload = preg_replace('/\$/', '', $set)) < strlen($set)) ? $$overload : $set;
-                        }
-                        $service->$setterId(call_user_func_array(array_shift($setter), $setter));
-                    } elseif (is_string($setter)) {
-                        $setter = (strlen($overload = preg_replace('/\$/', '', $setter)) < strlen($setter)) ? $$overload : $setter;
-                        $service->$setterId($setter);
-                    }
-                }
-                $presenter->$serviceId = $service;
-            } elseif (class_exists($method) && property_exists($class, $serviceId)) {
-                $presenter->$serviceId = $this->container->getByType($method);
-            } elseif (property_exists($class, $serviceId)) {
-                $presenter->$serviceId = $this->container->$method();
-            }
-        }
-        if (isset($this->config['mockService'][$class])) {
-            foreach ($this->config['mockService'][$class] as $mockId => $call) {
-                $propertyValue = (isset($call['service'])) ? $this->getCall($call['service'], $call['method'], $call['parameters'], $presenter) : $call;
-                $this->setProtectedProperty($presenter, $mockId, $propertyValue);
-            }
+        Assert::false(empty($services = get_object_vars($this->container->getByType($class))), 'Tested presenter has no service to inject');
+        foreach($services as $serviceId => $method) {
+            $presenter->$serviceId = $method;
         }
         $presenter->shouldReceive('redirect')->andReturn('redirect succeed');
         $presenter->shouldReceive('getName')->andReturn($name);
@@ -174,7 +116,7 @@ final class MockService {
         $this->httpRequest = new Http\Request($urlScript);
         $this->httpResponse =  $this->container->getByType('Nette\Http\IResponse');
         $presenterFactory = $this->container->getByType('Nette\Application\IPresenterFactory');
-        Assert::true(is_file($latteFile) or isset($parameters['action']), 'Latte file ' . $latteFile . ' is not set.');
+        Assert::true((is_file($latteFile) || isset($parameters['action'])), 'Latte file ' . $latteFile . ' is not set.');
         $presenter->injectPrimary($this->container, $presenterFactory, $this->router, $this->httpRequest, $this->httpResponse, $this->session, $this->getUser(true), $this->templateFactory);
         $presenter->template->setFile($latteFile);
         $presenter->autoCanonicalize = FALSE;
@@ -185,22 +127,18 @@ final class MockService {
             $request = new Application\Request($presenterRequest, 'GET', array_merge(['action' => $presenterAction], $parameters));
         } else {
             $request = new Application\Request($presenterRequest, 'POST', array_merge(['action' => $presenterAction], $parameters), $_POST);
-            /** $request = Mockery::mock('Nette\Application\Request[getPost]', [$presenterRequest, 'GET', array_merge(['action' => $presenterAction], $parameters)]);
-            $request->shouldReceive('getPost')->andReturn($_POST); */
         }
         $presenter->run($request);
         return $presenter;
     }
 
-    public function getPresenters(string $component): array {
-        $this->setPresenter();
-        $this->setDependencies();
+    public function getPresentersByComponent(string $component): array {
+        $this->init();
         $files = $this->getFiles(['php'], 'Presenter');
         $factories = [];
         $contents = [];
         $injected = [];
         $templates = [];
-        /** presenters */
         $presenters = [];
         foreach ($files as $fileId => $file) {
             $class = '';
@@ -275,23 +213,86 @@ final class MockService {
             }
         }
         $random = array_rand($mocks);
-        Assert::true(is_array($this->config['mockService']['testParameters']), 'Mock service has no test parameters in config section.');
-        return [$random => $this->getPresenter($random, $mocks[$random], $this->config['mockService']['testParameters'], true)];
+        Assert::true(is_array($this->config['masala']['tests']['parameters']), 'Mock service has no test parameters in config section.');
+        return [$random => $this->getPresenter($random, $mocks[$random], $this->config['masala']['tests']['parameters'], true)];
     }
 
-    public function getRequest() {
-        return $this->httpRequest;
+    public function getPresentersByService(string $service): array {
+        $this->init();
+        $files = $this->getFiles(['php'], 'Presenter');
+        $factories = [];
+        $contents = [];
+        $injected = [];
+        $templates = [];
+        $presenters = [];
+        $this->presenters = [];
+        foreach($this->container->findByType('Masala\IImport') as $name) {
+            $method = 'createService__' . $name;
+            Assert::false(empty($injection = preg_replace('/(.*)\\\/', '', get_class($this->container->$method()))), 'Service name is empty.');
+            foreach ($files as $fileId => $file) {
+                $class = '';
+                $handle = fopen($file, 'r+');
+                $declarations = 0;
+                $content = '';
+                while (false != ($line = fgetcsv($handle, 100))) {
+                    $row = preg_replace('/ |\n/', '', $line[0]);
+                    Assert::same(0, preg_match('/exit;|dump\(|print\(/', $row), 'Forgotten exit, dump or print call on line ' . $line[0] . ' in file ' . $file . '. For testing use only exit() and die() for permanent usage.');
+                    /** namespace */
+                    if (1 == preg_match_all('/namespace(.*?);/', $row, $namespaces)) {
+                        $content = preg_replace('/ |\n/', '', file_get_contents($file));
+                        Assert::false(empty($content), 'Empty content in ' . $file);
+                        Assert::false(0 == preg_match_all('/namespace(.*?);/', $content, $namespaces), 'Namespace was not recognised in ' . $file);
+                        Assert::true(isset($namespaces[1]), 'Namespace was not recognised in ' . $file);
+                        Assert::false(empty($class = $namespace = $namespaces[1][0] . '\\' . preg_replace('/\.(.*)/', '', basename($file))));
+                    }
+                    $content .= (is_string($line[0])) ? $row : '';
+                    /** initialization */
+                    (1 == preg_match_all('/class(.*)extends/', $line[0])) ? $declarations++ : null;
+                }
+                $contents[$class] = $content;
+                fclose($handle);
+                if (1 == preg_match_all('/.*' . $injection . '@inject(.*?)\;/', $content, $injections)) {
+                    $factories[$class] = preg_replace('/(.*)\$/', '', preg_replace('/(.*)\*\//', '', $injections[1][0]));
+                    $controls = explode('publicfunctionaction', $content);
+                    unset($controls[0]);
+                    foreach ($controls as $control) {
+                        if(substr_count($control, $factories[$class]) > 0) {
+                            $injected[$class] = strtolower(preg_replace('/\((.*)/', '', $control));
+                            break;
+                        }
+                    }
+                    isset($presenters[$class]) ? null : $presenters[$class] = [0 => $class];
+                }
+                Assert::true(2 > $declarations, 'You are using more classes in file ' . $file . '. Use one file for each class.');
+                Assert::true(0 < $declarations, 'Class of ' . $file . ' is not set.' . $declarations);
+                $i = 0;
+                while ($namespace != 'Nette\Application\UI\Presenter') {
+                    $parents[$i++] = $namespace = get_parent_class($namespace);
+                }
+                Assert::false(empty($parents = array_reverse($parents)), 'Parent class is not set in ' . $class . '.');
+                Assert::false(empty(array_shift($parents)), 'Unset nette presenter in ' . $class . ' failed.');
+                foreach ($parents as $parent) {
+                    $presenters[$parent][] = $class;
+                }
+                $templates[$class] = $file;
+            }
+        }
+        $random = array_rand($injected);
+        Assert::false(empty($random), 'No injection found for ' . $service);
+        Assert::true(is_array($parameters = $this->config['masala']['tests']['parameters']), 'Mock service has no test parameters in config section.');
+        $parameters['action'] = $injected[$random];
+        return [$random => $this->getPresenter($random, $parameters['action'], $parameters)];
     }
 
     public function getUser(): User {
         if (null == $this->user) {
             $this->user = $this->container->getByType('Nette\Security\User');
-            Assert::true(isset($this->config['mockService']['testUser']), 'Test user is not set.');
-            Assert::true(isset($this->config['mockService']['testUser']['username']), 'Username for login of test user is not set.');
-            Assert::true(isset($this->config['mockService']['testUser']['password']), 'Password for login of test user is not set.');
-            Assert::false(empty($username = $this->config['mockService']['testUser']['username']), 'Assign credentials failed.');
-            Assert::false(empty($password = $this->config['mockService']['testUser']['password']), 'Assign credentials failed.');
-            Assert::false(empty($id = $this->config['mockService']['testUser']['id']), 'Assign credentials failed.');
+            Assert::true(isset($this->config['masala']['tests']['user']), 'Test user is not set.');
+            Assert::true(isset($this->config['masala']['tests']['user']['username']), 'Username for login of test user is not set.');
+            Assert::true(isset($this->config['masala']['tests']['user']['password']), 'Password for login of test user is not set.');
+            Assert::false(empty($username = $this->config['masala']['tests']['user']['username']), 'Assign credentials failed.');
+            Assert::false(empty($password = $this->config['masala']['tests']['user']['password']), 'Assign credentials failed.');
+            Assert::false(empty($id = $this->config['masala']['tests']['user']['id']), 'Assign credentials failed.');
             Assert::true(is_object($user = $this->usersModel->getUser($id)), 'Test user was not found.');
             Assert::same(null,  $this->user->login($user->$username, $password), 'Mock login method succeed but it does return something. Do you wish to modify test?');
             Assert::true($this->user->isLoggedIn(), 'Test user is not loggged');
@@ -299,15 +300,14 @@ final class MockService {
         return $this->user;
     }
 
-
     /** @return mixed */
-    public function getPrivateProperty($class, $order) {
+    public function getPrivateProperty(object $class, int $order) {
         Assert::false(empty($serialization = (array) $class), 'Serialization failed.');
         Assert::false(empty($slice = array_slice($serialization, $order, 1)), 'There is no variable in given order.');
         return reset($slice);
     }
     
-    public function getFiles($suffix, $regex = null) {
+    private function getFiles(array $suffix, string $regex): array {
         $scan = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->config['appDir']));
         $files = [];
         foreach ($scan as $file) {
@@ -323,7 +323,7 @@ final class MockService {
         return $files;
     }
 
-    public function getParameter(string $parameter, object $parent) {
+    public function getParameter(string $parameter, object $parent): string {
         if (0 < substr_count($parameter, '->')) {
             $variables = explode('->', $parameter);
             $call = array_shift($variables);
@@ -345,21 +345,25 @@ final class MockService {
         return $parameter;
     }
 
-    public function setDependencies($class = false): void {
-        $services = isset($this->config['mockService']['services']) ? $this->config['mockService']['services'] : [];
-        Assert::false(empty($services));
-        foreach ($services as $serviceId => $service) {
-            $this->services[$serviceId] = $service;
-        }
-        foreach (get_class_methods($this->container) as $method) {
-            if (preg_match('/createService_(.*)/', $method) and preg_match('/Factory/', $method)) {
-                $this->services[lcfirst(ltrim(preg_replace('/(.*)_/', '', $method), 'I'))] = $method;
-            } elseif (preg_match('/createService_(.*)/', $method)) {
-                $this->services[lcfirst(preg_replace('/(.*)_/', '', $method))] = $method;
-            }
+    private function init(): void {
+        if(null == $this->templateFactory) {
+            Assert::true(is_object($this->router = new Application\Routers\RouteList), 'Router is not set.');
+            $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
+            $temp = $this->config['tempDir'];
+            $journal = new SQLiteJournal($temp);
+            $this->cacheStorage = new FileStorage($temp, $journal);
+            $structure = new Structure($connection, $this->cacheStorage);
+            $this->context = new Context($connection, $structure);
+            $latte = new Engine();
+            $latte->onCompile[] = function($latte) {
+                FormMacros::install($latte->getCompiler());
+            };
+            $latteFactory = Mockery::mock('Nette\Bridges\ApplicationLatte\ILatteFactory');
+            $latteFactory->shouldReceive('create')->andReturn($latte);
+            $this->templateFactory = new TemplateFactory($latteFactory, $this->httpRequest);
         }
     }
-
+ 
     public function setPost(array $post): void {
         file_put_contents('php://memory', 'PHP');
         stream_wrapper_unregister("php");
@@ -374,23 +378,6 @@ final class MockService {
         $protected->setAccessible(true);
         $protected->setValue($object, $value);
         return $object;
-    }
-
-    private function setPresenter() {
-        Assert::true(is_object($this->router = new Application\Routers\RouteList), 'Router is not set.');
-        $connection = new Connection($this->container->parameters['database']['dsn'], $this->container->parameters['database']['user'], $this->container->parameters['database']['password']);
-        $temp = $this->config['tempDir'];
-        $journal = new SQLiteJournal($temp);
-        $this->cacheStorage = new FileStorage($temp, $journal);
-        $structure = new Structure($connection, $this->cacheStorage);
-        $this->context = new Context($connection, $structure);
-        $latte = new Engine();
-        $latte->onCompile[] = function($latte) {
-            FormMacros::install($latte->getCompiler());
-        };
-        $latteFactory = Mockery::mock('Nette\Bridges\ApplicationLatte\ILatteFactory');
-        $latteFactory->shouldReceive('create')->andReturn($latte);
-        $this->templateFactory = new TemplateFactory($latteFactory, $this->httpRequest);
     }
 
 }

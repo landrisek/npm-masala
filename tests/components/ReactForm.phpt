@@ -1,29 +1,28 @@
 <?php
 
-namespace Test;
+namespace Tests\Masala;
 
 use Masala\IReactFormFactory,
-    Masala\MockService,
+    Masala\MockFacade,
     Masala\ReactForm,
     Nette\DI\Container,
     Nette\Reflection\Method,
     Tester\Assert,
     Tester\TestCase;
     
-
 $container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class ReactFormTest extends TestCase {
 
+    /** @var IReactFormFactory */
+    private $class;
+
     /** @var Container */
     private $container;
 
-    /** @var MockService */
-    private $mockService;
-
-    /** @var IReactFormFactory */
-    private $class;
+    /** @var MockFacade */
+    private $mockFacade;
 
     /** @var array */
     private $presenters;
@@ -32,8 +31,8 @@ final class ReactFormTest extends TestCase {
         $this->container = $container;
     }
 
-    protected function setUp() {
-        $this->mockService = $this->container->getByType('Masala\MockService');
+    protected function setUp(): void {
+        $this->mockFacade = $this->container->getByType('Masala\MockFacade');
         $extension = $this->container->getByType('Masala\MasalaExtension');
         Assert::false(empty($parameters = $extension->getConfiguration([])), 'ExtensionBuilder default configuration is empty.');
         $assets = $this->container->parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/';
@@ -47,7 +46,7 @@ final class ReactFormTest extends TestCase {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
     
-    public function testAttached() {
+    public function testAttached(): void {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
@@ -63,7 +62,7 @@ final class ReactFormTest extends TestCase {
         }
         Assert::true(isset($date), 'No datetime column to test.');
         foreach ($this->presenters as $class => $latte) {
-            $presenter = $this->mockService->getPresenter($class, $latte);
+            $presenter = $this->mockFacade->getPresenter($class, $latte, []);
             Assert::true(is_object($presenter), 'Presenter was not set.');
             Assert::true(is_object($presenter->grid = $this->container->getByType('Masala\IBuilder')), 'Presenter grid was not set.');
             Assert::true(in_array('addComponent', get_class_methods($presenter)), 'Presenter has no method addComponent.');

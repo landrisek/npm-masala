@@ -1,10 +1,10 @@
 <?php
 
-namespace Test;
+namespace Tests\Masala;
 
 use Masala\IBuilder,
     Masala\Masala,
-    Masala\MockService,
+    Masala\MockFacade,
     Nette\Application\UI\Presenter,
     Nette\DI\Container,
     Nette\Reflection\Method,
@@ -25,8 +25,8 @@ final class BuilderTest extends TestCase {
     /** @var Masala */
     private $masala;
     
-    /** @var MockService */
-    private $mockService;
+    /** @var MockFacade */
+    private $mockFacade;
 
     public function __construct(Container $container) {
         $this->container = $container;
@@ -34,8 +34,8 @@ final class BuilderTest extends TestCase {
 
     /** @return void */
     protected function setUp() {
-        $this->mockService = $this->container->getByType('Masala\MockService');
-        $this->class = $this->mockService->getBuilder();
+        $this->mockFacade = $this->container->getByType('Masala\MockFacade');
+        $this->class = $this->mockFacade->getBuilder();
         $this->masala = $this->container->getByType('Masala\Masala');
     }
 
@@ -44,12 +44,11 @@ final class BuilderTest extends TestCase {
         stream_wrapper_restore('php');
     }
 
-    /** @return void */
-    public function testConfig() {
+    public function testConfig(): void {
         Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
         Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set.');
         Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
-        Assert::true(isset($this->container->parameters['mockService']['testUser']), 'Test user is not set.');
+        Assert::true(isset($this->container->parameters['masala']['tests']['user']), 'Test user is not set.');
         Assert::true(isset($this->container->parameters['masala']['users']), 'Table of users is not set.');
         Assert::true(isset($configuration['masala']['settings']), 'Column for setting of user is not set.');
         Assert::false(empty($table = $this->container->parameters['masala']['users']), 'Table of users is not set.');
@@ -58,23 +57,21 @@ final class BuilderTest extends TestCase {
         Assert::true(is_object(json_decode($user->$column)) || "[]" == $user->$column, 'Setting of user ' . $user->$column . ' is not valid json.');
     }
 
-    /** @return void */
-    public function testGetQuery() {
+    public function testGetQuery(): void {
         Assert::same($this->class, $this->class->table($this->container->parameters['tables']['help']), 'Builder:table does not return class itself.');
         Assert::same($this->class, $this->class->group(['id ASC']), 'Builder:group does not return class itself.');
         Assert::same($this->class, $this->class->limit(10), 'Builder:limit does not return class itself.');
         Assert::same($this->container->parameters['tables']['help'], $this->class->getTable(), 'Assign table for help failed.');
     }
 
-    /** @return void */
-    public function testPrepare() {
-        $presenters = $this->mockService->getPresenters('IMasalaFactory');
-        $this->mockService->setPost(['Offset'=>1]);
+    public function testPrepare(): void {
+        $presenters = $this->mockFacade->getPresentersByComponent('IMasalaFactory');
+        $this->mockFacade->setPost(['Offset'=>1]);
         foreach ($presenters as $class => $presenter) {
-            if(isset($this->container->parameters['mockService']['presenters'][$class])) {
-                $testParameters = $this->container->parameters['mockService']['presenters'][$class];
-            } else if(isset($this->container->parameters['mockService']['testParameters'])) {
-                $testParameters = $this->container->parameters['mockService']['testParameters'];
+            if(isset($this->container->parameters['mockFacade']['presenters'][$class])) {
+                $testParameters = $this->container->parameters['mockFacade']['presenters'][$class];
+            } else if(isset($this->container->parameters['mockFacade']['testParameters'])) {
+                $testParameters = $this->container->parameters['mockFacade']['testParameters'];
             } else {
                 $testParameters = [];
             }
@@ -114,14 +111,14 @@ final class BuilderTest extends TestCase {
             foreach($columns as $column) {
                 $testRow[$column['name']] = 'test';
             }
-            Assert::same(null, $this->mockService->setPost(['Row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::same(null, $this->mockFacade->setPost(['Row'=>$testRow]), 'MockFacade::setPost does return something.');
             Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
             Assert::same(reset($row), 'test');
             $testRow = [];
             foreach($columns as $column) {
                 $testRow[$column['name']] = '_test';
             }
-            Assert::same(null, $this->mockService->setPost(['Row'=>$testRow]), 'MockService::setPost does return something.');
+            Assert::same(null, $this->mockFacade->setPost(['Row'=>$testRow]), 'MockFacade::setPost does return something.');
             Assert::false(empty($row = $this->class->getRow()), 'IRowFormFactory::getRow return empty array.');
             Assert::notSame(reset($row), '_test', 'Data was not deconcated.');
             Assert::false(empty($row = $this->class->row(1, ['test'=>'_test'])->getData()), 'IRowFormFactory::getData return empty array.');

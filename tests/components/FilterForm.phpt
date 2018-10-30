@@ -1,30 +1,29 @@
 <?php
 
-namespace Test;
+namespace Tests\Masala;
 
 use Masala\IFilterFormFactory,
     Masala\IReactFormFactory,
     Masala\Masala,
-    Masala\MockService,
+    Masala\MockFacade,
     Nette\DI\Container,
     Nette\Reflection\Method,
     Tester\Assert,
     Tester\TestCase;
     
-
 $container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class FilterFormTest extends TestCase {
 
+    /** @var IFilterFormFactory */
+    private $class;
+
     /** @var Container */
     private $container;
 
-    /** @var MockService */
-    private $mockService;
-
-    /** @var IFilterFormFactory */
-    private $class;
+    /** @var MockFacade */
+    private $mockFacade;
 
     /** @var array */
     private $presenters;
@@ -33,17 +32,17 @@ final class FilterFormTest extends TestCase {
         $this->container = $container;
     }
 
-    protected function setUp() {
-        $this->mockService = $this->container->getByType('Masala\MockService');
-        $this->class = $this->container->getByType('Masala\IFilterFormFactory');
-        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
-    }
-
     public function __destruct() {
         echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
     }
 
-    public function testAttached() {
+    protected function setUp(): void {
+        $this->class = $this->container->getByType('Masala\IFilterFormFactory');
+        $this->mockFacade = $this->container->getByType('Masala\MockFacade');
+        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
+    }
+
+    public function testAttached(): void {
         Assert::true(is_array($this->presenters), 'No presenter to test on import was set.');
         Assert::false(empty($this->presenters), 'There is no feed for testing.');
         Assert::true(100 > count($this->presenters), 'There is more than 100 available feeds for testing which could process long time. Consider modify test.');
@@ -59,7 +58,7 @@ final class FilterFormTest extends TestCase {
         }
         Assert::true(isset($date), 'No datetime column to test for');
         foreach ($this->presenters as $class => $latte) {
-            $presenter = $this->mockService->getPresenter($class, $latte);
+            $presenter = $this->mockFacade->getPresenter($class, $latte, []);
             Assert::true(is_object($presenter), 'Presenter was not set.');
             Assert::true(is_object($presenter->grid = $this->container->getByType('Masala\IBuilder')), 'Presenter grid was not set.');
             Assert::true(is_object($presenter->grid->table($table)
@@ -77,7 +76,7 @@ final class FilterFormTest extends TestCase {
             Assert::same(null, $grid->attached($presenter), 'Grid:attached succeeded but method does return something. Do you wish to modify test?');
             Assert::true($masala instanceof Masala, 'Masala has wrong instation.');
             Assert::false(empty($presenter->grid->getColumns()), 'Columns are not set in ' . $class . '.');
-            Assert::true(is_object($filterForm = $this->mockService->getPrivateProperty($grid, 3)), 'Extraction filterForm from Grid failed.');
+            Assert::true(is_object($filterForm = $this->mockFacade->getPrivateProperty($grid, 3)), 'Extraction filterForm from Grid failed.');
             Assert::true($filterForm instanceof IReactFormFactory, 'Form filter has wrong instation.');
             Assert::true(is_array($parameters = $presenter->request->getParameters('action')), 'Parameters have not been set in ' . $class . '.');
             Assert::notSame(6, strlen($method = 'action' . ucfirst(array_shift($parameters))), 'Action method of ' . $class . ' is not set.');

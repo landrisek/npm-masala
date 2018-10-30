@@ -6,6 +6,7 @@ use Exception,
     Nette\DI\CompilerExtension,
     Nette\PhpGenerator\ClassType;
 
+/** @author Lubomir Andrisek */
 final class MasalaExtension extends CompilerExtension {
 
     private $defaults = ['assets' => 'assets/masala',
@@ -21,6 +22,8 @@ final class MasalaExtension extends CompilerExtension {
         'settings' => 'settings',
         'speed' => 50,
         'spice' => 'spice',
+        'tests' => ['user' => ['id' => 1, 'password' => 'password', 'username' => 'username'],
+                    'parameters' => ['date' => '2017-4-12', 'id' => 4574, 'limit' => 10]],
         'upload' => 10,
         'write' => 'write'];
 
@@ -61,8 +64,8 @@ final class MasalaExtension extends CompilerExtension {
                 ->setFactory('Masala\Masala', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('mockRepository'))
                 ->setFactory('Masala\MockRepository');
-        $builder->addDefinition($this->prefix('mockService'))
-                ->setFactory('Masala\MockService');
+        $builder->addDefinition($this->prefix('mockFacade'))
+                ->setFactory('Masala\MockFacade');
         $builder->addDefinition($this->prefix('rowForm'))
                 ->setFactory('Masala\RowForm', [$parameters['masala']['css'], $manifest['RowForm.js']]);
         $builder->addDefinition($this->prefix('writeRepository'))
