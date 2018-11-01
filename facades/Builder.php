@@ -67,6 +67,9 @@ final class Builder implements IBuilder {
     /** @var IProcess */
     private $exportFacade;
 
+    /** @var IProcess */
+    private $facade;
+
     /** @var IFetch */
     private $fetch;
 
@@ -130,9 +133,6 @@ final class Builder implements IBuilder {
     /** @var IRowFormFactory */
     private $row;
 
-    /** @var IProcess */
-    private $service;
-
     /** @var string */
     private $sort;
 
@@ -190,7 +190,7 @@ final class Builder implements IBuilder {
         /** process */
         $setting = $this->getSetting('process');
         if ($setting instanceof ActiveRow) {
-            $this->service->setSetting($setting);
+            $this->facade->setSetting($setting);
         }
         $this->setKeys();
         /** select */
@@ -671,8 +671,8 @@ final class Builder implements IBuilder {
         return $row;
     }
 
-    public function getService(): IProcess {
-        return $this->service;
+    public function getFacade(): IProcess {
+        return $this->facade;
     }
 
     public function getSort(): string {
@@ -815,7 +815,7 @@ final class Builder implements IBuilder {
     }
 
     public function isProcess(): bool {
-        return $this->service instanceof IProcess;
+        return $this->facade instanceof IProcess;
     }
 
     public function isRemove(): bool {
@@ -1200,7 +1200,7 @@ final class Builder implements IBuilder {
             } else if('import' == $status) {
                 $this->limit = $this->import->speed($this->config['speed']);
             } else {
-                $this->limit = $this->service->speed($this->config['speed']);
+                $this->limit = $this->facade->speed($this->config['speed']);
             }
         }
         /** sort */
@@ -1211,8 +1211,8 @@ final class Builder implements IBuilder {
         return $this;
     }
 
-    public function process(IProcess $service): IBuilder {
-        $this->service = $service;
+    public function process(IProcess $facade): IBuilder {
+        $this->facade = $facade;
         return $this;
     }
 

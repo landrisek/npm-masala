@@ -92,7 +92,7 @@ final class Masala extends Control implements IMasalaFactory {
 
     protected function createComponentImportForm(): IImportFormFactory {
         return $this->importFormFactory->create()
-                    ->setService($this->grid->getImport());
+                    ->setFacade($this->grid->getImport());
     }
 
     public function getGrid(): IBuilder {
@@ -161,8 +161,8 @@ final class Masala extends Control implements IMasalaFactory {
 
     public function handleDone(): void {
         $this->grid->log('done');
-        $service = 'get' . ucfirst($this->grid->getPost('Status'));
-        $this->presenter->sendResponse(new JsonResponse($this->grid->$service()->done($this->getResponse(), $this)));
+        $facade = 'get' . ucfirst($this->grid->getPost('Status'));
+        $this->presenter->sendResponse(new JsonResponse($this->grid->$facade()->done($this->getResponse(), $this)));
     }
     
     public function handleExport(): void {
@@ -251,19 +251,19 @@ final class Masala extends Control implements IMasalaFactory {
         $data = ['Filters' => $this->grid->getPost('Filters'),
             'Offset' => 0,
             'Sort' => $this->grid->getPost('Sort'),
-            'Status' => 'service',
+            'Status' => 'facade',
             'Stop' => $this->grid->prepare()->getSum()];
-        $response = new JsonResponse($this->grid->getService()->prepare($data, $this));
+        $response = new JsonResponse($this->grid->getFacade()->prepare($data, $this));
         $this->presenter->sendResponse($response);
     }
     
     public function handleRun(): void {
         $response = $this->getResponse();
         if ('import' == $response['Status']) {
-            $service = $this->grid->getImport();
+            $facade = $this->grid->getImport();
             $path = $this->grid->getImport()->getFile() . $this->grid->getPost('_file');
             $handle = fopen($path, 'r');
-            for($i = 0; $i < $speed = $service->speed($this->config['speed']); $i++) {
+            for($i = 0; $i < $speed = $facade->speed($this->config['speed']); $i++) {
                 fseek($handle, $response['Offset']);
                 $offset = fgets($handle);
                 if($response['Stop'] == $response['Offset'] = ftell($handle)) {
@@ -280,17 +280,17 @@ final class Masala extends Control implements IMasalaFactory {
                         $response['Row'][$headerId] = $offset[$header];
                     }
                 }
-                $response = $service->run($response, $this);
+                $response = $facade->run($response, $this);
             }
         /** export */
         } elseif(in_array($response['Status'], ['export', 'excel'])) {
-            $service = $this->grid->getExport();
-            $path = $service->getFile() . '/' . $response['_file'];
-            $response['limit'] = $service->speed($this->config['speed']);
+            $facade = $this->grid->getExport();
+            $path = $facade->getFile() . '/' . $response['_file'];
+            $response['limit'] = $facade->speed($this->config['speed']);
             $response['Row'] = $this->grid->prepare()->getOffsets();
             if(isset($response['Row'])) { unset($response['Row'][-1]); }
             $response['Sort'] = $this->grid->getPost('Sort');
-            $response = $service->run($response, $this);
+            $response = $facade->run($response, $this);
             if('export' == $response['Status']) {
                 $handle = fopen('nette.safe://' . $path, 'a');
             } else {
@@ -326,16 +326,16 @@ final class Masala extends Control implements IMasalaFactory {
                 $writer = new PHPExcel_Writer_Excel2007($excel);
                 $writer->save($path);
             }
-            $response['Offset'] = $response['Offset'] + $service->speed($this->config['speed']);
+            $response['Offset'] = $response['Offset'] + $facade->speed($this->config['speed']);
         /** process */
         } else {
-            $service = $this->grid->getService();
+            $facade = $this->grid->getFacade();
             if(!empty($response['Row'] = $this->grid->prepare()->getOffsets())) {
-                $response = $service->run($response, $this);
+                $response = $facade->run($response, $this);
             }
-            $response['Offset'] = $response['Offset'] + $service->speed($this->config['speed']);
+            $response['Offset'] = $response['Offset'] + $facade->speed($this->config['speed']);
         }
-        if(($setting = $service->getSetting()) instanceof ActiveRow) {
+        if(($setting = $facade->getSetting()) instanceof ActiveRow) {
             foreach (json_decode($setting->callback) as $callbackId => $callback) {
                 $sanitize = preg_replace('/print|echo|exec|call|eval|mysql/', '', $callback);
                 eval('function call($response["row"]) {' . $sanitize . '}');

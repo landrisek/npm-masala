@@ -24,14 +24,14 @@ final class ImportFormTest extends TestCase {
     /** @var Container */
     private $container;
 
+    /** @var IProcess */
+    private $facade;
+
     /** @var MockFacade */
     private $mockFacade;
 
     /** @var array */
     private $presenters;
-
-    /** @var IProcess */
-    private $service;
 
     public function __construct(Container $container) {
         $this->container = $container;
@@ -44,8 +44,8 @@ final class ImportFormTest extends TestCase {
     public function setUp(): void {
         Assert::true(is_object($this->mockFacade = $this->container->getByType('Masala\MockFacade')), 'MockFacade is not set.');
         Assert::false(empty($processes = $this->container->findByType('Masala\IProcess')), 'No Masala\IProcess found.');
-        Assert::false(empty($service = $processes[rand(0, sizeof($processes) -1)]));
-        Assert::true(is_object($this->service = $this->container->getService($service)), 'Get IProcess failed.');
+        Assert::false(empty($facade = $processes[rand(0, sizeof($processes) -1)]));
+        Assert::true(is_object($this->facade = $this->container->getService($facade)), 'Get IProcess failed.');
         Assert::false(empty($assets = isset($this->container->parameters['masala']['assets']) ? $this->container->parameters['masala']['assets'] : 'assets'));
         Assert::false(empty($manifest = (array) json_decode(file_get_contents($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/js/manifest.json'))));
         Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/css', 
@@ -65,7 +65,7 @@ final class ImportFormTest extends TestCase {
         }
     }
 
-    public function testSetService(): void {
+    public function testSetFacade(): void {
         $mockRepository = $this->container->getByType('Masala\IMock');
         foreach ($this->presenters as $class => $presenter) {
             if($presenter->grid->isImport()) {
@@ -76,9 +76,9 @@ final class ImportFormTest extends TestCase {
                 Assert::true(is_object($masala = $presenter->getComponent('masala')), 'Masala is not set');
                 Assert::same(null, $masala->attached($presenter), 'Masala:attached succeed but method return something. Do you wish to modify test?');
                 Assert::true(is_object($presenter), 'Presenter was not set.');
-                $service = $presenter->grid->getImport();
-                Assert::true(is_object($this->class->setService($service)), 'ImportForm:setService does not return class itself.');
-                Assert::same($this->class, $this->class->setService($service), 'ImportForm:setService does not return class itself.');
+                $facade = $presenter->grid->getImport();
+                Assert::true(is_object($this->class->setFacade($facade)), 'ImportForm:setFacade does not return class itself.');
+                Assert::same($this->class, $this->class->setFacade($facade), 'ImportForm:setFacade does not return class itself.');
                 Assert::true(is_object($setting = $mockRepository->getTestRow($this->container->parameters['masala']['feeds'], 
                         ['type' => 'import', 'source' => $presenter->getName() . ':' . $presenter->getAction()])), 'Setting is not set.');
                 Assert::true($setting instanceof ActiveRow, 'Import setting is not set in ' . $class . '.');
@@ -107,7 +107,7 @@ final class ImportFormTest extends TestCase {
             Assert::true($this->class instanceof IImportFormFactory, 'ImportForm has wrong instantion.');
             Assert::true(empty($this->class->getData()), 'Data has been attached too early.');
             Assert::true(property_exists($this->class, 'translatorRepository'), 'Translator repository was not set');
-            Assert::true(is_object($this->class->setService($this->service)), 'IProcess was not set.');
+            Assert::true(is_object($this->class->setFacade($this->facade)), 'IProcess was not set.');
             $csv = __DIR__ . '/' . Strings::webalize(preg_replace('/App|Module|Presenter|action/', '', $class . '-' . $method)) . '.csv';
             Assert::true(is_file($csv), 'Test upload file ' . $csv . ' is not set.');
             $presenter->addComponent($this->class, 'importForm');

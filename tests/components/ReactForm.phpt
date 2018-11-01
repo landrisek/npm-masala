@@ -37,8 +37,8 @@ final class ReactFormTest extends TestCase {
         Assert::false(empty($parameters = $extension->getConfiguration([])), 'ExtensionBuilder default configuration is empty.');
         $assets = $this->container->parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/';
         $request = $this->container->getByType('Nette\Http\IRequest');
-        $translatorModel = $this->container->getByType('Nette\Localization\ITranslator');
-        $this->class = new ReactForm($assets . 'css', $assets . '/js/GeneralForm.js', $request, $translatorModel);
+        $translatorRepository = $this->container->getByType('Nette\Localization\ITranslator');
+        $this->class = new ReactForm($assets . 'css', $assets . '/js/GeneralForm.js', $request, $translatorRepository);
         $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
     }
 

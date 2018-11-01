@@ -352,19 +352,20 @@ export default class Grid extends Component {
         var container = []
         var extent = 9
         if(this.state[BUTTONS].page > 1) {
-            container.push(<li key='first-page' className='page-item'><a onClick={this.setPage.bind(this, 1)}>1</a></li>)
-            container.push(<li key='previous-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
+            container.push(<li key='first-page'><a className='page-link' onClick={this.setPage.bind(this, 1)}>1</a></li>)
+            container.push(<li key='previous-page'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page - 1)}><span aria-hidden="true">&laquo;</span></a></li>)
         }
         var i = 0
         while(i < extent) {
             container = this.getPage(container, i++)
         }
         if(this.state[BUTTONS].pages > i) {
-            container.push(<li key='next-page'><a aria-label='Next' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}><span aria-hidden="true">&raquo;</span></a></li>)
+            container.push(<li key='next-page'><a aria-label='Next' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>
+                    <span aria-hidden="true">&raquo;</span></a></li>)
         }
         if(this.state[BUTTONS].pages > this.state[BUTTONS].page && this.state[BUTTONS].page > extent) {
-            container.push(<li key='last-page' className='page-item'><a onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
-            container.push(<li key='last-page'><a aria-label='Previous' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
+            container.push(<li key='last-page'><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}>{this.state[BUTTONS].pages}</a></li>)
+            container.push(<li key='last-page'><a aria-label='Previous' className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].pages)}><span aria-hidden="true">{this.state[BUTTONS].pages}</span></a></li>)
         }
         return container
     }
@@ -604,9 +605,9 @@ export default class Grid extends Component {
         if(this.state[BUTTONS].page + i <= this.state[BUTTONS].pages) {
             var page = 'page' + (this.state[BUTTONS].page + i)
             if(0 == i) {
-                container.push(<li className='page-item active' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item active' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             } else {
-                container.push(<li className='page-item' key={page}><a onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
+                container.push(<li className='page-item' key={page}><a className='page-link' onClick={this.setPage.bind(this, this.state[BUTTONS].page + i)}>{this.state[BUTTONS].page + i}</a></li>)
             }
 
         }
@@ -829,7 +830,7 @@ export default class Grid extends Component {
                 buttons[key].width = payload.Offset / (payload.Stop / 100)
                 var state = []
                 state[BUTTONS] = buttons
-                if('service' == response.data.Status && 'object' == typeof(response.data.Row) && SIZE > payload.Offset) {
+                if('facade' == response.data.Status && 'object' == typeof(response.data.Row) && SIZE > payload.Offset) {
                     state[ROWS] = this.state[ROWS]
                     for(var row in response.data.Row) {
                         state[ROWS][parseInt(payload.Offset)][row] = response.data.Row[row]

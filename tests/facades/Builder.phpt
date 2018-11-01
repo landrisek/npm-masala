@@ -45,7 +45,7 @@ final class BuilderTest extends TestCase {
     }
 
     public function testConfig(): void {
-        Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockModel is not set.');
+        Assert::true(is_object($mockRepository = $this->container->getByType('Masala\MockRepository')), 'MockRepository is not set.');
         Assert::true(is_object($extension = $this->container->getByType('Masala\MasalaExtension')), 'MasalaExtension is not set.');
         Assert::false(empty($configuration = $extension->getConfiguration($this->container->parameters)), 'Default configuration is not set.');
         Assert::true(isset($this->container->parameters['masala']['tests']['user']), 'Test user is not set.');
@@ -103,7 +103,7 @@ final class BuilderTest extends TestCase {
             Assert::true(is_object($presenter->addComponent($this->masala, 'IMasalaFactory')), 'Masala was not attached to presenter');
             Assert::same(null, $this->masala->attached($presenter), 'Masala:attached method succeed but it does return something. Do you wish modify test?');
             Assert::same(null, $this->class->attached($this->masala), 'Builder:attached method succed but it does return something. Do you wish modify test?');
-            Assert::same($this->class->getId('test'), md5($this->masala->getName() . ':' . $presenter->getName() . ':' . $presenter->getAction()  . ':test:' . $presenter->getUser()->getId()), 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IService.');
+            Assert::same($this->class->getId('test'), md5($this->masala->getName() . ':' . $presenter->getName() . ':' . $presenter->getAction()  . ':test:' . $presenter->getUser()->getId()), 'Consider using more simple key used for IBuilder:getOffset in corresponding Masala\IProcess.');
             Assert::false(empty($this->class->prepare()), 'Offset rows for grid were not set.');
             Assert::false(empty($rows = $this->class->getOffsets()), 'Test row is empty in ' . $class . '.');
             Assert::false(empty($row = reset($rows)), 'Test row is not set.');

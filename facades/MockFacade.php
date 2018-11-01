@@ -213,7 +213,7 @@ final class MockFacade {
             }
         }
         $random = array_rand($mocks);
-        Assert::true(is_array($this->config['masala']['tests']['parameters']), 'Mock service has no test parameters in config section.');
+        Assert::true(is_array($this->config['masala']['tests']['parameters']), 'MockFacade has no test parameters in config section.');
         return [$random => $this->getPresenter($random, $mocks[$random], $this->config['masala']['tests']['parameters'], true)];
     }
 
@@ -279,7 +279,7 @@ final class MockFacade {
         }
         $random = array_rand($injected);
         Assert::false(empty($random), 'No injection found for ' . $service);
-        Assert::true(is_array($parameters = $this->config['masala']['tests']['parameters']), 'Mock service has no test parameters in config section.');
+        Assert::true(is_array($parameters = $this->config['masala']['tests']['parameters']), 'MockFacade has no test parameters in config section.');
         $parameters['action'] = $injected[$random];
         return [$random => $this->getPresenter($random, $parameters['action'], $parameters)];
     }

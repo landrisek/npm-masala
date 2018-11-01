@@ -11,7 +11,7 @@ use Nette\Application\IPresenter,
 final class ImportForm extends ReactForm implements IImportFormFactory {
 
     /** @var IProcess */
-    private $service;
+    private $facade;
 
     /** @var ITranslator */
     private $translatorRepository;
@@ -25,7 +25,7 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
         parent::attached($presenter);
         if ($presenter instanceof IPresenter and false == $this->isSignalled()) {
             $this->addProgressBar('_prepare');
-            $this->service->attached($this);
+            $this->facade->attached($this);
             $this->addUpload('_import',
                 $this->translatorRepository->translate('Drop your file here or double click to select file on disk.'),
                 [], ['alt' => $this->translatorRepository->translate('image preview'),
@@ -41,8 +41,8 @@ final class ImportForm extends ReactForm implements IImportFormFactory {
         return $this;
     }
 
-    public function setService(IProcess $service): IImportFormFactory {
-        $this->service = $service;
+    public function setFacade(IProcess $facade): IImportFormFactory {
+        $this->facade = $facade;
         return $this;
     }
 

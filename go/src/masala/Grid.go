@@ -9,7 +9,7 @@ import ("bytes"
 
 type Grid struct {
 	payload Payload
-	service IProcess
+	facade IProcess
 	url string
 }
 
@@ -33,25 +33,25 @@ type IProcess interface {
 
 func (grid Grid) done() {
 	builder := grid.setState("done")
-	grid.service.Done(builder.payload)
+	grid.facade.Done(builder.payload)
 }
 
-func (grid Grid) Inject(payload Payload, service IProcess, url string) Grid {
+func (grid Grid) Inject(payload Payload, facade IProcess, url string) Grid {
 	grid.payload = payload
-	grid.service = service
+	grid.facade = facade
 	grid.url = url
 	return grid
 }
 
 func (grid Grid) Prepare() {
 	grid.setState("prepare").run()
-	grid.service.Prepare(grid.payload)
+	grid.facade.Prepare(grid.payload)
 }
 
 func (grid Grid) run() {
 	if grid.payload.Stop > grid.payload.Offset {
 		grid.setState("run").run()
-		grid.service.Run(grid.payload)
+		grid.facade.Run(grid.payload)
 	} else {
 		grid.done()
 	}

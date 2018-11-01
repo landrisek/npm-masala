@@ -20,7 +20,7 @@ final class ExportFacade implements IProcess {
     /** @var ITranslator */
     private $translatorModel;
 
-    public function __construct($tempDir, IRequest $request, ITranslator $translatorModel) {
+    public function __construct(string $tempDir, IRequest $request, ITranslator $translatorModel) {
         $this->tempDir = $tempDir;
         $url = $request->getUrl();
         $this->link = $url->scheme . '://' . $url->host . $url->scriptPath;
