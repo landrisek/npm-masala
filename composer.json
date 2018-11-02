@@ -1,7 +1,7 @@
 {
-	"name": "landrisek/Masala",
+	"name": "landrisek/masala",
 	"description": "React datagrid with automatic tests anywhere it is used (injected).",
-	"keywords": ["react", "nette", "grid"],
+	"keywords": ["grid", "react", "nette"],
 	"license": "New BSD",
 	"authors": [
 		{
@@ -13,7 +13,7 @@
 	],
 	"autoload": {
 		"psr-0": {
-			"Masala": "Masala"
+			"masala": "masala"
 		}
 	},
 	"require": {
