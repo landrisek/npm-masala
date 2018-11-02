@@ -1,0 +1,23 @@
+{
+	"name": "landrisek/Masala",
+	"description": "React datagrid with automatic tests anywhere it is used (injected).",
+	"keywords": ["react", "nette", "grid"],
+	"license": "New BSD",
+	"authors": [
+		{
+			"name":     "Lubomir Andrisek",
+			"email":    "landrisek@gmail.com",
+			"homepage": "http://www.4camping.cz",
+			"role":     "full-stack developer"
+		}
+	],
+	"autoload": {
+		"psr-0": {
+			"Masala": "Masala"
+		}
+	},
+	"require": {
+		"nette/nette": ">= 3.0",
+		"php": ">= 7.2.10"
+	}
+}
