@@ -2,7 +2,7 @@
 	"name": "landrisek/masala",
 	"description": "React datagrid with automatic tests anywhere it is used (injected).",
 	"keywords": ["grid", "react", "nette"],
-	"license": "New BSD",
+	"license": "BSD-3-Clause",
 	"authors": [
 		{
 			"name":     "Lubomir Andrisek",
