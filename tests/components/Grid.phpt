@@ -8,7 +8,7 @@ use Masala\Grid,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../bootstrap.php';
+$container = require __DIR__ . '/../../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class GridTest extends TestCase {

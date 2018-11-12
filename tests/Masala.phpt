@@ -10,7 +10,7 @@ use Masala\IGridFactory,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../bootstrap.php';
+$container = require __DIR__ . '/../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class MasalaTest extends TestCase {
@@ -40,7 +40,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testAttached(): void {
-        Assert::true(file_exists($path = $this->container->parameters['wwwDir'] . '/app/Masala/'), 'Masala folder does not exist in default folder. Please modify test.');
+        Assert::true(file_exists($path = $this->container->parameters['appDir'] . '/components/masala/'), 'Masala folder does not exist in default folder. Please modify test.');
         $columns = scandir($path);
         foreach ($columns as $column) {
             if (0 < substr_count($column, 'column') and 'column.latte' != $column) {
@@ -172,7 +172,7 @@ final class MasalaTest extends TestCase {
     }
 
     public function testRender(): void {
-        $latte = $this->container->parameters['wwwDir'] . '/app/Masala/templates/grid.latte';
+        $latte = $this->container->parameters['appDir'] . '/components/masala/templates/grid.latte';
         Assert::true(is_file($latte), 'Latte file ' . $latte . ' for grid is not set.');
         Assert::false(empty($grid = file_get_contents($latte)), 'Latte file is empty.');
         Assert::true(0 < substr_count($grid, '<script src="{$js}"></script>'), 'It seems that react component is not included.');

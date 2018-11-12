@@ -13,7 +13,7 @@ use Masala\ImportForm,
     Tester\Assert,
     Tester\TestCase;
 
-$container = require __DIR__ . '/../../../bootstrap.php';
+$container = require __DIR__ . '/../../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class ImportFormTest extends TestCase {
@@ -46,8 +46,8 @@ final class ImportFormTest extends TestCase {
         Assert::false(empty($processes = $this->container->findByType('Masala\IProcess')), 'No Masala\IProcess found.');
         Assert::false(empty($facade = $processes[rand(0, sizeof($processes) -1)]));
         Assert::true(is_object($this->facade = $this->container->getService($facade)), 'Get IProcess failed.');
-        Assert::false(empty($assets = isset($this->container->parameters['masala']['assets']) ? $this->container->parameters['masala']['assets'] : 'assets'));
-        Assert::false(empty($manifest = (array) json_decode(file_get_contents($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/js/manifest.json'))));
+        Assert::false(empty($assets = $this->container->parameters['masala']['assets']), 'Masala assets should be injected through config.test.neon as extension is called after create container mehtod.');
+        Assert::false(empty($manifest = (array) json_decode(file_get_contents($this->container->parameters['wwwDir'] . '/' . $assets . '/js/manifest.json'))));
         Assert::true(is_object($this->class = new ImportForm($this->container->parameters['wwwDir'] . '/' . $assets . '/masala/css', 
                                                             $manifest['ImportForm.js'], 
                                                             $this->container->getByType('Nette\Http\IRequest'), 
@@ -69,6 +69,7 @@ final class ImportFormTest extends TestCase {
         $mockRepository = $this->container->getByType('Masala\IMock');
         foreach ($this->presenters as $class => $presenter) {
             if($presenter->grid->isImport()) {
+                echo $class . "/n";
                 Assert::true(is_object($masala = $presenter->context->getByType('Masala\Masala')), 'Masala is not set.');
                 Assert::true(is_object($masala->setGrid($presenter->grid)), 'Masala:setGrid does not return class itself.');
                 Assert::true(is_object($masala->setRow($presenter->grid->copy())), 'Masala:setGrid does not return class itself.');

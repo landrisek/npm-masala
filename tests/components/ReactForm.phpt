@@ -10,7 +10,7 @@ use Masala\IReactFormFactory,
     Tester\Assert,
     Tester\TestCase;
     
-$container = require __DIR__ . '/../../../bootstrap.php';
+$container = require __DIR__ . '/../../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class ReactFormTest extends TestCase {
@@ -39,7 +39,7 @@ final class ReactFormTest extends TestCase {
         $request = $this->container->getByType('Nette\Http\IRequest');
         $translatorRepository = $this->container->getByType('Nette\Localization\ITranslator');
         $this->class = new ReactForm($assets . 'css', $assets . '/js/GeneralForm.js', $request, $translatorRepository);
-        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
+        $this->presenters = ['Masala\Demo\DemoPresenter' => $this->container->parameters['appDir'] . '/components/masala/demo/default.latte'];
     }
 
     public function __destruct() {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace Masala\Demo;
 
 use Masala\IBuilder,
     Masala\IMasalaFactory,

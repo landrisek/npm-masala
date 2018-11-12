@@ -9,14 +9,13 @@ use Exception,
 /** @author Lubomir Andrisek */
 final class MasalaExtension extends CompilerExtension {
 
-    private $defaults = ['assets' => 'assets/masala',
-        'css' => 'assets/masala/css',
+    private $defaults = ['assets' => 'assets/components/masala',
+        'css' => 'assets/components/masala/css',
         'feeds' => 'feeds',
         'format' => ['date' => ['build' => 'd.m.Y', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")'],
                     'time' => ['build' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")']],
         'help' => 'help',
         'npm' => 'bower',
-        'keywords' => 'keywords',
         'log' => 'log',
         'pagination' => 20,
         'settings' => 'settings',
@@ -24,8 +23,7 @@ final class MasalaExtension extends CompilerExtension {
         'spice' => 'spice',
         'tests' => ['user' => ['id' => 1, 'password' => 'password', 'username' => 'username'],
                     'parameters' => ['date' => '2017-4-12', 'id' => 4574, 'limit' => 10]],
-        'upload' => 10,
-        'write' => 'write'];
+        'upload' => 10];
 
     public function getConfiguration(array $parameters) {
         foreach($this->defaults as $key => $parameter) {
@@ -44,8 +42,6 @@ final class MasalaExtension extends CompilerExtension {
                 ->setFactory('Masala\Builder', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('masalaExtension'))
                 ->setFactory('Masala\MasalaExtension', []);
-        $builder->addDefinition($this->prefix('contentForm'))
-                ->setFactory('Masala\ContentForm', [$manifest['ContentForm.js']]);
         $builder->addDefinition($this->prefix('exportFacade'))
                 ->setFactory('Masala\ExportFacade', [$builder->parameters['tempDir']]);
         $builder->addDefinition($this->prefix('emptyRow'))
@@ -58,8 +54,6 @@ final class MasalaExtension extends CompilerExtension {
                 ->setFactory('Masala\ImportForm', [$parameters['masala']['css'], $manifest['ImportForm.js']]);
         $builder->addDefinition($this->prefix('helpRepository'))
                 ->setFactory('Masala\HelpRepository', [$parameters['masala']['help']]);
-        $builder->addDefinition($this->prefix('keywordsRepository'))
-                ->setFactory('Masala\KeywordsRepository', [$parameters['masala']['keywords']]);
         $builder->addDefinition($this->prefix('masala'))
                 ->setFactory('Masala\Masala', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('mockRepository'))
@@ -68,8 +62,6 @@ final class MasalaExtension extends CompilerExtension {
                 ->setFactory('Masala\MockFacade');
         $builder->addDefinition($this->prefix('rowForm'))
                 ->setFactory('Masala\RowForm', [$parameters['masala']['css'], $manifest['RowForm.js']]);
-        $builder->addDefinition($this->prefix('writeRepository'))
-                ->setFactory('Masala\WriteRepository', [$parameters['masala']['write']]);
     }
 
     public function beforeCompile() {

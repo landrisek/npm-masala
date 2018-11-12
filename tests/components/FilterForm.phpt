@@ -11,7 +11,7 @@ use Masala\IFilterFormFactory,
     Tester\Assert,
     Tester\TestCase;
     
-$container = require __DIR__ . '/../../../bootstrap.php';
+$container = require __DIR__ . '/../../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class FilterFormTest extends TestCase {
@@ -39,7 +39,7 @@ final class FilterFormTest extends TestCase {
     protected function setUp(): void {
         $this->class = $this->container->getByType('Masala\IFilterFormFactory');
         $this->mockFacade = $this->container->getByType('Masala\MockFacade');
-        $this->presenters = ['App\DemoPresenter' => $this->container->parameters['appDir'] . '/Masala/demo/default.latte'];
+        $this->presenters = ['Masala\Demo\DemoPresenter' => $this->container->parameters['appDir'] . '/components/masala/demo/default.latte'];
     }
 
     public function testAttached(): void {
