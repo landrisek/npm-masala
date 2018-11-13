@@ -15,7 +15,7 @@ final class MasalaExtension extends CompilerExtension {
         'format' => ['date' => ['build' => 'd.m.Y', 'query'=> 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")'],
                     'time' => ['build' => 'Y-m-d H:i:s', 'query' => 'Y-m-d', 'select' => 'GET_FORMAT(DATE,"EUR")']],
         'help' => 'help',
-        'npm' => 'bower',
+        'npm' => 'node_modules',
         'log' => 'log',
         'pagination' => 20,
         'settings' => 'settings',

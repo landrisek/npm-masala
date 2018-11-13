@@ -51,12 +51,6 @@ export default class Form extends Component {
                          value={this.state[ROW][key].Attributes.value}
             />
     }
-    datetime(key, event) {
-        var state = []
-        state[key] = this.state[ROW][key]
-        state[key].Attributes.value = event.format(this.state[ROW][key].Attributes.format.toUpperCase())
-        this.setState(state)
-    }
     addHidden(key) {
         return <input key={key} type='hidden' />
     }
@@ -138,7 +132,7 @@ export default class Form extends Component {
     }
     addValidator(key) {
         if(undefined != this.state[VALIDATORS][key]) {
-            //return <div key={'validator-' + key} className='bg-danger'>{this.state[VALIDATORS][key]}</div>
+            return <div key={'validator-' + key} className='bg-danger'>{this.state[VALIDATORS][key]}</div>
         }
     }
     addText(key) {
@@ -199,6 +193,12 @@ export default class Form extends Component {
         state[event.target.id] = element
         this.setState(state)
     }
+    datetime(key, event) {
+        var state = []
+        state[key] = this.state[ROW][key]
+        state[key].Attributes.value = event.format(this.state[ROW][key].Attributes.format.toUpperCase())
+        this.setState(state)
+    }
     done(payload) {
         var response = JSON.parse(request('POST', LINKS['done'], { json: payload }).getBody('utf8'))
         var state = []
@@ -237,7 +237,7 @@ export default class Form extends Component {
         data._name = name
         data._key = key
         axios.post(LINKS.save, data).then(response => {
-            state[ROW][key].Attributes.value[response.Data] = name
+            state[ROW][key].Attributes.value[response.data] = name
             state[ROW]._submit.Attributes.className = 'btn btn-success'
             self.setState(state)
         })
@@ -257,7 +257,7 @@ export default class Form extends Component {
     save(key, file) {
         var self = this
         if(null == file.type.match('image')) {
-            axios.get(file.preview).then(response => { self.load(key, response.Data, file.name) })
+            axios.get(file.preview).then(response => { self.load(key, response.data, file.name); })
         } else {
             var reader = new FileReader()
             reader.onload = function() {
@@ -278,7 +278,7 @@ export default class Form extends Component {
     }
     run(payload, progress) {
         if(parseInt(payload.Stop) > parseInt(payload.Offset)) {
-            axios.post(LINKS.run, payload).then(response => {  this.run(response.Data, progress) })
+            axios.post(LINKS.run, payload).then(response => {  this.run(response.data, progress) })
             var element = this.state[ROW][progress]
             element.Attributes.width = payload.Offset / (payload.Stop / 100)
             var state = []

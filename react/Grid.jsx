@@ -23,7 +23,7 @@ var VALIDATORS = 'validators'
 export default class Grid extends Component {
     constructor(props) {
         super(props)
-        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))        
+        this.state = JSON.parse(document.getElementById(ID).getAttribute('data'))
     }
     addAction(key) {
         return <div key={'trigger-' + key} style={this.state[BUTTONS][key].style}><a className={this.state[BUTTONS][key].className}
