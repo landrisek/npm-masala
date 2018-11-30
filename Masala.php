@@ -104,13 +104,13 @@ final class Masala extends Control implements IMasalaFactory {
             mb_detect_encoding($column, 'UTF-8', true) == false ? $column = trim(iconv('windows-1250', 'utf-8', $column)) : $column = trim($column);
             if (isset($header->$column)) {
                 foreach ($header->$column as $feed => $value) {
-                    if (!isset($this->header[$feed]) and is_numeric($value)) {
+                    if (!isset($this->header[$feed]) && is_numeric($value)) {
                         $this->header[$feed] = [$value => $key];
-                    } elseif (!isset($this->header[$feed]) and is_bool($feed)) {
+                    } elseif (!isset($this->header[$feed]) && is_bool($feed)) {
                         $this->header[$feed] = $key;
-                    } elseif ('break' == $value and ! isset($this->header[$feed])) {
+                    } elseif ('break' == $value && ! isset($this->header[$feed])) {
                         $this->header[$feed] = $key;
-                    } elseif ('break' == $value and isset($this->header[$feed])) {
+                    } elseif ('break' == $value && isset($this->header[$feed])) {
                         
                     } elseif (is_array($header->$feed)) {
                         is_numeric($value) ? $this->header[$feed][$value] = $key : $this->header[$feedColumn][] = $key;
@@ -236,12 +236,12 @@ final class Masala extends Control implements IMasalaFactory {
                 break;
             }
         }
-        $response = new JsonResponse($this->grid->getImport()->prepare(['divider'=>$divider,
-                                    'header'=>$this->header,
-                                    '_file'=> $this->grid->getPost('_name'),
-                                    'link'=> $this->link('run'),
-                                    'Offset'=> $offset,
-                                    'Status'=>'import',
+        $response = new JsonResponse($this->grid->getImport()->prepare(['divider' => $divider,
+                                    'header' => $this->header,
+                                    '_file' => $this->grid->getPost('_name'),
+                                    'link' => $this->link('run'),
+                                    'Offset' => $offset,
+                                    'Status' => 'import',
                                     'Stop' => filesize($path)], $this));
         $this->presenter->sendResponse($response);
     }

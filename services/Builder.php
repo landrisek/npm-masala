@@ -3,7 +3,6 @@
 namespace Masala;
 
 use Nette\Application\IPresenter,
-    Nette\Application\UI\ISignalReceiver,
     Nette\Caching\IStorage,
     Nette\Caching\Cache,
     Nette\Database\Context,
@@ -170,7 +169,7 @@ final class Builder implements IBuilder {
         $this->translatorModel = $translatorModel;
     }
 
-    public function attached(ISignalReceiver $masala): void {
+    public function attached(IMasalaFactory $masala): void {
         $this->presenter = $masala->getPresenter();
         $this->identity = $this->presenter->getUser()->getIdentity();
         $this->control = $masala->getName();
@@ -1103,7 +1102,7 @@ final class Builder implements IBuilder {
         }
         if(!is_numeric($offset = $this->getPost('Offset'))) {
             $offset = 0;
-        } else if($offset > 0) {
+        } else if($offset > 0 && empty($this->getPost('Status'))) {
             $offset = $offset - 1; 
         }
         foreach ($filters as $column => $value) {
