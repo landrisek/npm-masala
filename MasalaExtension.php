@@ -38,7 +38,7 @@ final class MasalaExtension extends CompilerExtension {
         $builder = $this->getContainerBuilder();
         $parameters = $this->getConfiguration($builder->parameters);
         $manifest = (array) json_decode(file_get_contents($parameters['wwwDir'] . '/' . $parameters['masala']['assets'] . '/js/manifest.json'));
-        $builder->addDefinition($this->prefix('Builder'))
+        $builder->addDefinition($this->prefix('builder'))
                 ->setFactory('Masala\Builder', [$parameters['masala']]);
         $builder->addDefinition($this->prefix('masalaExtension'))
                 ->setFactory('Masala\MasalaExtension', []);

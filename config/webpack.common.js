@@ -2,7 +2,7 @@ var webpack = require('webpack');
 var path = require('path');
 var ManifestPlugin = require("webpack-manifest-plugin");
 var WebpackMd5HashPlugin = require('webpack-md5-hash');
-var APP_DIR = path.resolve(__dirname, '../react');
+var APP_DIR = path.resolve(__dirname, '../components');
 var PUBLIC_DIR = 'assets/components/masala/js';
 
 module.exports = {

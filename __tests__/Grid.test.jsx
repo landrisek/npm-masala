@@ -1,4 +1,4 @@
-import Grid from '../react/Grid.jsx'
+import Grid from '../components/Grid.jsx'
 import React from 'react'
 import ReactDOM from 'react-dom'
 

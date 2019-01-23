@@ -1,4 +1,4 @@
-import ImportForm from '../react/ImportForm.jsx'
+import ImportForm from '../components/ImportForm.jsx'
 import React from 'react'
 import ReactDOM from 'react-dom'
 
