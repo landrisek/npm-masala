@@ -1,6 +1,6 @@
 {
 	"name": "landrisek/masala",
-	"description": "React datagrid with automatic tests anywhere it is used (injected).",
+	"description": "React datagrid for sql and mongodb.",
 	"keywords": ["grid", "react", "nette"],
 	"license": "BSD-3-Clause",
 	"authors": [
@@ -12,16 +12,13 @@
 		}
 	],
 	"autoload": {
-		"psr-0": {
-			"masala": "masala"
+		"psr-4": {
+			"Masala\\": "/"
 		}
 	},
 	"require": {
-		"latte/latte": "~2.4.1",
-		"mockery/mockery": "0.9.4",
-		"nette/database": "~2.4.1",
-		"nette/nette": "~2.4.0",
-		"nette/tester": "1.7.1",
+		"mongodb/mongodb": "1.4.2",
+		"nette/nette": "3.0.0",
 		"php": ">= 7.2.9",
 		"PHPOffice/PHPExcel": "v1.8.1."
 	}

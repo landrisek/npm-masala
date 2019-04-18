@@ -2,37 +2,41 @@
 
 namespace Masala;
 
-use Nette\Application\Responses\JsonResponse,
-    Nette\Application\UI\Control,
-    Nette\Caching\IStorage,
-    Nette\Caching\Cache,
-    Nette\Database\Context,
-    Nette\InvalidStateException,
-    Nette\Localization\ITranslator;
+use Nette\Application\Responses\JsonResponse;
+use Nette\Application\UI\Control;
+use Nette\Caching\IStorage;
+use Nette\Database\Context;
+use Nette\InvalidStateException;
+use Nette\Localization\ITranslator;
+use PHPExcel;
+use PHPExcel_IOFactory;
+use PHPExcel_Style_Alignment;
+use PHPExcel_Writer_Excel2007;
+use stdClass;
 
 /** @author Lubomir Andrisek */
 class SqlBuilder extends Control implements IBuilderFactory {
 
-    /** @var Cache */
-    private $cache;
+    /** @var array */
+    protected $arguments = [];
 
     /** @var array */
     private $columns = [];
 
     /** @var Context */
-    private $database;
+    protected $database;
 
     /** @var string */
     protected const DATE = 'Y-m-d';
-
-    /** @var array */
-    private $defaults;
 
     /** @var int */
     private $group;
 
     /** @var array */
     private $groups = [];
+
+    /** @var string */
+    protected $folder = '';
 
     /** @var string */
     private $having = '';
@@ -47,142 +51,71 @@ class SqlBuilder extends Control implements IBuilderFactory {
     private $leftJoin = [];
 
     /** @var int */
-    private $limit;
+    protected $limit = 20;
 
     /** @var int */
     private $offset = 0;
 
     /** @var array */
-    private $order;
+    private $order = [];
+
+    /** @var string */
+    protected $path  = '';
 
     /** @var array */
     private $props = [];
 
     /** @var string */
-    private $sort = '';
+    private const SET = '<%SET%>';
 
     /** @var string */
-    private $sum;
+    private $sort = '';
 
     /** @var array */
-    private $where = [];
+    protected $state;
+
+    /** @var array */
+    private $sum;
 
     /** @var string */
     private $table = '';
 
     /** @var ITranslator */
-    private $translatorRepository;
+    protected $translatorRepository;
+
+    /** @var array */
+    private $where = [];
 
     /** @var string */
-    private $query;
+    protected $update;
 
-    public function __construct(Context $database, IStorage $storage, ITranslator $translatorRepository) {
+    /** @var string */
+    protected $query;
+
+    public function __construct(Context $database, ITranslator $translatorRepository) {
         $this->database = $database;
-        $this->cache = new Cache($storage);
         $this->translatorRepository = $translatorRepository;
     }
 
-    protected function build(): array {
-        if(!empty($state = json_decode(file_get_contents('php://input'), true))) {
-            dump($state); exit;
-            dump('@todo: filtering, groups, sort, offset, limit'); exit;
-        }
-        $values = [];
-        if(!empty($this->where)) {
-            $this->query .= 'WHERE ';
-        }
-        foreach ($this->where as $column => $value) {
-            if(isset($this->defaults[$column]) && is_array($this->defaults[$column])) {
-                $this->query .= '`' . $column . '` = ? AND ';
-                $values[] = $value;
-            } else if(is_array($value) && preg_match('/\sIN|\sNOT/', strtoupper($column))) {
-                $this->query .= '`' .$column . '` = (?) AND ';
-                $values[] = $value;
-            } elseif (!is_array($value) && preg_match('/(>|<|=|\sLIKE|\sIN|\sIS|\sNOT|\sNULL|\sNULL)/', strtoupper($column))) {
-                $this->query .= '`' .$column . '` ? AND ';
-                $values[] = $value;
-            } elseif (is_array($value) && empty($value)) {
-                $this->query .= '`' .$column . '` IS NULL AND ';
-            } elseif (is_array($value)) {
-                $this->query .= '`' . $column . '` IN (?) AND';
-                $values[] = $value;
-            } else if (preg_match('/\s\>\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
-                $this->query .= '`' . $column . '` >= ? AND ';
-                $values[] = date(self::DATE, $converted);
-            } elseif (preg_match('/\s\>\=/', $column)) {
-                $this->query .= '`' .$column . '` >= ? AND';
-                $values[] = $value;
-            } elseif (preg_match('/\s\<\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*\./', $value)) {
-                $this->query .= '`' . $column . '` <= ? AND'; 
-                $values[] = date(self::DATE, $converted);
-            } elseif (preg_match('/\s\<\=/', $column)) {
-                $this->query .= '`' . $column . '` <= ? AND';
-                $values[] = $value;
-            } elseif (preg_match('/\s\>/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
-                $this->query .= '`' . $column . '` > ?';
-                $values[] = date(self::DATE, $converted);
-            } elseif (preg_match('/\s\>/', $column)) {
-                $this->query .= '`' . $column . '` > ?';
-                $values[] = $value;
-            } elseif (preg_match('/\s\</', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
-                $this->query .= '`' . $column . '` < ?';
-                $values[] = date(self::DATE, $converted);
-            } elseif (preg_match('/\s\</', $column)) {
-                $this->query .= '`' . $column . '` < ?';
-                $values[] = $value;
-            } elseif (preg_match('/\(/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value))) {
-                $this->having .= '`' . $column . '` = "' . $value . '" AND ';
-            } elseif (preg_match('/\(/', $column) && is_numeric($value)) {
-                $this->having .= '`' . $column . '` = ' . $value . ' AND ';
-            } elseif (preg_match('/\(/', $column)) {
-                $this->having .= '`' . $column . '` LIKE "%' . $value . '%" AND ';
-            } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
-                $this->query .= '`' . $column . '` = ? ';
-                $values[] = date(self::DATE, $converted);
-            } elseif (is_numeric($value)) {
-                $this->query .= '`' .$column . '` = ? ';
-                $values[] = $value;
-            } else if(!empty($value)) {
-                $this->query .= '`' . $column . '` LIKE = %' . $value . '%';
-            }
-        }
-        $this->query = rtrim($this->query, 'AND ');
-        if(isset($this->groups[$this->group])) {
-            $this->query .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
-            $this->sum .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
-        }
-        if(!empty($this->having = rtrim($this->having, 'AND '))) {
-            $this->query .= ' HAVING ' . $this->having . ' ';
-        }
-        if(!empty($this->sort = rtrim($this->sort, ', '))) {
-            $this->query .= ' ORDER BY ' . $this->sort . ' ';
-        }
-        $values[] = $this->limit;
-        $values[] = $this->offset * $this->limit;
+    public function clone(): IBuilderFactory {
+        return clone $this;
     }
 
-    public function fetch(): IBuilderFactory {
-        if(null == $this->defaults = $this->cache->load($key = get_class($this) . __FUNCTION__)) {
-            $this->defaults = [];
-            foreach($this->database->getConnection()->getSupplementalDriver()->getColumns($this->table) as $driver) {
-                if(preg_match('/enum\(/', $driver['vendor']['Type'])) {
-                    $this->defaults[$driver['name']] = explode(',', preg_replace('/(.*)\(|\)|\'/', '', $driver['vendor']['Type'])); 
-                }
-            }
-            $this->cache->save($key, $this->defaults);
-        }
+    protected function fetch(): IBuilderFactory {
         $this->query = 'SELECT ';
         if(empty($this->columns)) {
             $this->query .= '* ';
         }
+        $this->update .= ' ';
         foreach ($this->columns as $column => $alias) {
-            if(!preg_match('/\.|\s| |\(|\)/', trim($column))) {
-                $this->query .= $this->table . '.' . $column . ', ';
-            } else {
+            if(preg_match('/\.|\s| |\(|\)/', trim($column))) {
                 $this->query .= $column . ' AS `' . $alias . '`, ';
+            } else {
+                $this->query .= $this->table . '.' . $column . ', ';
             }
         }
         $this->query = rtrim($this->query, ', ') .  ' FROM ' . $this->table . ' ';
+        $this->update = 'UPDATE ' . $this->table . ' SET ' . self::SET .' ';
         foreach ($this->join as $join) {
             $this->query .= 'JOIN ' . $join . ' ';
         }
@@ -195,85 +128,242 @@ class SqlBuilder extends Control implements IBuilderFactory {
         return $this;
     }
 
-    public function handlePage(): void {
-        $this->state();
-        $state = json_decode(file_get_contents('php://input'), true);
-        if(empty($this->where)) {
-            $page = $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
-        } if(empty($this->groups)) {
-            echo $this->query; exit;
-            $page = intval($this->database->query($this->query, ...$arguments)->fetch()->sum);
-        } else {
-           echo $this->query; exit;
-           $page = $this->database->query($this->query, ...$arguments)->getRowCount();
-        }
-        dump('todo'); exit;
-        $this->presenter->sendResponse(new JsonResponse(['page' => $page]));
-    }
-
-    public function group(array $groups): IBuilderFactory {
+    protected function group(array $groups): IBuilderFactory {
         $this->groups = $groups;
         return $this;
     }
 
-    public function having(string $having): IBuilderFactory {
+    public function handleExport(): void {
+        $this->state();
+        if(1 == $this->state->_paginator->current) {
+            $excel = new PHPExcel();
+            $title = 'export';
+            $properties = $excel->getProperties();
+            $properties->setTitle($title);
+            $properties->setSubject($title);
+            $properties->setDescription($title);
+            $excel->setActiveSheetIndex(0);
+            $sheet = $excel->getActiveSheet();
+            $sheet->setTitle(substr($title, 0, 31));
+            $letter = 'a';
+            foreach($this->row(reset($this->state->rows)) as $column => $value) {
+                $sheet->setCellValue($letter . '1', $column);
+                $sheet->getColumnDimension($letter)->setAutoSize(true);
+                $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+                $letter++;
+            }
+            $writer = new PHPExcel_Writer_Excel2007($excel);
+            $this->state->file = $this->file();
+            $writer->save($this->folder . $this->state->file);
+            unset($this->state->download);
+        } else {
+            $excel = PHPExcel_IOFactory::load($this->folder . $this->state->file);
+            $excel->setActiveSheetIndex(0);
+        }
+        $last = $excel->getActiveSheet()->getHighestRow();
+        foreach($this->state->rows as $key => $row) {
+            $last++;
+            $letter = 'a';
+            foreach($this->row($row) as $cell) {
+                $excel->getActiveSheet()->SetCellValue($letter++ . $last, $cell);
+            }
+        }
+        $writer = new PHPExcel_Writer_Excel2007($excel);
+        $writer->save($this->folder . $this->state->file);
+        if($this->state->_paginator->current == $this->state->_paginator->last) {
+            $this->state->download = $this->path . $this->state->file;
+        }
+        $this->state->_paginator->current++;
+        $this->presenter->sendResponse(new JsonResponse($this->state));
+    }
+
+    public function handlePage(): void {
+        if(empty($this->state()->where)) {
+            $sum = $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
+        } if(empty($this->groups)) {
+            $sum = intval($this->database->query(preg_replace('/SELECT(.*)FROM/', 'SELECT COUNT(*) AS sum FROM', $this->sum['query']), ...$this->sum['arguments'])->fetch()->sum);
+        } else {
+           $sum = $this->database->query(preg_replace('/SELECT(.*)FROM/', 'SELECT COUNT(*) AS sum FROM', $this->sum['query']), ...$this->sum['arguments'])->getRowCount();
+        }
+        $this->presenter->sendResponse(new JsonResponse(['current' => $this->state->_paginator->current, 'last' => ceil($sum / $this->limit), 'sum' => $sum]));
+    }
+
+    public function handleState(): void {
+        $this->state()->state->rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
+        $this->presenter->sendResponse(new JsonResponse($this->state));
+    }
+
+    protected function having(string $having): IBuilderFactory {
         $this->having = $having;
         return $this;
     }
 
-    public function handleState(): void {
-        $this->build()->presenter->sendResponse(new JsonResponse(
-                ['rows' => $this->database->query($this->query . ' LIMIT ? OFFSET ? ', ...$values)->fetchAll()]));
-    }
-
-    public function innerJoin(string $innerJoin): IBuilderFactory {
+    protected function innerJoin(string $innerJoin): IBuilderFactory {
         $this->innerJoin[] = trim($innerJoin);
         return $this;
     }
 
-    public function join(string $join): IBuilderFactory {
+    protected function join(string $join): IBuilderFactory {
         $this->join[] = trim($join);
         return $this;
     }
 
-    public function leftJoin(string $leftJoin): IBuilderFactory {
+    protected function leftJoin(string $leftJoin): IBuilderFactory {
         $this->leftJoin[] = trim($leftJoin);
         return $this;
     }
 
-    public function limit(int $limit): IBuilderFactory {
+    protected function limit(int $limit): IBuilderFactory {
         $this->limit = $limit;
         return $this;
     }
 
-    public function prop(string $key, $value): IBuilderFactory {
+    protected function order(array $order): IBuilderFactory {
+        $this->order = $order;
+        return $this;
+    }
+
+    protected function prop(string $key, $value): IBuilderFactory {
         $this->props[$key] = $value;
+        return $this;
     }
 
     public function props(): array {
-        $this->props['_state'] = $this->link('state');
+        $this->props['download'] = ['label' => $this->translatorRepository->translate('download file')];
+        $this->props['export'] = ['label' => $this->translatorRepository->translate('export'),
+                                 'link' => $this->link('export')];
         $this->props['_paginator'] = ['link' => $this->link('page'),
                                 'next' => $this->translatorRepository->translate('next'),
                                 'page' => ucfirst($this->translatorRepository->translate('page')),
-                                'previous' => $this->translatorRepository->translate('previous')];
+                                'previous' => $this->translatorRepository->translate('previous'),
+                                'sum' => $this->translatorRepository->translate('total')];
+        $this->props['state'] = ['label' => $this->translatorRepository->translate('filter data'),
+                                 'link' => $this->link('state')];
         return $this->props;
     }
 
-    public function select(string $column, string $label, string $alias = null): IBuilderFactory {
+    protected function row(stdClass $row): array {
+        return (array) $row;
+    }
+
+    protected function select(string $column, string $label, string $alias = null): IBuilderFactory {
         if(preg_match('/\sAS\s/', $alias)) {
             throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
         }
         $this->columns[$column] = empty($alias) ? $column : $alias;
-        $this->props[$column] = ['label' => $label];
+        $this->props[empty($alias) ? $column : $alias] = ['label' => $label];
         return $this;
     }
 
-    public function table(string $table): IBuilderFactory {
+    protected function set(string $set): IBuilderFactory {
+        $this->update = str_replace(self::SET, $set, $this->update);
+        $arguments = array_slice($this->arguments, 0, sizeof($this->arguments) - 2);
+        $this->database->query($this->update, ...$arguments);
+        return $this;
+    }
+
+    protected function state(): IBuilderFactory {
+        $this->state = json_decode(file_get_contents('php://input'), false);
+        foreach($this->state->_order as $alias => $column) {
+            if(isset($this->columns[$alias]) && !empty($column)) {
+                $this->sort .= ' ' . $alias . ' ' . ltrim($column, '-') . ', ';
+            }
+        }
+        foreach($this->state->_where as $alias => $column) {
+            if(isset($this->columns[preg_replace('/(>|<|=|\s)/', '', $alias)])) {
+                $this->where($alias, $column, !empty($column));
+            }
+        }
+        if(empty($this->sort)) {
+            foreach($this->order as $alias => $value) {
+                if(!isset($this->columns[$alias])) {
+                    throw new InvalidStateException('You must define order column ' . $alias . ' in select method of Masala\IBuilderFactory.');
+                } else if(!in_array($value, ['asc', 'desc', 'ASC', 'DESC'])) {
+                    throw new InvalidStateException('Order value can be only DESC or ASC.');
+                } else {
+                    $this->sort .= ' ' . $alias . ' ' . $value . ', ';
+                }
+            }
+        }
+        if(!empty($this->where)) {
+            $this->update .= 'WHERE ';
+            $this->query .= 'WHERE ';
+        }
+        foreach($this->where as $column => $value) {
+            if(is_array($value) && preg_match('/\sIN|\sNOT/', strtoupper($column))) {
+                $this->update .= '`' .$column . '` = (?) AND ';
+                $this->query .= '`' .$column . '` = (?) AND ';
+                $this->arguments[] = $value;
+            } else if (preg_match('/(>|<|=)/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
+                $this->update .= $column . ' ? AND ';
+                $this->query .=  $column . ' ? AND ';
+                $this->arguments[] = date(self::DATE, $converted);
+            } elseif (preg_match('/(>|<|=|\!=)/', $column)) {
+                $this->update .= $column . ' ? AND ';
+                $this->query .= $column . ' ? AND ';
+                $this->arguments[] = $value;
+            } elseif (preg_match('/\(/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value))) {
+                $this->having .=  $column . ' = "' . $value . '" AND ';
+            } elseif (!is_array($value) && preg_match('/(>|<|=|\sLIKE|\sIN|\sIS|\sNOT|\sNULL|\sNULL)/', strtoupper($column))) {
+                $this->update .= $column . ' ? AND ';
+                $this->query .= $column . ' ? AND ';
+                $this->arguments[] = $value;
+            } elseif (is_array($value) && empty($value)) {
+                $this->update .= '`' .$column . '` IS NULL AND ';
+                $this->query .= '`' .$column . '` IS NULL AND ';
+            } elseif (is_array($value)) {
+                $this->update .= $column . ' IN (?) AND ';
+                $this->query .= $column . ' IN (?) AND ';
+                $this->arguments[] = $value;
+            } elseif (preg_match('/\(/', $column) && is_numeric($value)) {
+                $this->having .= $column . ' = ' . $value . ' AND ';
+            } elseif (preg_match('/\(/', $column)) {
+                $this->having .= $column . ' LIKE "%' . $value . '%" AND ';
+            } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
+                $this->update .= $column . ' = ? AND ';
+                $this->query .= $column . ' = ? AND ';
+                $this->arguments[] = date(self::DATE, $converted);
+            } elseif (is_numeric($value)) {
+                $this->update .= $column . ' = ? AND ';
+                $this->query .= $column . ' = ? AND ';
+                $this->arguments[] = $value;
+            } else if(is_numeric($column) && !empty($value)) {
+                $this->update .= ' ' . $value . ' AND ';
+                $this->query .= ' ' . $value . ' AND ';
+            } else if(!isset($this->state->_where->$column)) {
+                $this->update .= $column . ' = ? AND ';
+                $this->query .= $column . ' = ? AND ';
+                $this->arguments[] = $value;
+            } else if(!empty($value)) {
+                $this->update .= $column . ' LIKE ? AND ';
+                $this->query .= $column . ' LIKE ? AND ';
+                $this->arguments[] = '%' . $value . '%';
+            }
+        }
+        $this->update = rtrim($this->update, 'AND ');
+        $this->query = rtrim($this->query, 'AND ');
+        if(isset($this->groups[$this->group])) {
+            $this->query .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
+        }
+        if(!empty($this->having = rtrim($this->having, 'AND '))) {
+            $this->query .= ' HAVING ' . $this->having . ' ';
+        }
+        if(!empty($this->sort = rtrim($this->sort, ', '))) {
+            $this->query .= ' ORDER BY ' . $this->sort . ' ';
+        }
+        $this->sum = ['arguments' => $this->arguments, 'query' => $this->query];
+        $this->arguments[] = $this->limit;
+        $this->arguments[] = ($this->state->_paginator->current - 1) * $this->limit;
+        $this->query .= ' LIMIT ? OFFSET ? ';
+        return $this;
+    }
+
+    protected function table(string $table): IBuilderFactory {
         $this->table = $table;
         return $this;
     }
 
-    public function where(string $key, $column = null, bool $condition = null): IBuilderFactory {
+    protected function where(string $key, $column = null, bool $condition = null): IBuilderFactory {
         if((is_bool($condition) && false == $condition)) {
         } elseif (is_string($condition)) {
             $this->where[preg_replace('/(\s+\?.*|\?.*)/', '', $key)] = $column . $condition;
@@ -290,18 +380,6 @@ class SqlBuilder extends Control implements IBuilderFactory {
         } elseif (null === $condition) {
             $this->where[] = $key;
         }
-        return $this;
-    }
-
-    public function order(array $order): IBuilderFactory {
-        foreach($order as $column => $value) {
-            if(!isset($this->columns[$column])) {
-                throw new InvalidStateException('You muse define order column ' . $column . ' in select method of Masala\IBuilder.');
-            } else if('DESC' != $value && 'ASC' != $value) {
-                throw new InvalidStateException('Order value can be only DESC or ASC.');
-            }
-        }
-        $this->order = $order;
         return $this;
     }
 

@@ -2,13 +2,15 @@
 
 namespace Masala;
 
-use Nette\Application\UI\Control;
-
 /** @author Lubomir Andrisek */
 interface IBuilderFactory {
 
-    public function handleState(): void;
+    public function clone(): IBuilderFactory;
 
-    public function props(): array;
+    public function handleExport(): void;
+
+    public function handlePage(): void;
+
+    public function handleState(): void;
 
 }
