@@ -19,7 +19,7 @@
 	"require": {
 		"mongodb/mongodb": "1.4.2",
 		"nette/nette": "3.0.0",
-		"php": ">= 7.2.9",
+		"php": ">= 7.1.0",
 		"PHPOffice/PHPExcel": "v1.8.1."
 	}
 }
