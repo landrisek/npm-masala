@@ -13,4 +13,6 @@ interface IBuilderFactory {
 
     public function handleState(): void;
 
+    public function props(): array;
+
 }

@@ -53,9 +53,6 @@ class SqlBuilder extends Control implements IBuilderFactory {
     /** @var int */
     protected $limit = 20;
 
-    /** @var int */
-    private $offset = 0;
-
     /** @var array */
     private $order = [];
 
@@ -229,7 +226,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
     }
 
     public function props(): array {
-        $this->props['download'] = ['label' => $this->translatorRepository->translate('download file')];
+        $this->props['download'] = ['label' => $this->translatorRepository->translate('Click here to download your file.')];
         $this->props['export'] = ['label' => $this->translatorRepository->translate('export'),
                                  'link' => $this->link('export')];
         $this->props['_paginator'] = ['link' => $this->link('page'),
