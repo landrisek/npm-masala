@@ -81,8 +81,23 @@ class MongoBuilder extends Control implements IBuilderFactory {
         return $this;
     }
 
+    private function format(array $data): array {
+        $formated = [];
+        foreach($data as $key => $value) {
+            if(is_numeric($value) && preg_match('/\./', $value)) {
+                $formated[$key] = floatval($value);
+            } else if(is_numeric($value)) {
+                $formated[$key] = intval($value);
+            } else {
+                $formated[$key] = $value;
+            }
+        }
+        return $formated;
+    }
+
     public function handleExport(): void {
         $this->state();
+        $this->state()->state->rows = (object) $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
         if(1 == $this->state->_paginator->current) {
             $excel = new PHPExcel();
             $title = 'export';
@@ -157,7 +172,7 @@ class MongoBuilder extends Control implements IBuilderFactory {
     public function order(array $order): IBuilderFactory {
         $sort = [];
         foreach($order as $column => $value) {
-            $sort[$column] = 'ASC' == $sort ? 1 : -1;
+            $sort[$column] = 'ASC' == $value ? 1 : -1;
         }
         $this->options['sort'] = $sort;
         return $this;
@@ -217,7 +232,7 @@ class MongoBuilder extends Control implements IBuilderFactory {
         foreach ($this->where as $column => $value) {
             $key = preg_replace('/\s(.*)/', '', $column);
             if(is_array($value)) {
-                $this->arguments[$key] = ['$in' => $value];
+                $this->arguments[$key] = ['$in' => $this->format($value)];
             } else if (preg_match('/\s\>\=/', $column) && (bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->arguments[$key] = ['$gte' => new UTCDateTime($converted)];
             } elseif (preg_match('/\s\>\=/', $column)) {
@@ -234,6 +249,8 @@ class MongoBuilder extends Control implements IBuilderFactory {
                 $this->arguments[$key] = ['$lt' => new UTCDateTime($converted * 1000)];
             } elseif (preg_match('/\s\</', $column)) {
                 $this->arguments[$key] = ['$gt' => $value];
+            } elseif (preg_match('/\s\!=/', $column)) {
+                 $this->arguments[$key] = ['$not' => ['$eq' => $value]];
             } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->arguments[$column] = new UTCDateTime($converted);
             } elseif (is_numeric($value) || !isset($this->state->_where->$column)) {

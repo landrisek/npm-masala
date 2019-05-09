@@ -56,7 +56,7 @@ final class MyMongoGrid extends MongoBuilder implements IBuilderFactory, IMyMong
     public function handleState(): void {
         $this->state();
         $this->state->rows = new stdClass();
-        foreach($this->database->query($this->query, ...$this->arguments)->fetchAll() as $key => $row) {
+        foreach($this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray() as $key => $row) {
             $this->state->rows->$key = $row;
             /** render logic */
         }
