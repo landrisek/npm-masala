@@ -96,7 +96,6 @@ class MongoBuilder extends Control implements IBuilderFactory {
     }
 
     public function handleExport(): void {
-        $this->state();
         $this->state()->state->rows = (object) $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
         if(1 == $this->state->_paginator->current) {
             $excel = new PHPExcel();
@@ -256,7 +255,7 @@ class MongoBuilder extends Control implements IBuilderFactory {
             } elseif (is_numeric($value) || !isset($this->state->_where->$column)) {
                 $this->arguments[$column] = $value;
             } else {
-                $this->arguments[$column] = new Regex($value, 's');
+                $this->arguments[$column] = new Regex('.*' . $value . '.*', 's');
             }
         }
         $this->options['skip'] = ($this->state->_paginator->current - 1) * $this->options['limit'];

@@ -2,39 +2,38 @@
 
 namespace Tests\Masala;
 
-use Masala\IBuilderFactory,
-    Masala\SqlBuilder,
-    Nette\DI\Container,
-    Tester\Assert,
-    Tester\TestCase;
+use Masala\SqlBuilder;
+use Nette\DI\Container;
+use Tester\Assert;
+use Tester\TestCase;
 
 $container = require __DIR__ . '/../../../../bootstrap.php';
 
 /** @author Lubomir Andrisek */
 final class SqlBuilderTest extends TestCase {
 
+    /** @var SqlBuilder */
+    private $class;
+
     /** @var Container */
     private $container;
-
-    /** @var IBuilderFactory */
-    private $class;
 
     public function __construct(Container $container) {
         $this->container = $container;
     }
 
-    protected function setUp(): void {
-        $this->class = new SqBuilder($this->container->getByType('Nette\Database\Context'), $this->container->getByType('Nette\Localization\ITranslator'));
-    }
-
     public function __destruct() {
-        echo 'Tests of ' . get_class($this->class) . ' finished.' . "\n";
+        echo 'Tests of Masala\SqlBuilder finished.' . "\n";
         stream_wrapper_restore('php');
     }
 
-    public function testFetch(): void {
-        Assert::true(is_object($this->class), 'SqlBuilder is not set.');
+    protected function setUp(): void {
+        $this->class = $this->container->getByType('Masala\SqlBuilder');
     }
+
+   public function testFetch(): void {
+       Assert::false(is_object($this->class), 'SqlBuilder is not set.');
+   }
 }
 
 id(new SqlBuilderTest($container))->run();

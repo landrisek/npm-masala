@@ -1,11 +1,14 @@
+import Cropper from 'react-cropper'
+import 'cropperjs/dist/cropper.css'
+import {Draggable, Droppable} from 'react-drag-and-drop'
 import React from 'react'
 import Parser from 'html-react-parser'
 
 export function Autocomplete(props, state, autocomplete, onBlur, onChange, onDown) {
-    var current = ''
-    var length = 0
-    var list = []
-    for(var key in autocomplete.data) {
+    let current = ''
+    let length = 0
+    let list = []
+    for(let key in autocomplete.data) {
         if(length == autocomplete.position) {
             list.push(<li key={current = key}>{Parser(autocomplete.data[key])}</li>)
         } else {
@@ -27,10 +30,6 @@ export function Autocomplete(props, state, autocomplete, onBlur, onChange, onDow
     </div>
 }
 
-export function Button(props, state, onClick) {
-    return <a className={state && state.className ? state.className :  'btn btn-success'} onClick={onClick} style={{marginTop:'10px'}}>{props.label}</a>
-}
-
 export function Checkbox(props, state, onChange) {
     return <label style={{marginRight:'10px'}}>
         <input checked={'1' == state ? 'checked' : ''}
@@ -42,35 +41,35 @@ export function Checkbox(props, state, onChange) {
 }
 
 function diff(origin, state) {
-    var newState = new Object();
-    var newOrigin = new Object();
-    for(var i = 0;i < state.length; i++) {
+    let newState = new Object();
+    let newOrigin = new Object();
+    for(let i = 0;i < state.length; i++) {
       if(null == newState[state[i]]) {
         newState[state[i]] = { rows: new Array(), origin: null }
       }
       newState[state[i]].rows.push(i)
     }
-    for(var i = 0;i < origin.length; i++) {
+    for(let i = 0;i < origin.length; i++) {
       if(null == newOrigin[origin[i]]) {
         newOrigin[origin[i]] = { rows: new Array(), state: null }
       }
       newOrigin[origin[i] ].rows.push(i)
     }
-    for(var i in newState) {
+    for(let i in newState) {
       if(1 == newState[i].rows.length && 'undefined' != typeof(newOrigin[i]) && 1 == newOrigin[i].rows.length) {
         state[newState[i].rows[0] ] = { text: state[ newState[i].rows[0] ], row: newOrigin[i].rows[0] };
         origin[newOrigin[i].rows[0] ] = { text: origin[ newOrigin[i].rows[0] ], row: newState[i].rows[0] }
       }
     }
-    for(var i = 0; i < state.length - 1; i++ ) {
-      if(state[i].text != null && state[i+1].text == null && state[i].row + 1 < origin.length && null == origin[state[i].row + 1 ].text && 
+    for(let i = 0; i < state.length - 1; i++ ) {
+      if(state[i].text != null && state[i+1].text == null && state[i].row + 1 < origin.length && null == origin[state[i].row + 1 ].text &&
            state[i+1] == origin[state[i].row + 1 ]) {
         state[i+1] = { text: state[i+1], row: state[i].row + 1 }
         origin[state[i].row+1] = { text: origin[state[i].row+1], row: i + 1 }
       }
     }
-    for(var i = state.length - 1; i > 0; i--) {
-      if(null != state[i].text && null == state[i-1].text && state[i].row > 0 && null == origin[state[i].row - 1].text && 
+    for(let i = state.length - 1; i > 0; i--) {
+      if(null != state[i].text && null == state[i-1].text && state[i].row > 0 && null == origin[state[i].row - 1].text &&
            state[i-1] == origin[state[i].row - 1 ] ) {
         state[i-1] = { text: state[i-1], row: state[i].row - 1 }
         origin[state[i].row-1] = { text: origin[state[i].row-1], row: i - 1 }
@@ -81,37 +80,37 @@ function diff(origin, state) {
 
 export function Difference(origin, state) {
     origin = origin.replace(/\s+$/, '')
-    var originTags = origin.match(/\s+/g)
-    if (originTags == null) {
+    let originTags = origin.match(/\s+/g)
+    if(originTags == null) {
       originTags = ["\n"];
     } else {
       originTags.push("\n");
     }
     state = state.replace(/\s+$/, '')
-    var stateTags = state.match(/\s+/g)
+    let stateTags = state.match(/\s+/g)
     if (stateTags == null) {
       stateTags = ["\n"];
     } else {
       stateTags.push("\n");
     }
-    var out = diff('' == origin ? [] : origin.split(/\s+/), '' == state ? [] : state.split(/\s+/))
-    var output = ''
+    let out = diff('' == origin ? [] : origin.split(/\s+/), '' == state ? [] : state.split(/\s+/))
+    let output = ''
     if (out.state.length == 0) {
-        for (var i = 0; i < out.origin.length; i++) {
+        for(let i = 0; i < out.origin.length; i++) {
           output += '<del>' + escape(out.origin[i]) + originTags[i] + '</del>';
         }
     } else {
-      if (out.state[0].text == null) {
-        for (var n = 0; n < out.origin.length && out.origin[n].text == null; n++) {
+      if(out.state[0].text == null) {
+        for(let n = 0; n < out.origin.length && out.origin[n].text == null; n++) {
           output += '<del>' + escape(out.origin[n]) + originTags[n] + '</del>';
         }
       }
-      for ( var i = 0; i < out.state.length; i++ ) {
+      for(let i = 0; i < out.state.length; i++ ) {
         if (out.state[i].text == null) {
           output += '<ins>' + escape(out.state[i]) + stateTags[i] + '</ins>';
         } else {
-          var pre = '';
-          for (var n = out.state[i].row + 1; n < out.origin.length && out.origin[n].text == null; n++) {
+          let pre = '';
+          for(let n = out.state[i].row + 1; n < out.origin.length && out.origin[n].text == null; n++) {
             pre += '<del>' + escape(out.origin[n]) + originTags[n] + '</del>';
           }
           output += ' ' + out.state[i].text + stateTags[i] + pre;
@@ -157,13 +156,13 @@ export function Label(props) {
 }
 
 export function MultiSelect(autocomplete, props, data, onBlur, onChange, onClick, onKey, onRemove) {
-    var values = {}
-    var state = data ? data : []
+    let values = {}
+    let state = data ? data : []
     for(var value in state) {
         values[state[value]] = true
     }
-    var container = []
-    var options = []
+    let container = []
+    let options = []
     props.sum = 0
     if(autocomplete.id == props.id) {
         options.push(<li className={'list-group-item'}
@@ -173,8 +172,8 @@ export function MultiSelect(autocomplete, props, data, onBlur, onChange, onClick
                          value={value}>{props.cancel}</li>)
         props.sum++
     }
-    for(var value in props.data) {
-        var key = value.replace('_', '')
+    for(let value in props.data) {
+        let key = value.replace('_', '')
         if(undefined != values[key]) {
             container.push(<li className={'list-group-item'}
                                data-props={JSON.stringify({id:props.id,value:key})}
@@ -184,7 +183,7 @@ export function MultiSelect(autocomplete, props, data, onBlur, onChange, onClick
                         <span className={'glyphicon glyphicon-remove'} data-props={JSON.stringify({id:props.id,value:key})} style={{float:'right'}}></span>
                     </li>)
         } else if(autocomplete.id == props.id && null != props.data[value].toLowerCase().match(autocomplete.value.toLowerCase())) {
-            if(props.sum == autocomplete.position && state) { var selected = parseInt(value.replace('_', '')) }
+            if(props.sum == autocomplete.position) { var selected = value.replace('_', '') }
             options.push(<li className={'list-group-item'}
                              data-props={JSON.stringify({id:props.id,value:key})}
                              onClick={onClick}
@@ -226,8 +225,8 @@ export function Number(props, state, onChange) {
 }
 
 export function Paginator(props, state, onClick) {
-    var pages = []
-    for (var page = 1; page <= state.last; page++) {
+    let pages = []
+    for(let page = 1; page <= state.last; page++) {
         if(page == state.current) {
             pages.push(<li className={'page-item active'} key={page}>
                 <a className={'page-link'} data-page={page} title={props.page + ' '  + page}>{page}</a></li>)
@@ -255,6 +254,38 @@ export function Password(props, state, onChange) {
                    onChange={onChange}
                    value={state}
                    type={'password'} />
+    </div>
+}
+
+export function Photo(props, state, onDrop, onLoad, onRemove, onSnapshot) {
+    return <div className={'card'} key={'gallery-' + props.id} style={{height:props.height + 'px',width:props.width + 'px',float:'left',margin:'10px'}}>
+        <Draggable data={'photo'} type={props.id}>
+            <Droppable accept='image/*'
+                       types={[props.id]}
+                       onDrop={onDrop}>
+                {props.height != state.height || props.width != state.width ?
+                 <Cropper alt={'alt'}
+                    aspectRatio={props.width / props.height}
+                    crop={onSnapshot}
+                    guides={false}
+                    ref={'cropper'}
+                    src={state.src}
+                    style={{height:props.height,width:props.width}} /> :
+                 <img alt={props.id}
+                      className={'card-img-top'}
+                      height={props.height}
+                      id={props.id}
+                      src={state.src}
+                      width={props.width} />}
+            </Droppable>
+        </Draggable>
+        <div className={'card-body'}>
+            <a className={'label label-danger'}
+               id={props.id}
+               name={props.id}
+               onClick={onRemove}>
+                <span className={'glyphicon glyphicon-remove'}></span>&nbsp;&nbsp;{'remove photo'}</a>
+        </div>
     </div>
 }
 

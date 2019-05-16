@@ -1,0 +1,59 @@
+{
+  "author": "Lubomir Andrisek",
+  "dependencies": {
+    "bootstrap": "^3.4.1",
+    "font-awesome": "^4.7.0",
+    "jquery": "^1.9.1",
+    "jquery-ui": "^1.12.1"
+  },
+  "description": "acommodation agregator",
+  "devDependencies": {
+    "@babel/core": "^7.4.0",
+    "@babel/plugin-proposal-class-properties": "^7.4.0",
+    "@babel/preset-env": "^7.4.2",
+    "@babel/preset-react": "^7.0.0",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.0-beta.6",
+    "babel-preset-env": "^1.7.0",
+    "classnames": "^2.2.6",
+    "css-loader": "^2.1.1",
+    "jest": "^23.6.0",
+    "npm-watch": "^0.5.0",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0",
+    "react-drag-and-drop": "^3.0.0",
+    "react-dropzone": "^8.0.3",
+    "style-loader": "^0.23.1",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.1.2",
+    "webpack-merge": "^4.2.1"
+  },
+  "jest": {
+    "automock": false,
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "jsx"
+    ],
+    "moduleDirectories": [
+      "node_modules"
+    ],
+    "testRegex": "(/src/__tests__/.*|\\.(test|spec))\\.(js|jsx)$",
+    "unmockedModulePathPatterns": [
+      "<rootDir>/node_modules/react/",
+      "<rootDir>/node_modules/react-dom/"
+    ],
+    "setupFiles": [
+      "./src/__tests__/config.js"
+    ]
+  },
+  "keywords": [
+    "accomodation",
+    "aggregator"
+  ],
+  "name": "masala",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest"
+  }
+}

@@ -4,18 +4,18 @@ var INVALID = {}
 
 function invalidate(invalid, id, props) {
     if(invalid && undefined == INVALID[id]) {
-        INVALID[id] = {[props]: true}
+        INVALID[id] = {[props.id]: true}
         return true
     } else if(undefined == INVALID[id]) {
     } else if(invalid) {
-        return INVALID[id][props] = true
-    } else if(false == invalid && undefined != INVALID[id] && undefined != INVALID[id][props]) {
-        delete INVALID[id][props]
+        return INVALID[id][props.id] = true
+    } else if(false == invalid && undefined != INVALID[id] && undefined != INVALID[id][props.id]) {
+        delete INVALID[id][props.id]
     }
 }
 
 export function Boolean(id, props, state) {
-    if(invalidate(state, id, props.message)) {
+    if(invalidate(state, id, props)) {
         return <div className={'alert alert-warning alert-dismissible show'}>{props.message}</div>
     }
 }
@@ -23,7 +23,7 @@ export function Boolean(id, props, state) {
 export function DateTime(id, props, state) {
     var invalid = undefined != state && state.length > 0 && isNaN(Date.parse(state))
     if(invalidate(invalid, id, props)) {
-        return <div>{props}</div>
+        return <div>{props.message}</div>
     }
 }
 
@@ -47,7 +47,7 @@ export function Message(state) {
 
 export function Minimum(id, props, state) {
     var invalid = undefined == state || props.value > state.length
-    if(invalidate(invalid, id, props.message)) {
+    if(invalidate(invalid, id, props)) {
         return <div>{props.message}</div>
     }
 }
@@ -64,6 +64,13 @@ export function Required(id, props, state) {
     if(invalidate(invalid, id, props)) {
         return <div className={'alert alert-warning alert-dismissible show'}>{props.message}</div>
     }
+}
+
+export function Button(id, props, onClick) {
+    for(var key in INVALID[id]) {
+        return
+    }
+    return <a className={props.className ? props.className :  'btn btn-success'} onClick={onClick} style={{marginTop:'10px'}}>{props.label}</a>
 }
 
 export function Submit(id, props, onClick) {

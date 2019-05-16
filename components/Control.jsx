@@ -1,10 +1,10 @@
-import {Autocomplete, Button, Checkbox, Difference, Download, Icon, Info, Label, MultiSelect, Number, Paginator, Password, ProgressBar, RadioList, 
-    SelectBox, Sort, Text, TextArea, Warning} from './Components.jsx'
+import {Autocomplete, Checkbox, Difference, Download, Icon, Info, Label, MultiSelect, Number, Paginator, Password, Photo, ProgressBar,
+    RadioList, SelectBox, Sort, Text, TextArea, Warning} from './Components.jsx'
 import {Editor} from 'react-draft-wysiwyg'
 import {convertToRaw, ContentState, EditorState} from 'draft-js'
 import draftToHtml from 'draftjs-to-html'
 import Datetime from 'react-datetime'
-import {Boolean, DateTime, Email, Equal, Phone, Required, Message, Minimum, Submit} from './Validators.jsx'
+import {Boolean, Button, DateTime, Email, Equal, Phone, Required, Message, Minimum, Submit} from './Validators.jsx'
 import React, {Component} from 'react'
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 import 'react-datetime/css/react-datetime.css'
@@ -21,8 +21,8 @@ export default class Control extends Component {
     Autocomplete(props, state) {
         return Autocomplete(props,
                             state,
-                            this.state._autocomplete, 
-                            this.onBlurAutocomplete.bind(this), 
+                            this.state._autocomplete,
+                            this.onBlurAutocomplete.bind(this),
                             this.onChangeAutocomplete.bind(this, props, state),
                             this.onKeyAutocomplete.bind(this, props))
     }
@@ -30,7 +30,7 @@ export default class Control extends Component {
         return Boolean(this.constructor.name, props, state)
     }
     Button(props, state) {
-        return this.IsClicked(props.id, Button(props, state, this.onClickButton.bind(this, props)))
+        return this.IsClicked(props.id, Button(this.constructor.name, props, this.onClickButton.bind(this, props)))
     }
     CheckboxFilter(props, state) {
         return Checkbox(props, state, this.onChangeCheckboxFilter.bind(this, props))
@@ -49,15 +49,15 @@ export default class Control extends Component {
         } else if(null != this.props._where) {
             this.state._where = this.props._where
         }
-        if(undefined == this.props.if || this.props.if) {
+        if(this.ComponentDidMount()) {
             fetch(this.props.data.state.link,
-            {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-            response => response.json()).then(state => {
-                this.setState(state)
-                this.paginator()
-                this.OnFetch() })
+                {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                response => response.json()).then(state => {
+                    this.setState(state); this.paginator(); })
         }
-
+    }
+    ComponentDidMount() {
+        return undefined == this.props.if || this.props.if
     }
     DateTime(props, state) {
         return <><label style={{marginTop:'10px'}}>{props.label}</label>
@@ -78,6 +78,9 @@ export default class Control extends Component {
     }
     Download(props, state) {
         return Download(props, state)
+    }
+    IsDateTime(props, state) {
+        return DateTime(this.constructor.name, props, state)
     }
     Editor(props, state) {
         var self = this
@@ -120,7 +123,7 @@ export default class Control extends Component {
                            state,
                            this.onBlurAutocomplete.bind(this),
                            this.onChangeMultiSelect.bind(this, props),
-                           this.onClickMultiSelectFilter.bind(this), 
+                           this.onClickMultiSelectFilter.bind(this),
                            this.onKeyMultiSelectFilter.bind(this),
                            this.onRemoveMultiSelectFilter.bind(this))
     }
@@ -156,7 +159,7 @@ export default class Control extends Component {
         }
     }
     OnChangeCheckboxFilter(props, state) {
-        var where = this.state._where
+        let where = this.state._where
         where[props.id] = String(state)
         return {[props.id]:String(state)}
     }
@@ -179,11 +182,11 @@ export default class Control extends Component {
         this.setState({_where:this.state._where})
     }
     onChangeEditor(props, state) {
-        var wysiwyg = this.state._wysiwyg
+        let wysiwyg = this.state._wysiwyg
         wysiwyg[props.id] = state
-        var state = this.OnChangeEditor(props, draftToHtml(convertToRaw(state.getCurrentContent())))
-        state._wysiwyg = wysiwyg
-        this.setState(state)
+        let changed = this.OnChangeEditor(props, draftToHtml(convertToRaw(state.getCurrentContent())))
+        changed._wysiwyg = wysiwyg
+        this.setState(changed)
     }
     OnChangeEditor(props, state) {
         return {[props.id]:state.substr(3, state.length - 9)}
@@ -215,7 +218,7 @@ export default class Control extends Component {
         return {[props.id]:state}
     }
     onClickButton(props, state) {
-        var self = this
+        let self = this
         this.state._clicked[props.id] = true
         fetch(props.link,
              {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
@@ -240,18 +243,18 @@ export default class Control extends Component {
         this.setState({_clicked:this.state._clicked})
         fetch(props.link,
              {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-              response => response.json()).then(state => { delete state._clicked[props.id] 
+              response => response.json()).then(state => { delete state._clicked[props.id]
                                                            this.setState(state) })
     }
     onClickInfo(props) {
         this.setState({[props.id]:false})
     }
     onClickMultiSelectFilter(event) {
-        var props = JSON.parse(event.target.getAttribute('data-props'))
+        let props = JSON.parse(event.target.getAttribute('data-props'))
         if(undefined == this.state._where[props.id]) {
             this.state._where[props.id] = []
         }
-        this.state._where[props.id].push(parseInt(props.value))
+        this.state._where[props.id].push(props.value)
         this.setState({_where:this.state._where})
     }
     onClickPaginator(event) {
@@ -263,11 +266,14 @@ export default class Control extends Component {
              {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
                 response => response.json()).then(state => { delete state._clicked._paginator, this.setState(state); this.reload() })
     }
+    onClickPhoto(props, event) {
+        console.log(event)
+    }
     onClickRadio(props, event) {
         this.setState({[props.id]:event.target.value})
     }
     onClickSort(props) {
-        var sort = this.state._order[props.id]
+        let sort = this.state._order[props.id]
         if(undefined == sort) {
             this.state._order[props.id] = '-desc'
         } else if('-desc' == sort) {
@@ -282,8 +288,8 @@ export default class Control extends Component {
     onClickSubmit(props) {
         this.state._clicked[props.id] = true
         this.setState({_clicked:this.state._clicked})
-        var state = this.state
-        var wysiwyg = this.state._wysiwyg
+        let state = this.state
+        let wysiwyg = this.state._wysiwyg
         fetch(this.props.data[props.id].link,
             {body: JSON.stringify(state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
                response => response.json()).then(state => { delete state._clicked[props.id]
@@ -295,12 +301,15 @@ export default class Control extends Component {
     }
     OnClickSubmit(props) { }
     onClickUpload(props, state) {
-        var files = this.state[props.id]
+        let files = this.state[props.id]
         delete files[state]
         this.setState({[props.id]:files})
     }
+    onDropPhoto(props, event) {
+        console.log(event)
+    }
     onDropUpload(props, files, rejected) {
-        var self = this
+        let self = this
         for(var key in files) {
             var file = files[key]
             delete files[key]
@@ -329,13 +338,21 @@ export default class Control extends Component {
             })
         }
     }
-    OnFetch() { }
     onFilter(props, event) {
         this.state._where[props.id] = event.target.value
         this.setState({_where: Object.assign({}, this.state._where)})
     }
+    onLoadPhoto(props, event) {
+        if(event.target.clientHeight != event.target.naturalHeight || event.target.clientWidth != event.target.naturalWidth) {
+            this.setState(this.OnLoadPhoto(props, {clientHeight:event.target.clientHeight,
+                                            naturalHeight:event.target.naturalHeight,
+                                            clientWidth:event.target.clientWidth,
+                                            naturalWidth:event.target.naturalWidth}))
+        }
+    }
+    OnLoadPhoto(props, state) { }
     onKeyAutocomplete(props, event) {
-        var state = this.state._autocomplete
+        let state = this.state._autocomplete
         if(state.position == (parseInt(event.target.getAttribute('length')) - 1)) {
             state.position = 0
         } else if(13 == event.keyCode) {
@@ -351,7 +368,7 @@ export default class Control extends Component {
         this.setState({_autocomplete:state})
     }
     onKeyMultiSelectFilter(event) {
-        var props = JSON.parse(event.target.getAttribute('data-props'))
+        let props = JSON.parse(event.target.getAttribute('data-props'))
         if(13 == event.keyCode && undefined == this.state._where[props.id]) {
             this.state._where[props.id] = [props.value]
             this.setState({_autocomplete:{list:{},value:''},_where:this.state._where})
@@ -359,7 +376,7 @@ export default class Control extends Component {
             this.state._where[props.id].push(props.value)
             this.setState({_autocomplete:{},_where:this.state._where})
         } else if(40 == event.keyCode || 38 == event.keyCode) {
-            var autocomplete = this.state._autocomplete
+            let autocomplete = this.state._autocomplete
             if(40 == event.keyCode && props.sum > this.state._autocomplete.position) {
                 autocomplete.position++
             } else if(40 == event.keyCode && this.state._autocomplete.position >= props.sum) {
@@ -378,15 +395,18 @@ export default class Control extends Component {
         }
     }
     onRemoveMultiSelectFilter(event) {
-        var props = JSON.parse(event.target.getAttribute('data-props'))
-        var where = []
-        for(var value in this.state._where[props.id]) {
+        let props = JSON.parse(event.target.getAttribute('data-props'))
+        let where = []
+        for(let value in this.state._where[props.id]) {
             if(this.state._where[props.id][value] != props.value) {
                 where.push(this.state._where[props.id][value])
             }
         }
         this.state._where[props.id] = where
         this.setState({_where:this.state._where})
+    }
+    onCropPhoto(props) {
+        console.log(props)
     }
     paginator() {
         if(PAGINATOR[this.constructor.name]) {
@@ -402,6 +422,12 @@ export default class Control extends Component {
     Password(props, state) {
         return Password(props, state, this.onChangeText.bind(this, props))
     }
+    Photo(props, state) {
+        return Photo(props, state, this.onDropPhoto.bind(this, props),
+                                   this.onLoadPhoto.bind(this, props),
+                                   this.onClickPhoto.bind(this, props),
+                                   this.onCropPhoto.bind(props))
+    }
     Phone(props, state) {
         return Phone(this.constructor.name, props, state)
     }
@@ -412,9 +438,9 @@ export default class Control extends Component {
         return RadioList(props, state, this.onClickRadio.bind(this, props))
     }
     reload() {
-        var hash = window.location.href.replace(/(.*)\#/, '')
-        var url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
-        var data = JSON.stringify({_order:this.state._order,_page:this.state._paginator.current,_where:this.state._where})
+        let hash = window.location.href.replace(/(.*)\#/, '')
+        let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
+        let data = JSON.stringify({_order:this.state._order,_page:this.state._paginator.current,_where:this.state._where})
         url += this.constructor.name.toLowerCase() + '=' + data
         if(hash) {
             url += '#' + hash
@@ -425,15 +451,15 @@ export default class Control extends Component {
         return Required(this.constructor.name, props, state)
     }
     Row(key, state) {
-        var row = []
-        for(var column in state) {
+        let row = []
+        for(let column in state) {
             row.push(<td key={'grid-col-' + column}>{state[column]}</td>)
         }
         return <tr key={'row-' + key}>{row}</tr>
     }
     Rows(state) {
-        var rows = []
-        for(var key in state) {
+        let rows = []
+        for(let key in state) {
             rows.push(this.Row(key, state[key]))
         }
         return rows
@@ -460,9 +486,9 @@ export default class Control extends Component {
         return Text(props, state, this.onFilter.bind(this, props), this.onKeyTextFilter.bind(this, props))
     }
     Upload(props, state) {
-        var files = []
+        let files = []
         if(state) {
-            for(var file in state) {
+            for(let file in state) {
                 files.push(<li className={'list-group-item'} key={props.id + file}>{state[file]}
                         <button aria-label={'Close'} className={'close'} onClick={this.onClickUpload.bind(this, props, file)} type={'button'}><span aria-hidden={'true'}>&times;</span></button>
                 </li>)

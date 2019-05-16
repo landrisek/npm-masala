@@ -104,7 +104,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
             $this->query .= '* ';
         }
         $this->update .= ' ';
-        foreach ($this->columns as $column => $alias) {
+        foreach($this->columns as $alias => $column) {
             if(preg_match('/\.|\s| |\(|\)/', trim($column))) {
                 $this->query .= $column . ' AS `' . $alias . '`, ';
             } else {
@@ -131,7 +131,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
     }
 
     public function handleExport(): void {
-        $this->state();
+        $this->state()->state->rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
         if(1 == $this->state->_paginator->current) {
             $excel = new PHPExcel();
             $title = 'export';
@@ -247,8 +247,8 @@ class SqlBuilder extends Control implements IBuilderFactory {
         if(preg_match('/\sAS\s/', $alias)) {
             throw new InvalidStateException('Use intented alias as key in column ' . $column . '.');
         }
-        $this->columns[$column] = empty($alias) ? $column : $alias;
-        $this->props[empty($alias) ? $column : $alias] = ['label' => $label];
+        $this->columns[!empty($alias) ? $alias : $column] = $column;
+        $this->props[!empty($alias) ? $alias : $column] = ['label' => $label];
         return $this;
     }
 
@@ -266,16 +266,14 @@ class SqlBuilder extends Control implements IBuilderFactory {
                 $this->sort .= ' ' . $alias . ' ' . ltrim($column, '-') . ', ';
             }
         }
-        foreach($this->state->_where as $alias => $column) {
+        foreach($this->state->_where as $alias => $value) {
             if(isset($this->columns[preg_replace('/(>|<|=|\s)/', '', $alias)])) {
-                $this->where($alias, $column, !empty($column));
+                $this->where($alias, $value, !empty($value));
             }
         }
         if(empty($this->sort)) {
             foreach($this->order as $alias => $value) {
-                if(!isset($this->columns[$alias])) {
-                    throw new InvalidStateException('You must define order column ' . $alias . ' in select method of Masala\IBuilderFactory.');
-                } else if(!in_array($value, ['asc', 'desc', 'ASC', 'DESC'])) {
+                if(!in_array($value, ['asc', 'desc', 'ASC', 'DESC'])) {
                     throw new InvalidStateException('Order value can be only DESC or ASC.');
                 } else {
                     $this->sort .= ' ' . $alias . ' ' . $value . ', ';
