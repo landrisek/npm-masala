@@ -40,6 +40,16 @@ export function Checkbox(props, state, onChange) {
     </label>
 }
 
+export function Crop(props, state, onCrop) {
+    return <div className={'thumbnail'} key={'gallery-' + props.id}>
+                <Cropper alt={'alt'}
+                         crop={onCrop}
+                         guides={false}
+                         ref={'cropper'}
+                         src={state} />
+    </div>
+}
+
 function diff(origin, state) {
     let newState = new Object();
     let newOrigin = new Object();
@@ -137,7 +147,30 @@ function escape(string) {
 }
 
 export function Icon(props, onClick) {
-    return <button onClick={onClick} type={'button'}><span aria-hidden={'true'} className={props.className ? props.className : 'glyphicon glyphicon-edit'}></span></button>
+    return <button onClick={onClick} type={'button'}>
+        <span aria-hidden={'true'} className={props.className ? props.className : 'glyphicon glyphicon-edit'}></span>
+    </button>
+}
+
+export function Image(props, state, onClick, onDrop) {
+    return <div className={'card'} key={'gallery-' + props.id}>
+        <Draggable data={'photo'} type={props.id}>
+            <Droppable accept='image/*'
+                       types={[props.id]}
+                       onDrop={onDrop}>
+                <img alt={props.id}
+                     className={'card-img-top'}
+                     height={props.height}
+                     id={props.id}
+                     src={state}
+                     width={props.width} />
+            </Droppable>
+        </Draggable>
+        <div className={'card-body'}>
+            <a className={'label label-danger'} id={props.id} onClick={onClick}>
+                <span className={'glyphicon glyphicon-remove'}></span>&nbsp;&nbsp;{'remove photo'}</a>
+        </div>
+    </div>
 }
 
 export function Info(props, state, onClick) {
@@ -158,7 +191,7 @@ export function Label(props) {
 export function MultiSelect(autocomplete, props, data, onBlur, onChange, onClick, onKey, onRemove) {
     let values = {}
     let state = data ? data : []
-    for(var value in state) {
+    for(let value in state) {
         values[state[value]] = true
     }
     let container = []
@@ -257,38 +290,6 @@ export function Password(props, state, onChange) {
     </div>
 }
 
-export function Photo(props, state, onDrop, onLoad, onRemove, onSnapshot) {
-    return <div className={'card'} key={'gallery-' + props.id} style={{height:props.height + 'px',width:props.width + 'px',float:'left',margin:'10px'}}>
-        <Draggable data={'photo'} type={props.id}>
-            <Droppable accept='image/*'
-                       types={[props.id]}
-                       onDrop={onDrop}>
-                {props.height != state.height || props.width != state.width ?
-                 <Cropper alt={'alt'}
-                    aspectRatio={props.width / props.height}
-                    crop={onSnapshot}
-                    guides={false}
-                    ref={'cropper'}
-                    src={state.src}
-                    style={{height:props.height,width:props.width}} /> :
-                 <img alt={props.id}
-                      className={'card-img-top'}
-                      height={props.height}
-                      id={props.id}
-                      src={state.src}
-                      width={props.width} />}
-            </Droppable>
-        </Draggable>
-        <div className={'card-body'}>
-            <a className={'label label-danger'}
-               id={props.id}
-               name={props.id}
-               onClick={onRemove}>
-                <span className={'glyphicon glyphicon-remove'}></span>&nbsp;&nbsp;{'remove photo'}</a>
-        </div>
-    </div>
-}
-
 export function ProgressBar(props, state) {
     return <div className={'progress'} key={props.id + '-progress'} style={{marginTop:'10px'}}>
             <div className={'progress-bar'} style={state ? {width:state + '%'} : {}}></div>
@@ -296,28 +297,17 @@ export function ProgressBar(props, state) {
 }
 
 export function RadioList(props, state, onChange) {
-    var container = []
-    for(var key in props.data) {
-        var checked = false
-        if(state == key) {
-            checked = 'checked'
-        }
-        container.push(<label key={props.id + '-' + key}>
-                <input checked={checked}
-                       className={'form-control'}
-                       name={props.id}
-                       onChange={onChange}
-                       value={key}
-                       type={'radio'} />{props.data[key]}
-                </label>)
+    let container = []
+    for(let key in props.data) {
+        container.push(<>&nbsp;<input checked={key == state} onChange={onChange} value={key} type={'radio'} />&nbsp;{props.data[key]}</>)
     }
-    return <div className={'form-group'} key={props.id}><label>{props.label}</label>{container}</div>
+    return container
 }
 
 export function SelectBox(props, state, onChange) {
-    var options = []
+    let options = []
     options.push(props.placeholder ? <option key={props.id + '-prompt'}>{props.placeholder}</option> : '')
-    for(var key in props.data) {
+    for(let key in props.data) {
         if(props.data[key] == state || key == state) {
             options.push(<option selected key={key} value={key}>{props.data[key]}</option>)
         } else {

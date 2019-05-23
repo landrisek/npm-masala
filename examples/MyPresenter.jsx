@@ -48,4 +48,4 @@ export default class MyPresenter extends Presenter {
 
 var id = 'MyPresenter'
 var presenter = document.getElementById(id)
-ReactDOM.render(<MyPresenter data={JSON.parse(presenter.getAttribute('props'))} state={id} />, presenter)
+ReactDOM.render(<MyPresenter data={JSON.parse(presenter.getAttribute('props'))} />, presenter)

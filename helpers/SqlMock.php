@@ -4,6 +4,7 @@ namespace Masala;
 
 use Nette\Database\Context;
 use Nette\Database\IRow;
+use Nette\Database\Table\IRow as TableRow;
 
 /** @author Lubomir Andrisek */
 final class SqlMock {
@@ -19,17 +20,13 @@ final class SqlMock {
         return $this->database->query('EXPLAIN SELECT `' . $column . '` FROM `' . $table . '`')->fetch();
     }
 
-    public function get(): SqlMock {
-        return $this;
-    }
-
     public function getColumns(string $table): array {
         return $this->database->getConnection()
                         ->getSupplementalDriver()
                         ->getColumns($table);
     }
 
-    public function getDuplicity(string $table, string $group, array $columns): Database\Table\IRow {
+    public function getDuplicity(string $table, string $group, array $columns): TableRow {
         $resource = $this->database->table((string) $table)
                         ->select($group . ', COUNT(id) AS sum');
         foreach($columns as $column => $value) {
@@ -46,7 +43,7 @@ final class SqlMock {
                     ->getPrimary();
     }
 
-    public function getTestRow(string $table, array $columns = [], $select = null, $order = null): Database\Table\IRow {
+    public function getTestRow(string $table, array $columns = [], $select = null, $order = null): TableRow {
         $resource = $this->database->table($table);
         empty($select) ?  null : $resource->select($select);
         foreach ($columns as $column => $value) {

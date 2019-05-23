@@ -1,4 +1,4 @@
-import {Autocomplete, Checkbox, Difference, Download, Icon, Info, Label, MultiSelect, Number, Paginator, Password, Photo, ProgressBar,
+import {Autocomplete, Checkbox, Crop, Difference, Download, Icon, Image, Info, Label, MultiSelect, Number, Paginator, Password, ProgressBar,
     RadioList, SelectBox, Sort, Text, TextArea, Warning} from './Components.jsx'
 import {Editor} from 'react-draft-wysiwyg'
 import {convertToRaw, ContentState, EditorState} from 'draft-js'
@@ -11,12 +11,12 @@ import 'react-datetime/css/react-datetime.css'
 import {stateFromHTML} from 'draft-js-import-html';
 import {Upload} from './Upload.jsx'
 
-var PAGINATOR = {}
+let PAGINATOR = {}
 
 export default class Control extends Component {
     constructor(props) {
         super(props)
-        this.state = {_autocomplete:{data:{},position:0},_clicked:{},_paginator:{current:1,last:1,sum:0},_submit:undefined,_order:{},_where:{},_wysiwyg:{}}
+        this.state = {_autocomplete:{data:{},position:0},_clicked:{},_crops:{},_paginator:{current:1,last:1,sum:0},_submit:undefined,_order:{},_where:{},_wysiwyg:{}}
     }
     Autocomplete(props, state) {
         return Autocomplete(props,
@@ -39,10 +39,10 @@ export default class Control extends Component {
         return Checkbox(props, state, this.onChangeCheckbox.bind(this, props))
     }
     componentDidMount() {
-        var regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
-        var search = regex.exec(window.location.search)
+        let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
+        let search = regex.exec(window.location.search)
         if(null != search) {
-            var pattern = JSON.parse(search[1].replace(/\&(.*)/, '').split('%22').join('"').split('%20').join(' '))
+            let pattern = JSON.parse(search[1].replace(/\&(.*)/, '').split('%22').join('"').split('%20').join(' '))
             this.state._order = pattern._order
             this.state._where = pattern._where
             this.state._paginator.current = parseInt(pattern._page)
@@ -58,6 +58,9 @@ export default class Control extends Component {
     }
     ComponentDidMount() {
         return undefined == this.props.if || this.props.if
+    }
+    Crop(props, state) {
+        return Crop(props, state, this.onCropImage.bind(this, props))
     }
     DateTime(props, state) {
         return <><label style={{marginTop:'10px'}}>{props.label}</label>
@@ -83,7 +86,7 @@ export default class Control extends Component {
         return DateTime(this.constructor.name, props, state)
     }
     Editor(props, state) {
-        var self = this
+        let self = this
         if(undefined == this.state._wysiwyg[props.id]) {
             this.state._wysiwyg[props.id] = EditorState.createWithContent(stateFromHTML(state))
         }
@@ -102,14 +105,17 @@ export default class Control extends Component {
     Icon(props) {
         return this.IsClicked(props.id, Icon(props, this.onClickIcon.bind(this, props)))
     }
+    Image(props, state) {
+        return Image(props, state, this.onClickImage.bind(this, props), this.onDropImage.bind(this, props))
+    }
+    Info(props, state) {
+        return Info(props, state, this.onClickInfo.bind(this, props))
+    }
     IsClicked(props, component) {
         if(this.state._clicked[props]) {
             return <div className={'btn btn-success waiting'} style={{marginTop:'10px'}}>&nbsp;&nbsp;&nbsp;&nbsp;</div>
         }
         return component
-    }
-    Info(props, state) {
-        return Info(props, state, this.onClickInfo.bind(this, props))
     }
     Label(props) {
         return Label(props)
@@ -201,6 +207,9 @@ export default class Control extends Component {
     OnChangeNumber(props, state) {
         return {[props.id]:state}
     }
+    onChangeRadio(props, event) {
+        this.setState({[props.id]:event.target.value})
+    }
     onChangeSelectBoxFilter(props, event) {
         this.state._where[props.id] = event.target.value
         this.setState({_where:this.state._where})
@@ -246,6 +255,9 @@ export default class Control extends Component {
               response => response.json()).then(state => { delete state._clicked[props.id]
                                                            this.setState(state) })
     }
+    onClickImage(props, event) {
+        console.log(event, 'remove')
+    }
     onClickInfo(props) {
         this.setState({[props.id]:false})
     }
@@ -265,12 +277,6 @@ export default class Control extends Component {
         fetch(this.props.data.state.link,
              {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
                 response => response.json()).then(state => { delete state._clicked._paginator, this.setState(state); this.reload() })
-    }
-    onClickPhoto(props, event) {
-        console.log(event)
-    }
-    onClickRadio(props, event) {
-        this.setState({[props.id]:event.target.value})
     }
     onClickSort(props) {
         let sort = this.state._order[props.id]
@@ -305,18 +311,22 @@ export default class Control extends Component {
         delete files[state]
         this.setState({[props.id]:files})
     }
-    onDropPhoto(props, event) {
+    onCropImage(props, event) {
+        this.state._crops[props.id] = {x:event.detail.x,y:event.detail.y,width:event.detail.width,height:event.detail.height}
+        this.setState({_crops:this.state._crops})
+    }
+    onDropImage(props, event) {
         console.log(event)
     }
     onDropUpload(props, files, rejected) {
         let self = this
-        for(var key in files) {
+        for(let key in files) {
             var file = files[key]
             delete files[key]
             break
         }
         if(file.type.match('image')) {
-            var reader = new FileReader()
+            let reader = new FileReader()
             reader.onload = function() {
                 fetch(props.link, {body: reader.result, method: 'POST'}).then(response => response.json()).then(state => {
                     state[props.id].push(files[file].name)
@@ -342,15 +352,6 @@ export default class Control extends Component {
         this.state._where[props.id] = event.target.value
         this.setState({_where: Object.assign({}, this.state._where)})
     }
-    onLoadPhoto(props, event) {
-        if(event.target.clientHeight != event.target.naturalHeight || event.target.clientWidth != event.target.naturalWidth) {
-            this.setState(this.OnLoadPhoto(props, {clientHeight:event.target.clientHeight,
-                                            naturalHeight:event.target.naturalHeight,
-                                            clientWidth:event.target.clientWidth,
-                                            naturalWidth:event.target.naturalWidth}))
-        }
-    }
-    OnLoadPhoto(props, state) { }
     onKeyAutocomplete(props, event) {
         let state = this.state._autocomplete
         if(state.position == (parseInt(event.target.getAttribute('length')) - 1)) {
@@ -405,9 +406,6 @@ export default class Control extends Component {
         this.state._where[props.id] = where
         this.setState({_where:this.state._where})
     }
-    onCropPhoto(props) {
-        console.log(props)
-    }
     paginator() {
         if(PAGINATOR[this.constructor.name]) {
             fetch(this.props.data._paginator.link,
@@ -422,12 +420,6 @@ export default class Control extends Component {
     Password(props, state) {
         return Password(props, state, this.onChangeText.bind(this, props))
     }
-    Photo(props, state) {
-        return Photo(props, state, this.onDropPhoto.bind(this, props),
-                                   this.onLoadPhoto.bind(this, props),
-                                   this.onClickPhoto.bind(this, props),
-                                   this.onCropPhoto.bind(props))
-    }
     Phone(props, state) {
         return Phone(this.constructor.name, props, state)
     }
@@ -435,7 +427,7 @@ export default class Control extends Component {
         return ProgressBar(props, state)
     }
     RadioList(props, state) {
-        return RadioList(props, state, this.onClickRadio.bind(this, props))
+        return RadioList(props, state, this.onChangeRadio.bind(this, props))
     }
     reload() {
         let hash = window.location.href.replace(/(.*)\#/, '')

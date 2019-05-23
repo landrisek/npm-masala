@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom'
 export default class Presenter extends Component {
     constructor(props) {
         super(props)
-        this.state = JSON.parse(document.getElementById(props.state).getAttribute('state'))
     }
     Build(props) {
         for(var key in props) {
@@ -14,4 +13,17 @@ export default class Presenter extends Component {
         }
         return props
     }
+}
+
+export function build(id, callback) {
+    let controller = document.getElementById(id)
+    fetch(controller.getAttribute('data-link'),
+        {body: JSON.stringify({}),
+        headers: {Accept: 'application/json',
+                  'Access-Control-Allow-Origin':'*',
+                  'Access-Control-Request-Headers': 'access-control-allow-origin,content-type',
+                  'Content-Type': 'application/json'}, 
+        method:'POST'}).then(response => response.json()).then(props => {
+        callback(controller, props)
+    }).catch(error => { console.log(error) })
 }
