@@ -1,0 +1,47 @@
+import {Autocomplete} from './Autocomplete.jsx'
+import {Button} from './Button.jsx'
+import {Checkbox} from './Checkbox.jsx'
+import {CheckboxFilter} from './CheckboxFilter.jsx'
+import {Container} from './Container.jsx'
+import Control from './Control.jsx'
+import {Crop} from './Crop.jsx'
+import {DateTime} from './DateTime.jsx'
+import {DateTimeFrom} from './DateTimeFrom.jsx'
+import {Difference} from './Difference.jsx'
+import {Download} from './Download.jsx'
+import {Icon} from './Icon.jsx'
+import {Image} from './Image.jsx'
+import {Info} from './Info.jsx'
+import {IsDateTime} from './IsDateTime.jsx'
+import {IsEmail} from './IsEmail.jsx'
+import {IsLower} from './IsLower.jsx'
+import {IsPhoneNumber} from './IsPhoneNumber.jsx'
+import {IsRequired} from './IsRequired.jsx'
+import {IsTrue} from './IsTrue.jsx'
+import {Label} from './Label.jsx'
+import {Menu} from './Menu.jsx'
+import {MultiSelectFilter} from './MultiSelectFilter.jsx'
+import {Number} from './Number.jsx'
+import {Paginator} from './Paginator.jsx'
+import {Password} from './Password.jsx'
+import {ProgressBar} from './ProgressBar.jsx'
+import {RadioList} from './RadioList.jsx'
+import React from 'react'
+import {Rows} from './Rows.jsx'
+import {SelectBox} from './SelectBox.jsx'
+import {SelectBoxFilter} from './SelectBoxFilter.jsx'
+import {Sort} from './Sort.jsx'
+import {Submit} from './Submit.jsx'
+import {Text} from './Text.jsx'
+import {TextArea} from './TextArea.jsx'
+import {TextFilter} from './TextFilter.jsx'
+import {Upload} from './Upload.jsx'
+import {Wysiwyg} from './Wysiwyg.jsx'
+
+export default class FatBoy extends Container.Inject(React.Component, Autocomplete, Button, Checkbox, CheckboxFilter, Control, Crop, DateTime, DateTimeFrom, Difference, Download, Icon, Image,
+    Info, IsDateTime, IsEmail, IsLower, IsPhoneNumber, IsRequired, IsTrue, Label, Menu, MultiSelectFilter, Number, Paginator, Password, ProgressBar, RadioList, Rows, SelectBox,
+    SelectBoxFilter, Sort, Submit, Text, TextArea, TextFilter, Upload, Wysiwyg) {
+    constructor(props) {
+        super(props)
+    }
+}

@@ -2,10 +2,9 @@ import React from 'react'
 
 let INVALID = {}
 
-export default class Control extends React.Component {
+export default class Controller extends React.Component {
     constructor(props) {
         super(props)
-        this.state = {Autocomplete:{data:{},position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Order:{},Where:{},Wysiwyg:{}}
     }
     componentDidMount() {
         let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
@@ -21,14 +20,22 @@ export default class Control extends React.Component {
         for(let key in this.state.Paginator) {
             this.state.Paginator[key] = this.state.Paginator[key].toString()
         }
-        if(this.ComponentDidMount()) {
-            fetch(this.props.data.state.link,
-                {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-                response => response.json()).then(state => { this.setState(state); this.page(); })
+        if(undefined == this.props.data.componentDidMount) {
+            fetch(this.props.data.submit.link,
+                {body: JSON.stringify(this.state),
+                    headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                response => response.json()).then(state => { this.setState(state); this.page(this.constructor.name); })
         }
+        for(let key in this.props.data.componentDidMount) {
+            fetch(this.props.data.componentDidMount[key],
+                {body: JSON.stringify(this.state[key]),
+                headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                response => response.json()).then(state => { this.setState({[key]:state}); this.page(key); })
+        }
+
     }
-    ComponentDidMount() {
-        return undefined == this.props.if || this.props.if
+    getState() {
+        return {Autocomplete:{data:{},position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Order:{},Where:{},Wysiwyg:{}}
     }
     invalidate(props, state) {
         if(state && Object.entries(INVALID).length > 0) {
@@ -49,13 +56,14 @@ export default class Control extends React.Component {
     isValid() {
         return 0 == Object.entries(INVALID).length
     }
-    page() {
-        fetch(this.props.data.page,
-            {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-            response => response.json()).then(state => { this.setState(state) })
+    page(key) {
+        let state = this.constructor.name == key ? this.state : this.state[key]
+        fetch(this.props.data.page.replace(/\?key\=.*/, '') + '?key=' + key,
+            {body: JSON.stringify(state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+            response => response.json()).then(state => { this.constructor.name == key ? this.setState(state) : this.setState({[key]:state}) })
     }
     reload() {
-        let hash = window.location.href.replace(/(.*)\#/, '')
+        let hash = window.location.href.match('#') ? window.location.href.replace(/(.*)\#/, '') : ''
         let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
         let data = JSON.stringify({Order:this.state.Order,Page:this.state.Paginator.Current,Where:this.state.Where})
         url += this.constructor.name.toLowerCase() + '=' + data

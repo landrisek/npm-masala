@@ -4,7 +4,6 @@ namespace Masala;
 
 use Nette\Application\Responses\JsonResponse;
 use Nette\Application\UI\Control;
-use Nette\Caching\IStorage;
 use Nette\Database\Context;
 use Nette\InvalidStateException;
 use Nette\Localization\ITranslator;
@@ -131,8 +130,8 @@ class SqlBuilder extends Control implements IBuilderFactory {
     }
 
     public function handleExport(): void {
-        $this->state()->state->rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
-        if(1 == $this->state->_paginator->current) {
+        $this->state()->state->Rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
+        if(1 == $this->state->Paginator->Current) {
             $excel = new PHPExcel();
             $title = 'export';
             $properties = $excel->getProperties();
@@ -143,7 +142,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
             $sheet = $excel->getActiveSheet();
             $sheet->setTitle(substr($title, 0, 31));
             $letter = 'a';
-            foreach($this->row(reset($this->state->rows)) as $column => $value) {
+            foreach($this->row(reset($this->state->Rows)) as $column => $value) {
                 $sheet->setCellValue($letter . '1', $column);
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
@@ -158,7 +157,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
             $excel->setActiveSheetIndex(0);
         }
         $last = $excel->getActiveSheet()->getHighestRow();
-        foreach($this->state->rows as $key => $row) {
+        foreach($this->state->Rows as $key => $row) {
             $last++;
             $letter = 'a';
             foreach($this->row($row) as $cell) {
@@ -167,10 +166,10 @@ class SqlBuilder extends Control implements IBuilderFactory {
         }
         $writer = new PHPExcel_Writer_Excel2007($excel);
         $writer->save($this->folder . $this->state->file);
-        if($this->state->_paginator->current == $this->state->_paginator->last) {
+        if($this->state->Paginator->Current == $this->state->Paginator->Last) {
             $this->state->download = $this->path . $this->state->file;
         }
-        $this->state->_paginator->current++;
+        $this->state->Paginator->Current++;
         $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
@@ -182,11 +181,13 @@ class SqlBuilder extends Control implements IBuilderFactory {
         } else {
            $sum = $this->database->query(preg_replace('/SELECT(.*)FROM/', 'SELECT COUNT(*) AS sum FROM', $this->sum['query']), ...$this->sum['arguments'])->getRowCount();
         }
-        $this->presenter->sendResponse(new JsonResponse(['current' => $this->state->_paginator->current, 'last' => ceil($sum / $this->limit), 'sum' => $sum]));
+        $this->state->Paginator->Last = ceil($sum / $this->limit);
+        $this->state->Paginator->Sum = $sum;
+        $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
     public function handleState(): void {
-        $this->state()->state->rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
+        $this->state()->state->Rows = (object) $this->database->query($this->query, ...$this->arguments)->fetchAll();
         $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
@@ -229,13 +230,17 @@ class SqlBuilder extends Control implements IBuilderFactory {
         $this->props['download'] = ['label' => $this->translatorRepository->translate('Click here to download your file.')];
         $this->props['export'] = ['label' => $this->translatorRepository->translate('export'),
                                  'link' => $this->link('export')];
-        $this->props['_paginator'] = ['link' => $this->link('page'),
+        $this->props['Paginator'] = ['link' => $this->link('state'),
                                 'next' => $this->translatorRepository->translate('next'),
                                 'page' => ucfirst($this->translatorRepository->translate('page')),
                                 'previous' => $this->translatorRepository->translate('previous'),
                                 'sum' => $this->translatorRepository->translate('total')];
+        $this->props['page'] = $this->link('page');
         $this->props['state'] = ['label' => $this->translatorRepository->translate('filter data'),
                                  'link' => $this->link('state')];
+        foreach($this->columns as $column) {
+            $this->props[$column]['link'] = $this->link('state');
+        }
         return $this->props;
     }
 
@@ -261,12 +266,12 @@ class SqlBuilder extends Control implements IBuilderFactory {
 
     protected function state(): IBuilderFactory {
         $this->state = json_decode(file_get_contents('php://input'), false);
-        foreach($this->state->_order as $alias => $column) {
+        foreach($this->state->Order as $alias => $column) {
             if(isset($this->columns[$alias]) && !empty($column)) {
                 $this->sort .= ' ' . $alias . ' ' . ltrim($column, '-') . ', ';
             }
         }
-        foreach($this->state->_where as $alias => $value) {
+        foreach($this->state->Where as $alias => $value) {
             if(isset($this->columns[preg_replace('/(>|<|=|\s)/', '', $alias)])) {
                 $this->where($alias, $value, !empty($value));
             }
@@ -319,13 +324,13 @@ class SqlBuilder extends Control implements IBuilderFactory {
                 $this->query .= $column . ' = ? AND ';
                 $this->arguments[] = date(self::DATE, $converted);
             } elseif (is_numeric($value)) {
-                $this->update .= $column . ' = ? AND ';
-                $this->query .= $column . ' = ? AND ';
+                $this->update .= '`' . $column . '` = ? AND ';
+                $this->query .= '`' . $column . '` = ? AND ';
                 $this->arguments[] = $value;
             } else if(is_numeric($column) && !empty($value)) {
                 $this->update .= ' ' . $value . ' AND ';
                 $this->query .= ' ' . $value . ' AND ';
-            } else if(!isset($this->state->_where->$column)) {
+            } else if(!isset($this->state->Where->$column)) {
                 $this->update .= $column . ' = ? AND ';
                 $this->query .= $column . ' = ? AND ';
                 $this->arguments[] = $value;
@@ -337,8 +342,8 @@ class SqlBuilder extends Control implements IBuilderFactory {
         }
         $this->update = rtrim($this->update, 'AND ');
         $this->query = rtrim($this->query, 'AND ');
-        if(isset($this->groups[$this->group])) {
-            $this->query .= ' GROUP BY ' . $this->groups[$this->group] . ' ';
+        if(isset($this->groups[$this->state->Group])) {
+            $this->query .= ' GROUP BY ' . $this->groups[$this->state->Group] . ' ';
         }
         if(!empty($this->having = rtrim($this->having, 'AND '))) {
             $this->query .= ' HAVING ' . $this->having . ' ';
@@ -348,7 +353,7 @@ class SqlBuilder extends Control implements IBuilderFactory {
         }
         $this->sum = ['arguments' => $this->arguments, 'query' => $this->query];
         $this->arguments[] = $this->limit;
-        $this->arguments[] = ($this->state->_paginator->current - 1) * $this->limit;
+        $this->arguments[] = ($this->state->Paginator->Current - 1) * $this->limit;
         $this->query .= ' LIMIT ? OFFSET ? ';
         return $this;
     }

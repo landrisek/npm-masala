@@ -9,40 +9,37 @@ export default class MyPresenter extends Presenter {
         this.state = {menu1:false,menu2:false}
         this.state[window.location.hash.replace(/#/, '')] = true
     }
-    header() {
-        if(this.props.data.permission) {
-            return <div className={'navbar navbar-default'}>
-                <div className={'container'}>
-                    <div className={'navbar-collapse collapse'}>
-                        <ul className={'nav navbar-nav'}>
-                            <li className={this.state.menu1 ? 'active' : ''}>
-                                <a id={'menu1'} onClick={this.show.bind(this)}>{this.props.data.menu1}</a>
-                            </li>
-                            <li></li>
-                            <li className={this.state.menu2 ? 'active' : ''}>
-                                <a id={'menu2'} onClick={this.show.bind(this)}>{this.props.data.menu2}</a>
-                            </li>
-                            <li></li>
-                        </ul>
-                    </div>
+    menu() {
+        return <div className={'navbar navbar-default'}>
+            <div className={'container'}>
+                <div className={'navbar-collapse collapse'}>
+                    <ul className={'nav navbar-nav'}>
+                        <li className={this.state.menu1 ? 'active' : ''}>
+                            <a href={'javascript:;'} onClick={this.onClickMenu.bind(this, 'menu1')}>{this.props.data.menu1}</a>
+                        </li>
+                        <li></li>
+                        <li className={this.state.menu2 ? 'active' : ''}>
+                            <a href={'javascript:;'} onClick={this.onClickMenu.bind(this, 'menu2')}>{this.props.data.menu2}</a>
+                        </li>
+                        <li></li>
+                    </ul>
                 </div>
             </div>
-        }
+        </div>
+    }
+    onClickMenu(id) {
+        let state = {menu1:false,menu2:false}
+        state[id] = true
+        window.history.pushState('', 'title', window.location.href.replace(/#.*/, '') + '#' + id)
+        this.setState(state)
     }
     render() {
         return (<div>
-            {this.header()}
+            {this.menu()}
             <div className={'cleaner'}></div>
                 <div style={{display:this.state.menu1 ? 'block' : 'none'}}><MyComponent data={this.Build(this.props.data.myData)} /></div>
                 <div style={{display:this.state.menu2 ? 'block' : 'none'}}><MyComponent data={this.Build(this.props.data.myOtherData)} /></div>
             </div>)
-    }
-    show(event) {
-        event.preventDefault()
-        var state = {menu1:false,menu2:false}
-        state[event.target.id] = true
-        window.history.pushState('', 'title', window.location.href.replace(/#.*/, '') + '#' + event.target.id)
-        this.setState(state)
     }
 }
 
