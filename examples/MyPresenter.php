@@ -22,9 +22,7 @@ final class MyPresenter extends Presenter {
     }
 
     public function renderDefault(): void {
-        $this->template->props = json_encode([
-            'permission' => $this->user->isInRole('admin') && $this->user->isAllowed('MyPresenter','default'),
-            'menu1' => ucfirst($this->translatorModel->translate('menu1')),
+        $this->template->props = json_encode(['menu1' => ucfirst($this->translatorModel->translate('menu1')),
             'menu1' => ucfirst($this->translatorModel->translate('menu2')),
             'myData' => $this['myComponentFactory']->props(),
             'myOtherData' => $this['myOtherComponentFactory']->props()]);

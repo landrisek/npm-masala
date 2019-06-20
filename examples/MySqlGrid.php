@@ -46,15 +46,15 @@ final class MySqlGrid extends SqlBuilder implements IBuilderFactory, IMySqlGridF
     public function handleProcess(): void {
         $this->state();
         /** process logic **/
-        $this->state->_paginator->current++;
+        $this->state->Paginator->Current++;
         $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
     public function handleState(): void {
         $this->state();
-        $this->state->rows = new stdClass();
+        $this->state->Rows = new stdClass();
         foreach($this->database->query($this->query, ...$this->arguments)->fetchAll() as $key => $row) {
-            $this->state->rows->$key = $row;
+            $this->state->Rows->$key = $row;
             /** render logic */
         }
         $this->presenter->sendResponse(new JsonResponse($this->state));

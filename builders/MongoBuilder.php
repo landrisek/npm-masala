@@ -82,22 +82,22 @@ class MongoBuilder extends Control implements IBuilderFactory {
     }
 
     private function format(array $data): array {
-        $formated = [];
+        $formats = [];
         foreach($data as $key => $value) {
             if(is_numeric($value) && preg_match('/\./', $value)) {
-                $formated[$key] = floatval($value);
+                $formats[$key] = floatval($value);
             } else if(is_numeric($value)) {
-                $formated[$key] = intval($value);
+                $formats[$key] = intval($value);
             } else {
-                $formated[$key] = $value;
+                $formats[$key] = $value;
             }
         }
-        return $formated;
+        return $formats;
     }
 
     public function handleExport(): void {
-        $this->state()->state->rows = (object) $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
-        if(1 == $this->state->_paginator->current) {
+        $this->state()->state->Rows = (object) $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
+        if(1 == $this->state->Paginator->Current) {
             $excel = new PHPExcel();
             $title = 'export';
             $properties = $excel->getProperties();
@@ -108,7 +108,7 @@ class MongoBuilder extends Control implements IBuilderFactory {
             $sheet = $excel->getActiveSheet();
             $sheet->setTitle(substr($title, 0, 31));
             $letter = 'a';
-            foreach($this->row(reset($this->state->rows)) as $column => $value) {
+            foreach($this->row(reset($this->state->Rows)) as $column => $value) {
                 $sheet->setCellValue($letter . '1', $column);
                 $sheet->getColumnDimension($letter)->setAutoSize(true);
                 $sheet->getStyle($letter . '1')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
@@ -123,7 +123,7 @@ class MongoBuilder extends Control implements IBuilderFactory {
             $excel->setActiveSheetIndex(0);
         }
         $last = $excel->getActiveSheet()->getHighestRow();
-        foreach($this->state->rows as $key => $row) {
+        foreach($this->state->Rows as $key => $row) {
             $last++;
             $letter = 'a';
             foreach($this->row($row) as $cell) {
@@ -132,15 +132,15 @@ class MongoBuilder extends Control implements IBuilderFactory {
         }
         $writer = new PHPExcel_Writer_Excel2007($excel);
         $writer->save($this->folder . $this->state->file);
-        if($this->state->_paginator->current == $this->state->_paginator->last) {
+        if($this->state->Paginator->Current == $this->state->Paginator->Last) {
             $this->state->download = $this->path . $this->state->file;
         }
-        $this->state->_paginator->current++;
+        $this->state->Paginator->Current++;
         $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
     public function handlePage(): void {
-        if(empty($this->state()->state->_where)) {
+        if(empty($this->state()->state->Where)) {
             /** https://docs.mongodb.com/manual/reference/method/db.collection.totalSize/ */
             $sum = $this->database->query('SHOW TABLE STATUS WHERE Name = "' . $this->table . '"')->fetch()->Rows;
         } else if(!empty($this->groups) && isset($this->groups[$this->group])) {
@@ -150,15 +150,17 @@ class MongoBuilder extends Control implements IBuilderFactory {
         } else {
             $sum = intval($this->client->selectCollection($this->database, $this->collection)->count($this->arguments));
         }
-        $this->presenter->sendResponse(new JsonResponse(['current' => $this->state->_paginator->current, 'last' => ceil($sum / $this->options['limit']), 'sum' => $sum]));
+        $this->state->Paginator->Last = ceil($sum / $this->options['limit']);
+        $this->state->Paginator->Sum = $sum;
+        $this->presenter->sendResponse(new JsonResponse($this->state));
     }
 
     public function handleState(): void {
         $this->state();
         if(!empty($this->groups) && isset($this->groups[$this->group])) {
-            $this->state->rows = $this->client->selectCollection($this->database, $this->collection)->aggregate(['$match' => $this->arguments], ['$group' => [$this->groups[$this->group] => null]]);
+            $this->state->Rows = $this->client->selectCollection($this->database, $this->collection)->aggregate(['$match' => $this->arguments], ['$group' => [$this->groups[$this->group] => null]]);
         } else {
-            $this->state->rows = $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
+            $this->state->Rows = $this->client->selectCollection($this->database, $this->collection)->find($this->arguments, $this->options)->toArray();
         }
         $this->presenter->sendResponse(new JsonResponse($this->state));
     }
@@ -186,13 +188,17 @@ class MongoBuilder extends Control implements IBuilderFactory {
         $this->props['download'] = ['label' => $this->translatorRepository->translate('Click here to download your file.')];
         $this->props['export'] = ['label' => $this->translatorRepository->translate('export'),
                                  'link' => $this->link('export')];
-        $this->props['_paginator'] = ['link' => $this->link('page'),
+        $this->props['Paginator'] = ['link' => $this->link('state'),
                                 'next' => $this->translatorRepository->translate('next'),
                                 'page' => ucfirst($this->translatorRepository->translate('page')),
                                 'previous' => $this->translatorRepository->translate('previous'),
                                 'sum' => $this->translatorRepository->translate('total')];
+        $this->props['page'] = $this->link('page');
         $this->props['state'] = ['label' => $this->translatorRepository->translate('filter data'),
                                  'link' => $this->link('state')];
+        foreach($this->columns as $column) {
+            $this->props[$column]['link'] = $this->link('state');
+        }
         return $this->props;
     }
 
@@ -218,12 +224,12 @@ class MongoBuilder extends Control implements IBuilderFactory {
 
     protected function state(): IBuilderFactory {
         $this->state = json_decode(file_get_contents('php://input'), false);
-        foreach($this->state->_order as $alias => $sort) {
+        foreach($this->state->Order as $alias => $sort) {
             if(isset($this->columns[$alias]) && !empty($sort)) {
                 $this->options['sort'] = [$alias => 'ASC' == $sort ? 1 : -1];
             }
         }
-        foreach($this->state->_where as $alias => $column) {
+        foreach($this->state->Where as $alias => $column) {
             if(isset($this->props[preg_replace('/(>|<|=|\s)/', '', $alias)])) {
                 $this->where($alias, $column, !empty($column));
             }
@@ -252,13 +258,13 @@ class MongoBuilder extends Control implements IBuilderFactory {
                  $this->arguments[$key] = ['$not' => ['$eq' => $value]];
             } elseif ((bool) strpbrk($value, 1234567890) && is_int($converted = strtotime($value)) && preg_match('/\-|.*\..*/', $value)) {
                 $this->arguments[$column] = new UTCDateTime($converted);
-            } elseif (is_numeric($value) || !isset($this->state->_where->$column)) {
+            } elseif (is_numeric($value) || !isset($this->state->Where->$column)) {
                 $this->arguments[$column] = $value;
             } else {
                 $this->arguments[$column] = new Regex('.*' . $value . '.*', 's');
             }
         }
-        $this->options['skip'] = ($this->state->_paginator->current - 1) * $this->options['limit'];
+        $this->options['skip'] = ($this->state->Paginator->Current - 1) * $this->options['limit'];
         return $this;
     }
 
