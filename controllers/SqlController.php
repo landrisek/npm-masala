@@ -125,7 +125,7 @@ class SqlController extends Presenter implements IController {
             $properties->setDescription($title);
             $excel->setActiveSheetIndex(0);
             $sheet = $excel->getActiveSheet();
-            $sheet->setTitle(substr($title, 0, 31));
+            $sheet->setTitle(substr($title, 0, 30));
             $letter = 'a';
             foreach($this->row(reset($this->state->Rows)) as $column => $value) {
                 $sheet->setCellValue($letter . '1', $column);

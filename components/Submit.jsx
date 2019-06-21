@@ -17,7 +17,7 @@ export class Submit extends React.Component {
     }
     OnClickSubmit(props) { }
     Submit(props) {
-        if(this.isValid()) {
+        if(this.isValid(props.id)) {
             let submit = <input className={'btn btn-success'}
                           onClick={this.onClickSubmit.bind(this, props)}
                           style={{marginTop:'10px'}}

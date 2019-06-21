@@ -11,7 +11,7 @@ export default class Control extends React.Component {
         let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
         let search = regex.exec(window.location.search)
         if(null != search) {
-            let pattern = JSON.parse(search[1].replace(/\&(.*)/, '').split('%22').join('"').split('%20').join(' '))
+            let pattern = JSON.parse(decodeURI(search[1]))
             this.state.Order = pattern.Order
             this.state.Where = pattern.Where
             this.state.Paginator.Current = parseInt(pattern.Page)

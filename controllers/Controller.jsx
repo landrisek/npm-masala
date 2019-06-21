@@ -10,7 +10,7 @@ export default class Controller extends React.Component {
         let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
         let search = regex.exec(window.location.search)
         if(null != search) {
-            let pattern = JSON.parse(search[1].replace(/\&(.*)/, '').split('%22').join('"').split('%20').join(' '))
+            let pattern = JSON.parse(decodeURI(search[1]))
             this.state.Order = pattern.Order
             this.state.Where = pattern.Where
             this.state.Paginator.Current = parseInt(pattern.Page)
@@ -32,20 +32,21 @@ export default class Controller extends React.Component {
                 headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
                 response => response.json()).then(state => { this.setState({[key]:state}); this.page(key); })
         }
-
     }
     getState() {
         return {Autocomplete:{data:{},position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Order:{},Where:{},Wysiwyg:{}}
     }
     invalidate(props, state) {
-        if(state && Object.entries(INVALID).length > 0) {
-            return INVALID[props.id] = true
-        } else if(state) {
-            INVALID = {[props.id]: true}
-            return true
-        } else if(false == state && Object.entries(INVALID).length > 0 && undefined != INVALID[props.id]) {
-            delete INVALID[props.id]
+        for(let key in props.data) {
+            if(undefined == INVALID[props.data[key]] && state) {
+                INVALID[props.data[key]] = {[props.id]:true}
+            } else if(state) {
+                INVALID[props.data[key]][props.id] = true
+            } else if(false == state && INVALID[props.data[key]] && INVALID[props.data[key]][props.id]) {
+                delete INVALID[props.data[key]][props.id]
+            }
         }
+        return state
     }
     IsClicked(props, component) {
         if(this.state.Clicked[props]) {
@@ -53,8 +54,8 @@ export default class Controller extends React.Component {
         }
         return component
     }
-    isValid() {
-        return 0 == Object.entries(INVALID).length
+    isValid(key) {
+        return undefined == INVALID[key] || 0 == Object.entries(INVALID[key]).length
     }
     page(key) {
         let state = this.constructor.name == key ? this.state : this.state[key]

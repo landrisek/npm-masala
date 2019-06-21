@@ -6,7 +6,7 @@
     "jquery": "^3.4.0",
     "jquery-ui": "^1.12.1"
   },
-  "description": "acommodation agregator",
+  "description": "react grid",
   "devDependencies": {
     "@babel/core": "^7.4.0",
     "@babel/plugin-proposal-class-properties": "^7.4.0",
@@ -38,6 +38,7 @@
     "moduleDirectories": [
       "node_modules"
     ],
+    "roots": ["__tests__"],
     "testRegex": "(/src/__tests__/.*|\\.(test|spec))\\.(js|jsx)$",
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react/",
