@@ -5,6 +5,7 @@ let INVALID = {}
 export default class Controller extends React.Component {
     constructor(props) {
         super(props)
+        this.state = {Autocomplete:{Data:{},Position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Order:{},Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Where:{},Wysiwyg:{}}
     }
     componentDidMount() {
         let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
@@ -23,18 +24,15 @@ export default class Controller extends React.Component {
         if(undefined == this.props.data.componentDidMount) {
             fetch(this.props.data.submit.link,
                 {body: JSON.stringify(this.state),
-                    headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                    headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
                 response => response.json()).then(state => { this.setState(state); this.page(this.constructor.name); })
         }
         for(let key in this.props.data.componentDidMount) {
             fetch(this.props.data.componentDidMount[key],
                 {body: JSON.stringify(this.state[key]),
-                headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                    headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
                 response => response.json()).then(state => { this.setState({[key]:state}); this.page(key); })
         }
-    }
-    getState() {
-        return {Autocomplete:{data:{},position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Order:{},Where:{},Wysiwyg:{}}
     }
     invalidate(props, state) {
         for(let key in props.data) {
@@ -60,7 +58,8 @@ export default class Controller extends React.Component {
     page(key) {
         let state = this.constructor.name == key ? this.state : this.state[key]
         fetch(this.props.data.page.replace(/\?key\=.*/, '') + '?key=' + key,
-            {body: JSON.stringify(state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+            {body: JSON.stringify(state),
+                headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
             response => response.json()).then(state => { this.constructor.name == key ? this.setState(state) : this.setState({[key]:state}) })
     }
     reload() {

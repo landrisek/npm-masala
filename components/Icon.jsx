@@ -10,9 +10,18 @@ export class Icon {
     onClickIcon(props) {
         this.state.Clicked[props.id] = true
         this.setState({Clicked:this.state.Clicked})
-        fetch(props.link,
-            {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-            response => response.json()).then(state => { delete state.Clicked[props.id]
-            this.setState(state) })
+        if(this.OnClickIcon(props)) {
+            fetch(props.link,
+                {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
+                response => response.json()).then(state => { delete state.Clicked[props.id]
+                this.setState(state) })
+        } else {
+            let clicked = this.state.Clicked
+            delete clicked[props.id]
+            this.setState({Clicked:clicked})
+        }
+    }
+    OnClickIcon(props) {
+        return true
     }
 }
