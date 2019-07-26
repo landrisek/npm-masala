@@ -1,12 +1,11 @@
-import React, {Component} from 'react'
-import ReactDOM from 'react-dom'
+import React from 'react'
 
-export default class Presenter extends Component {
+export default class Presenter extends React.Component {
     constructor(props) {
         super(props)
     }
     Build(props) {
-        for(var key in props) {
+        for(let key in props) {
             if('object' == typeof(props[key])) {
                 props[key].id = key 
             }
