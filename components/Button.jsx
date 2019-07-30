@@ -20,14 +20,14 @@ export class Button extends React.Component {
         if(parseInt(state.Paginator.Last) >= parseInt(state.Paginator.Current)) {
             state[props.id] = state.Paginator.Current / (state.Paginator.Last / 100)
             this.setState(state)
-            this.reload()
+            this.buildUrl()
             this.onClickButton(props)
         } else {
             state.Paginator.Current = 1
             state[props.id] = 0
             delete state.Clicked[props.id]
             this.setState(state)
-            this.reload()
+            this.buildUrl()
         }
     }
 

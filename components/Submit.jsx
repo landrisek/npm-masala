@@ -12,7 +12,7 @@ export class Submit extends React.Component {
             state.Wysiwyg = wysiwyg
             this.setState(state)
             this.page(props.id)
-            this.reload()
+            this.buildUrl()
             this.OnClickSubmit(props) })
     }
     OnClickSubmit(props) { }
@@ -23,7 +23,7 @@ export class Submit extends React.Component {
                           style={{marginTop:'10px'}}
                           value={props.label}
                           type={'button'} />
-            return this.IsClicked(props.id, submit)
+            return this.IsClicked(props, submit)
         }
     }
 }

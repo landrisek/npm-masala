@@ -5,7 +5,7 @@ export class Icon {
         let icon = <button onClick={this.onClickIcon.bind(this, props)} type={'button'}>
             <span aria-hidden={'true'} className={props.className ? props.className : 'glyphicon glyphicon-edit'}></span>
         </button>
-        return this.IsClicked(props.id, icon)
+        return this.IsClicked(props, icon)
     }
     onClickIcon(props) {
         this.state.Clicked[props.id] = true

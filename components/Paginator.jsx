@@ -8,7 +8,7 @@ export class Paginator extends React.Component {
         this.state.Paginator.Current = event.target.getAttribute('data-page')
         fetch(props.link,
             {body: JSON.stringify(this.state), headers: {Accept: 'application/json','Content-Type': 'application/json'}, method: 'POST'}).then(
-            response => response.json()).then(state => { delete state.Clicked.Paginator; this.setState(state); this.reload(); })
+            response => response.json()).then(state => { delete state.Clicked.Paginator; this.setState(state); this.buildUrl(); })
     }
     Paginator(props, state) {
         let current = parseInt(state.Current)
@@ -32,7 +32,7 @@ export class Paginator extends React.Component {
             <i className={'fa fa-fw fa-database'}></i>
         </a></li>)
         let paginator = <ul className={'pagination'}>{pages}</ul>
-        return this.IsClicked('Paginator', paginator)
+        return this.IsClicked(props, paginator)
     }
 }
 

@@ -7,8 +7,28 @@ export default class SEController extends React.Component {
         super(props)
         this.state = {Autocomplete:{Data:{},Position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Order:{},Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Where:{},Wysiwyg:{}}
     }
+    buildUrl() {
+        let hash = window.location.href.match('#') ? window.location.href.replace(/(.*)\#/, '') : ''
+        let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
+        let data = JSON.stringify({Order:this.state.Order,Page:this.state.Paginator.Current,Where:this.state.Where})
+        url += this.constructor.name.toLowerCase() + '=' + data
+        if(hash) {
+            url += '#' + hash
+        }
+        window.history.pushState('', 'title', url)
+    }
     componentDidMount() {
-        console.log('open your EventSource here.');
+        let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
+        let search = regex.exec(window.location.search)
+        if(null != search) {
+            let pattern = JSON.parse(decodeURI(search[1]))
+            this.state.Order = pattern.Order
+            this.state.Where = pattern.Where
+            this.state.Paginator.Current = pattern.Page
+        } else if(null != this.props.Where) {
+            this.state.Where = this.props.Where
+        }
+        this.setState(this.state)
     }
     Click(props) {
         if(this.state.Clicked[props.id]) {
@@ -45,15 +65,5 @@ export default class SEController extends React.Component {
             {body: JSON.stringify(state),
                 headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
             response => response.json()).then(state => { this.constructor.name == key ? this.setState(state) : this.setState({[key]:state}) })
-    }
-    reload() {
-        let hash = window.location.href.match('#') ? window.location.href.replace(/(.*)\#/, '') : ''
-        let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
-        let data = JSON.stringify({Order:this.state.Order,Page:this.state.Paginator.Current,Where:this.state.Where})
-        url += this.constructor.name.toLowerCase() + '=' + data
-        if(hash) {
-            url += '#' + hash
-        }
-        window.history.pushState('', 'title', url)
     }
 }

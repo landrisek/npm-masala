@@ -7,6 +7,16 @@ export default class Controller extends React.Component {
         super(props)
         this.state = {Autocomplete:{Data:{},Position:0},Clicked:{},Crops:{},Group:null,Image:undefined,Menu:window.location.hash.replace(/#/, ''),Order:{},Paginator:{Current:1,Last:1,Sum:0},Submit:undefined,Where:{},Wysiwyg:{}}
     }
+    buildUrl() {
+        let hash = window.location.href.match('#') ? window.location.href.replace(/(.*)\#/, '') : ''
+        let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
+        let data = JSON.stringify({Order:this.state.Order,Page:this.state.Paginator.Current,Where:this.state.Where})
+        url += this.constructor.name.toLowerCase() + '=' + data
+        if(hash) {
+            url += '#' + hash
+        }
+        window.history.pushState('', 'title', url)
+    }
     componentDidMount() {
         let regex = new RegExp(this.constructor.name.toLowerCase() + '=(.*)')
         let search = regex.exec(window.location.search)
@@ -47,7 +57,8 @@ export default class Controller extends React.Component {
         return state
     }
     IsClicked(props, component) {
-        if(this.state.Clicked[props]) {
+        console.log(props.id)
+        if(this.state.Clicked[props.id]) {
             return <div className={'btn btn-success waiting'} style={{marginTop:'10px'}}>&nbsp;&nbsp;&nbsp;&nbsp;</div>
         }
         return component
@@ -61,15 +72,5 @@ export default class Controller extends React.Component {
             {body: JSON.stringify(state),
                 headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
             response => response.json()).then(state => { this.constructor.name == key ? this.setState(state) : this.setState({[key]:state}) })
-    }
-    reload() {
-        let hash = window.location.href.match('#') ? window.location.href.replace(/(.*)\#/, '') : ''
-        let url = window.location.href.replace(/\?(.*)|\#(.*)/, '') + '?'
-        let data = JSON.stringify({Order:this.state.Order,Page:this.state.Paginator.Current,Where:this.state.Where})
-        url += this.constructor.name.toLowerCase() + '=' + data
-        if(hash) {
-            url += '#' + hash
-        }
-        window.history.pushState('', 'title', url)
     }
 }
