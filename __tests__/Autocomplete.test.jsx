@@ -1,5 +1,5 @@
 import React from 'react'
-import {Autocomplete} from 'Autocomplete.jsx'
+import {Autocomplete} from '../app/components/npm-masala/components/Autocomplete.jsx'
 import ReactDOM from 'react-dom'
 
 describe('Autocomplete', () => {

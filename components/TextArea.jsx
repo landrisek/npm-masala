@@ -7,13 +7,15 @@ export class TextArea extends React.Component {
             <textarea className={'form-control'}
                       onChange={this.onChangeText.bind(this, props)}
                       value={state}
-                      type={'textarea'} >{state}</textarea>
+                      type={'textarea'}>{state}</textarea>
         </div>
     }
+
     onChangeText(props, event) {
         this.setState(this.OnChangeText(props, event.target.value))
     }
+
     OnChangeText(props, state) {
-        return {[props.id]:state}
+        return {[props.id]: state}
     }
 }

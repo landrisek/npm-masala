@@ -1,10 +1,11 @@
 import React from 'react'
-import Control from '../components/Control.jsx'
+import {Control} from '../components/Control.jsx'
 
 export default class MyComponent extends Control {
-    constructor(props){
+    constructor(props) {
         super(props)
     }
+
     render() {
         return <div></div>
     }

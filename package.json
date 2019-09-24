@@ -39,7 +39,9 @@
     "moduleDirectories": [
       "node_modules"
     ],
-    "roots": ["__tests__"],
+    "roots": [
+      "__tests__"
+    ],
     "testRegex": "(/src/__tests__/.*|\\.(test|spec))\\.(js|jsx)$",
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react/",

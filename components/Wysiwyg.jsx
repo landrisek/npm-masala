@@ -7,24 +7,28 @@ import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 
 export class Wysiwyg extends React.Component {
     onChangeWysiwyg(props, state) {
-        let wysiwyg = this.state.Wysiwyg
-        wysiwyg[props.id] = state
-        let changed = this.OnChangeWysiwyg(props, draftToHtml(convertToRaw(state.getCurrentContent())))
-        changed.Wysiwyg = wysiwyg
+        let wysiwyg = this.state.Wysiwyg;
+        wysiwyg[props.id] = state;
+        let changed = this.OnChangeWysiwyg(props, draftToHtml(convertToRaw(state.getCurrentContent())));
+        changed.Wysiwyg = wysiwyg;
         this.setState(changed)
     }
+
     OnChangeWysiwyg(props, state) {
         return {[props.id]: state.substr(3, state.length - 9)}
     }
+
     Wysiwyg(props, state) {
-        let self = this
-        if(undefined == this.state.Wysiwyg[props.id]) {
+        let self = this;
+        if (undefined == this.state.Wysiwyg[props.id]) {
             this.state.Wysiwyg[props.id] = EditorState.createWithContent(stateFromHTML(state))
         }
         return <><label>{props.label}</label><Editor editorClassName={'form-control'}
                                                      editorState={this.state.Wysiwyg[props.id]}
-                                                     onEditorStateChange={function (event) { self.onChangeWysiwygs(props, event); } }
+                                                     onEditorStateChange={function (event) {
+                                                         self.onChangeWysiwyg(props, event);
+                                                     }}
                                                      toolbarClassName={'toolbarClassName'}
-                                                     wrapperClassName={'wrapperClassName'} /></>
+                                                     wrapperClassName={'wrapperClassName'}/></>
     }
 }

@@ -57,7 +57,6 @@ export default class Controller extends React.Component {
         return state
     }
     IsClicked(props, component) {
-        console.log(props.id)
         if(this.state.Clicked[props.id]) {
             return <div className={'btn btn-success waiting'} style={{marginTop:'10px'}}>&nbsp;&nbsp;&nbsp;&nbsp;</div>
         }
@@ -67,10 +66,9 @@ export default class Controller extends React.Component {
         return undefined == INVALID[key] || 0 == Object.entries(INVALID[key]).length
     }
     page(key) {
-        let state = this.constructor.name == key ? this.state : this.state[key]
-        fetch(this.props.data.page.replace(/\?key\=.*/, '') + '?key=' + key,
-            {body: JSON.stringify(state),
+        fetch(this.props.data.page,
+            {body: JSON.stringify(this.state),
                 headers: {Accept: 'application/json','Access-Control-Request-Headers': 'content-type','Content-Type': 'application/json'}, method: 'POST'}).then(
-            response => response.json()).then(state => { this.constructor.name == key ? this.setState(state) : this.setState({[key]:state}) })
+            response => response.json()).then(state => { this.setState(state) })
     }
 }

@@ -2,7 +2,7 @@ import React from 'react'
 
 export class Info extends React.Component {
     Info(props, state) {
-        if(state) {
+        if (state) {
             return <div className={'alert alert-warning alert-dismissible show'} role={'alert'}
                         onClick={this.onClickInfo.bind(this, props)}>
                 <strong>{props.label}</strong>
@@ -12,7 +12,8 @@ export class Info extends React.Component {
             </div>
         }
     }
+
     onClickInfo(props) {
-        this.setState({[props.id]:false})
+        this.setState({[props.id]: false})
     }
 }
